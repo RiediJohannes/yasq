@@ -1,6 +1,6 @@
 import { MAX_VOLUME } from "@yasq/shared";
 import { getAvatarUrl, getDisplayName } from "../utils/helper";
-import { audioPlayer, gameState, participants, volume } from "../main";
+import { gainNode, gameState, participants, volume } from "../main";
 
 export const Sidebar = () => (
   <div className="sidebar">
@@ -38,7 +38,7 @@ export const Sidebar = () => (
             const target = e.currentTarget as HTMLInputElement;
             const val = parseFloat(target.value);
             volume.value = val;
-            audioPlayer.volume = val * MAX_VOLUME;
+            gainNode.gain.value = val * MAX_VOLUME;
           }} />
         </div>
       </div>

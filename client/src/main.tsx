@@ -40,7 +40,12 @@ export const participants = signal<Participant[]>([]);
 export const volume = signal(DEFAULT_VOLUME_SLIDER_VAL);
 
 export const audioPlayer = new Audio();
-audioPlayer.volume = DEFAULT_VOLUME_SLIDER_VAL * MAX_VOLUME;
+const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+const source = audioContext.createMediaElementSource(audioPlayer);
+export const gainNode = audioContext.createGain();
+source.connect(gainNode);
+gainNode.connect(audioContext.destination);
+gainNode.gain.value = DEFAULT_VOLUME_SLIDER_VAL * MAX_VOLUME;
 
 const App = () => {
   if (!auth.value) return <div className="loading">Authenticating...</div>;

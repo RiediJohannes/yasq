@@ -346,19 +346,22 @@ button:disabled {
 
 .container {
   display: flex;
-  height: 100%;
-  overflow: hidden;
+  flex-direction: row;
+  height: 100vh;
+  width: 100vw;
 }
 
 .game-column {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .game-header-stats {
   margin-left: 20px;
   margin-right: 20px;
+  padding-top: env(safe-area-inset-top, 0px);
   height: 48px;
   display: flex;
   justify-content: center;
@@ -389,13 +392,13 @@ button:disabled {
 }
 
 .sidebar {
-  margin: 20px;
+  padding: 20px;
   width: 300px;
+  flex-shrink: 0;
   gap: 20px;
   text-align: center;
   display: flex;
   flex-direction: column;
-  max-height: 100%;
   box-sizing: border-box;
 }
 
@@ -866,12 +869,13 @@ button:disabled {
 
 .tags-container {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   justify-content: center;
 }
 
 .tags-container.left {
-  justify-content: left;
+  justify-content: flex-start;
 }
 
 .tag-badge {
@@ -1377,5 +1381,71 @@ input[value="1"]:checked + .btn-radio.correct {
   }
   button {
     background-color: #f9f9f9;
+  }
+}
+
+@media (max-width: 768px) {
+  body {
+    overflow: auto;
+  }
+  
+  .container {
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+  }
+
+  .sidebar {
+    width: 100%;
+    order: 2;
+    padding: 10px;
+  }
+
+  .game-column {
+    order: 1;
+    width: 100%;
+  }
+
+  .game-area {
+    padding: 10px;
+  }
+
+  .grid-container, .controls {
+    margin-left: 0px;
+    margin-right: 0px;
+  }
+
+  .host-settings, .settings-info, .round-result-summary, .track-picker-container {
+    width: 100%;
+    box-sizing: border-box;
+    max-width: none;
+  }
+
+  .centered {
+    padding: 0;
+    width: 100%;
+  }
+
+  .results-title {
+    font-size: xx-large;
+  }
+
+  .guess-text {
+    height: auto;
+  }
+
+  .tag-badge {
+    max-width: 100%;
+  }
+
+  .version {
+    position: relative;
+    width: 100%;
+    left: 0;
+    text-align: center;
+    padding: 20px 0;
+    box-sizing: border-box;
+    padding-bottom: env(safe-area-inset-bottom, 20px); 
+    opacity: 0.6;
   }
 }
