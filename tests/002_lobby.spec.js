@@ -97,7 +97,7 @@ test.describe('Host UI', () => {
         'Content-Type': 'application/json'
       }
     });
-    
+
     const playerEntry = page.locator(`.player-entry:has-text("${guest.username}")`);
     await expect(playerEntry.locator('.badge.ready')).toBeVisible();
     await expect(playerEntry.locator('.badge.ready')).toHaveText('READY');
@@ -148,7 +148,7 @@ test.describe('Player UI', () => {
 
   test('should display ready button and toggle status', async ({ page, request }) => {
     // Verify Ready Button Visible
-    const readyBtn = page.locator('#btn-ready'); 
+    const readyBtn = page.locator('#btn-ready');
     await expect(readyBtn).toBeVisible();
     await expect(readyBtn).toHaveText('Ready Up');
 

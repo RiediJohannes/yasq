@@ -27,7 +27,7 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
 
   const playersExcludingHost = participants.value.filter(p => p.id !== gameState.value.hostId);
   const readyCount = gameState.value.readyUsers.length;
-  const allPlayersReady = playersExcludingHost.length > 0 && 
+  const allPlayersReady = playersExcludingHost.length > 0 &&
                           playersExcludingHost.every(p => gameState.value.readyUsers.includes(p.id));
 
   const handleRestart = async (e: MouseEvent) => {
@@ -42,7 +42,7 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
 
       <div className="leaderboard-container">
         {leaderboard.value.map((player, index) => {
-          const discordUser = participants.value.find(p => p.id === player.userId) || 
+          const discordUser = participants.value.find(p => p.id === player.userId) ||
                               { id: "0", username: 'Unknown' };
 
           const total = leaderboard.value.length;
@@ -71,9 +71,9 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
                   <div className="history-label">Round Breakdown:</div>
                   <div className="round-bubbles">
                     {player.roundHistory.map((r: any) => (
-                      <div 
+                      <div
                         key={r.round}
-                        className={`round-bubble ${r.scoreValue > 0 ? 'correct' : 'incorrect'} ${r.isFirst ? 'first' : ''}`} 
+                        className={`round-bubble ${r.scoreValue > 0 ? 'correct' : 'incorrect'} ${r.isFirst ? 'first' : ''}`}
                         title={`Round ${r.round}: ${r.guess || 'No guess'}`}
                       >
                         {r.points}
@@ -88,17 +88,17 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
       </div>
 
       {isHost ? (
-        <button 
-          id="btn-restart" 
-          disabled={!allPlayersReady} 
+        <button
+          id="btn-restart"
+          disabled={!allPlayersReady}
           onClick={handleRestart}
         >
-          {allPlayersReady 
-            ? "Play Again" 
+          {allPlayersReady
+            ? "Play Again"
             : `Waiting... (${readyCount}/${playersExcludingHost.length})`}
         </button>
       ) : (
-        <button 
+        <button
           className={`ready-btn ${gameState.value.readyUsers.includes(getUserId(auth.value)) ? 'ready' : ''} ${hasInteracted ? 'interacted' : ''}`}
           id="btn-ready"
           onClick={handleReady}

@@ -67,7 +67,7 @@ export async function setupGame(access_token: string, instanceId: string, rounds
       "Content-Type": "application/json",
       "Authorization": `Bearer ${access_token}`
     },
-    body: JSON.stringify({ 
+    body: JSON.stringify({
       instanceId,
       rounds,
       trackDuration,
@@ -137,7 +137,7 @@ export async function getRoundResults(instanceId: string, userId: string) {
   if (!response.ok) {
     const errorData = await response.json();
     const error = new Error(errorData.error || 'Request failed');
-    (error as any).status = response.status; 
+    (error as any).status = response.status;
     throw error;
   }
 

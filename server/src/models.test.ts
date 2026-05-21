@@ -42,7 +42,7 @@ describe('GameInstance - startGame', () => {
     game.startGame();
 
     const entries = game.leaderboard.getAll();
-    
+
     // Verify player is there
     const hasPlayer = entries.some(e => e.userId === PLAYER_1);
     // Verify host is NOT there
@@ -142,7 +142,7 @@ describe('GameInstance - submitResults', () => {
     const entry1 = game.leaderboard.getEntry(PLAYER_1);
     const entry2 = game.leaderboard.getEntry(PLAYER_2);
 
-    // Math for Player 1: 
+    // Math for Player 1:
     // Multiplier = 2 - (5000 / 20000) = 1.75
     // Base = 100 * 1.0 * 1.75 = 175
     // First Bonus = 175 * 1.2 = 210
@@ -190,7 +190,7 @@ describe('GameInstance - submitResults', () => {
 
   it('should transition to RESULTS state and reset guessedPlayers', () => {
     game.guessedPlayers.add(PLAYER_1);
-    
+
     game.submitResults({});
 
     expect(game.state).toBe(GameState.RESULTS);
@@ -253,7 +253,7 @@ describe('GameInstance - playTrack', () => {
 
   it('should set correct TrackInfo and transition to PLAYING', () => {
     const track = new Track(GAME_A, "Track A", "file123", "", []);
-    
+
     game.playTrack(track);
 
     const expectedStart = Date.now() + 4000; // now + countdown
@@ -278,7 +278,7 @@ describe('GameInstance - playTrack', () => {
 
     // Jump past the finish line (14.1 seconds total)
     vi.advanceTimersByTime(200);
-    
+
     expect(game.state).toBe(GameState.ROUND_COMPLETED);
   });
 

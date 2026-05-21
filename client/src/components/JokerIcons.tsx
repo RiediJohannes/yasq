@@ -42,8 +42,8 @@ SpyJokerIcon.jokerType = Joker.SPY;
 SpyJokerIcon.description = "Allows you to copy the answer of another player";
 
 export const ALL_JOKER_ICONS = [
-  ObfuscationIcon, 
-  TriviaIcon, 
-  MultipleChoiceIcon, 
+  ObfuscationIcon,
+  TriviaIcon,
+  MultipleChoiceIcon,
   SpyJokerIcon
 ];

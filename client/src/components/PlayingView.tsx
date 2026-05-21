@@ -31,9 +31,9 @@ export const ArenaView = ({ isHost }: { isHost: boolean }) => {
 
     try {
       const response = await backend.useJoker(auth.value.access_token, discordSdk.instanceId, jokerType, targetId);
-      activeHint.value = { 
-        type: jokerType, 
-        data: targetId ? { text: response.hint, targetId } : response.hint 
+      activeHint.value = {
+        type: jokerType,
+        data: targetId ? { text: response.hint, targetId } : response.hint
       };
       availableJokers.value = availableJokers.value.filter(j => j !== jokerType);
       isSelectingSpyTarget.value = false;
@@ -65,7 +65,7 @@ export const ArenaView = ({ isHost }: { isHost: boolean }) => {
         const now = Date.now();
         const totalDurationMs = endTime - startTime;
         const timePassedMs = now - startTime;
-        
+
         const progressBar = document.getElementById('progress-bar');
 
         // 1. Countdown Phase (before startTime)
@@ -175,7 +175,7 @@ export const ArenaView = ({ isHost }: { isHost: boolean }) => {
                   <p className="no-results">No player has submitted a guess yet.</p>
                 ) : (
                   gameState.value.guessedPlayers.map(targetId => {
-                    const discordUser = participants.value.find(p => p.id === targetId) || 
+                    const discordUser = participants.value.find(p => p.id === targetId) ||
                                         { id: "0", username: 'Unknown' };
 
                     return (
@@ -214,7 +214,7 @@ export const ArenaView = ({ isHost }: { isHost: boolean }) => {
               {activeHint.value.type === Joker.MULTIPLE_CHOICE && (
                 <div className="choices-grid">
                   {activeHint.value.data.map((choice: string) => (
-                    <button 
+                    <button
                       key={choice}
                       className="choice-button"
                       onClick={async (e) => {
@@ -232,7 +232,7 @@ export const ArenaView = ({ isHost }: { isHost: boolean }) => {
               {activeHint.value?.type === Joker.SPY && (
                 <div className="spy-hint-display">
                   {(() => {
-                    const targetUser = participants.value.find(p => p.id === activeHint.value?.data.targetId) || 
+                    const targetUser = participants.value.find(p => p.id === activeHint.value?.data.targetId) ||
                                       { id: "0", username: 'Unknown' };
                     return (
                       <div className="spy-target-info">
@@ -259,8 +259,8 @@ export const ArenaView = ({ isHost }: { isHost: boolean }) => {
 
           {!hasSubmitted.value ? (
             <div>
-              <form 
-                id="game-guesser-form" 
+              <form
+                id="game-guesser-form"
                 className="game-guesser-form"
                 onSubmit={async (e) => {
                   e.preventDefault();
@@ -273,7 +273,7 @@ export const ArenaView = ({ isHost }: { isHost: boolean }) => {
                   await backend.submitGuess(auth.value.access_token, discordSdk.instanceId, guess);
                 }}
               >
-                <input 
+                <input
                   type="text"
                   ref={inputRef}
                   id="guess-input"
@@ -304,7 +304,7 @@ export const ArenaView = ({ isHost }: { isHost: boolean }) => {
                     const tooltipText = isAvailable ? jokerName : `${jokerName} (Already Used)`;
 
                     return (
-                      <button 
+                      <button
                         key={type}
                         className="joker-icon-btn"
                         id={`btn-joker-${type.toLowerCase().replace(/_/g, '-')}`}

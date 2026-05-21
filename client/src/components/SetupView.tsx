@@ -8,14 +8,14 @@ import { DEFAULT_ROUNDS, DEFAULT_TRACK_DURATION, Joker } from "@yasq/shared";
 
 export const SetupView = ({ isHost }: { isHost: boolean }) => {
   const roundCount = useSignal(gameState.value.rounds || DEFAULT_ROUNDS);
-  const trackDuration = useSignal(gameState.value.trackDuration 
-    ? gameState.value.trackDuration / 1000 
+  const trackDuration = useSignal(gameState.value.trackDuration
+    ? gameState.value.trackDuration / 1000
     : DEFAULT_TRACK_DURATION);
   const isSubmitting = useSignal(false);
   const activeJokers = useSignal<Set<Joker>>(
     new Set(
-      gameState.value.enabledJokers.length > 0 
-        ? gameState.value.enabledJokers 
+      gameState.value.enabledJokers.length > 0
+        ? gameState.value.enabledJokers
         : [Joker.OBFUSCATION, Joker.TRIVIA, Joker.MULTIPLE_CHOICE, Joker.SPY]
     )
   );
@@ -143,16 +143,16 @@ export const HostTransferDropdown = () => {
               <><img src={selectedPlayer.value.avatar} className="avatar-tiny" /><span>{selectedPlayer.value.name}</span></>
             ) : "Select a player..."}
           </div>
-          
+
           {isOpen.value && (
             <div className="dropdown-list" id="dropdown-list" style={{ display: 'block' }}>
               {players.length === 0 ? (
                 <div className="dropdown-item dropdown-item-empty">No other players</div>
               ) : players.map(p => (
-                <div 
+                <div
                   data-id={p.id}
-                  key={p.id} 
-                  className="dropdown-item" 
+                  key={p.id}
+                  className="dropdown-item"
                   onClick={(e) => {
                     e.stopPropagation();
                     selectedPlayer.value = { id: p.id, name: getDisplayName(p), avatar: getAvatarUrl(p) };

@@ -6,7 +6,7 @@
 
     /* Environment Settings */
     "module": "NodeNext",        // Essential for modern Node.js ESM
-    "moduleResolution": "NodeNext", 
+    "moduleResolution": "NodeNext",
     "target": "ESNext",
     "lib": ["ESNext"],           // Modern JS features
     "types": ["node"],           // Tells TS to look for @types/node

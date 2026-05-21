@@ -52,7 +52,7 @@ export const HostReviewView = ({ isHost }: { isHost: boolean }) => {
     <div id="results" className="centered">
       <h2>Results</h2>
       <p>The correct answer was: <strong>{reviewData.value.answer}</strong></p>
-      
+
       <div id="guess-list">
         {Object.entries(reviewData.value.guesses).map(([userId, guess]) => {
           const user = findUser(userId);
@@ -74,7 +74,7 @@ export const HostReviewView = ({ isHost }: { isHost: boolean }) => {
                   ) : null;
                 })()}
               </div>
-              
+
               <div className="button-group">
                 <input type="radio" id={`wrong-${userId}`} name={`score-${userId}`} value="0" checked
                   onChange={() => { corrections.value = { ...corrections.value, [userId]: 0 }; }} />

@@ -1,26 +1,26 @@
 [
-    {
-        "game": "Game A",
-        "title": "Track A",
-        "audio": "track001.mp3",
-        "cover": "game_a.jpg"
-    },
-    {
-        "game": "Game B",
-        "title": "Track B",
-        "audio": "track002.mp3",
-        "cover": "game_b.jpg"
-    },
-    {
-        "game": "Game C",
-        "title": "Track C",
-        "audio": "track003.mp3",
-        "cover": "game_c.jpg"
-    },
-    {
-        "game": "Game D",
-        "title": "Track D",
-        "audio": "track004.mp3",
-        "cover": "game_d.jpg"
-    }
+  {
+    "game": "Game A",
+    "title": "Track A",
+    "audio": "track001.mp3",
+    "cover": "game_a.jpg"
+  },
+  {
+    "game": "Game B",
+    "title": "Track B",
+    "audio": "track002.mp3",
+    "cover": "game_b.jpg"
+  },
+  {
+    "game": "Game C",
+    "title": "Track C",
+    "audio": "track003.mp3",
+    "cover": "game_c.jpg"
+  },
+  {
+    "game": "Game D",
+    "title": "Track D",
+    "audio": "track004.mp3",
+    "cover": "game_d.jpg"
+  }
 ]

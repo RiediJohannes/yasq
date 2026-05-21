@@ -56,9 +56,9 @@ describe('isAllowed', () => {
 
   it('should start with no restrictions if file does not exist', () => {
     vi.mocked(fs.existsSync).mockReturnValue(false);
-    
+
     loadPermissions();
-    
+
     expect(isAllowed(PLAYER_3, TRACK_3)).toBe(true);
   });
 });

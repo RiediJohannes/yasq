@@ -10,7 +10,7 @@
   </defs>
 
   <rect width="512" height="512" fill="#121212"/>
-  
+
   <g mask="url(#note-mask)">
     <circle cx="256" cy="256" r="175" fill="none" stroke="#333" stroke-width="36"/>
     <circle cx="256" cy="256" r="55" fill="none" stroke="#333" stroke-width="24"/>

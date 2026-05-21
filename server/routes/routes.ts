@@ -75,7 +75,7 @@ export const setupRoutes = (instances: Record<string, GameInstance>, isMockMode:
     const game = instances[instanceId];
     game.registeredUsers.add(userId);
 
-    res.send({ 
+    res.send({
       isHost: game.isHost(userId),
       hostId: game.hostId
     });
@@ -108,12 +108,12 @@ export const setupRoutes = (instances: Record<string, GameInstance>, isMockMode:
 
       if (!isGameActive) {
         console.log(`Terminating empty instance: ${instanceId}`);
-        delete instances[instanceId]; 
+        delete instances[instanceId];
         return res.send({ message: "Instance terminated" });
       }
     }
 
-    res.send({ 
+    res.send({
       success: true,
       hostId: game.hostId
     });
@@ -144,7 +144,7 @@ export const setupRoutes = (instances: Record<string, GameInstance>, isMockMode:
       game.readyUsers.delete(userId);
     }
 
-    res.send({ 
+    res.send({
       readyUsers: [...game.readyUsers]
     });
   });
@@ -157,7 +157,7 @@ export const setupRoutes = (instances: Record<string, GameInstance>, isMockMode:
       return res.status(400).send({ error: "Instance not found" });
     }
 
-    res.send({ 
+    res.send({
       readyUsers: [...game.readyUsers]
     });
   });
@@ -375,7 +375,7 @@ export const setupRoutes = (instances: Record<string, GameInstance>, isMockMode:
     const guessesWithJokers = Object.fromEntries(
       Object.entries(roundGuesses).map(([userId, guess]) => {
         const userJokers = game.usedJokers[userId] || {};
-        
+
         // Find which joker (if any) was used in this round
         const jokerUsed = Object.keys(userJokers).find(
           (joker) => userJokers[joker as Joker] === currentRound
@@ -435,7 +435,7 @@ export const setupRoutes = (instances: Record<string, GameInstance>, isMockMode:
 
     // Get the most recent round result from the user's round history
     const roundResult = game.leaderboard.getRoundSummary(
-      game.currentRound, 
+      game.currentRound,
       game.isHost(userId) ? undefined : userId
     );
 
@@ -443,7 +443,7 @@ export const setupRoutes = (instances: Record<string, GameInstance>, isMockMode:
       return res.status(403).send({ error: "User not found in leaderboard." });
     }
 
-    const correctPlayersCount = game.leaderboard.getAll().filter(playerEntry => 
+    const correctPlayersCount = game.leaderboard.getAll().filter(playerEntry =>
       playerEntry.roundHistory.some(r => r.round === game.currentRound && r.scoreValue === 1)
     ).length;
 
@@ -630,11 +630,11 @@ export const setupRoutes = (instances: Record<string, GameInstance>, isMockMode:
     }
 
     // Filter out the ones the user has already used
-    const available = [...game.settings.enabledJokers].filter(joker => 
+    const available = [...game.settings.enabledJokers].filter(joker =>
       game.canUseJoker(userId, joker)
     );
 
-    res.send({ 
+    res.send({
       available,
       used: Object.keys(game.usedJokers[userId] || [])
     });
@@ -694,9 +694,9 @@ export const setupRoutes = (instances: Record<string, GameInstance>, isMockMode:
 
     game.markJokerUsed(userId, jokerType);
 
-    res.send({ 
-      jokerType, 
-      hint 
+    res.send({
+      jokerType,
+      hint
     });
   });
 

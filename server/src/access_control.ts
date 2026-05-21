@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 const isMockMode = process.env.VITE_MOCK_MODE === 'true'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const permissionsPath = isMockMode 
+const permissionsPath = isMockMode
   ? path.join(__dirname, '..', '..', 'mock_data', 'mockPermissions.json')
   : path.join(__dirname, '..', 'data', 'permissions.json');
 
@@ -25,7 +25,7 @@ export function loadPermissions() {
       if (Array.isArray(data)) {
         for (const set of data) {
           const userSet = new Set<string>(set.userIds as string[]);
-          
+
           for (const file of set.files) {
             if (set.type === 'whitelist') {
               WHITELISTS.set(file, userSet);

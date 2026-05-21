@@ -124,7 +124,7 @@ export class GameInstance {
 
       // Round to avoid fractional points and ensure it's an integer
       pointsEarned = Math.round(pointsEarned);
-      
+
       // Create new entry if not existing yet
       if (!this.leaderboard.hasEntry(userId)) {
         this.leaderboard.addEntry(new LeaderboardEntry(userId));
@@ -253,7 +253,7 @@ export class GameInstance {
 
     // Combine with the correct answer and shuffle the final 4
     const finalChoices = [correctAnswer, ...wrongAnswers];
-    
+
     return finalChoices.sort(() => 0.5 - generator.random());
   }
 
@@ -271,7 +271,7 @@ export class GameInstance {
 
   public pickNewHost(): boolean {
     const remainingPlayers = Array.from(this.registeredUsers);
-    
+
     if (remainingPlayers.length === 0) {
       return false;
     }
@@ -352,7 +352,7 @@ export class RoundResult {
 export class LeaderboardEntry {
   public userId: string;
   public totalScore: number = 0;
-  public roundHistory: RoundResult[] = []; 
+  public roundHistory: RoundResult[] = [];
 
   constructor(userId: string) {
     this.userId = userId;
@@ -369,7 +369,7 @@ export class LeaderboardEntry {
   static fromJSON(data: any): LeaderboardEntry {
     const entry = new LeaderboardEntry(data.userId);
     entry.totalScore = data.totalScore || 0;
-    entry.roundHistory = (data.roundHistory || []).map((r: any) => 
+    entry.roundHistory = (data.roundHistory || []).map((r: any) =>
       new RoundResult(r.round, r.guess, r.points, r.scoreValue, r.isFirst, r.time)
     );
     return entry;
@@ -412,8 +412,8 @@ export class Leaderboard {
   }
 
   public getRoundSummary(round: number, userId?: string) {
-    const entries = userId 
-      ? this.entries.filter(e => e.userId === userId) 
+    const entries = userId
+      ? this.entries.filter(e => e.userId === userId)
       : this.entries;
 
     return entries.map(entry => {

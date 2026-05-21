@@ -29,7 +29,7 @@ test.describe('Host UI', () => {
         settings: {
           rounds: 5,
           trackDuration: 30000,
-          enabledJokers: ['OBFUSCATION', 'TRIVIA', 'MULTIPLE_CHOICE', 'SPY'] 
+          enabledJokers: ['OBFUSCATION', 'TRIVIA', 'MULTIPLE_CHOICE', 'SPY']
         },
         trackInfo: {
           url: "some url",
@@ -102,7 +102,7 @@ test.describe('Player UI', () => {
         settings: {
           rounds: 5,
           trackDuration: 30000,
-          enabledJokers: ['OBFUSCATION', 'TRIVIA', 'MULTIPLE_CHOICE', 'SPY'] 
+          enabledJokers: ['OBFUSCATION', 'TRIVIA', 'MULTIPLE_CHOICE', 'SPY']
         },
         trackInfo: {
           url: "some url",

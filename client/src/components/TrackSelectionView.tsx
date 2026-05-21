@@ -26,7 +26,7 @@ export const SelectionView = ({ isHost }: { isHost: boolean }) => {
     });
   }, [isHost]);
 
-  // Computed signal: This automatically re-filters whenever tracks, 
+  // Computed signal: This automatically re-filters whenever tracks,
   // selectedPlaylistName, searchTerm, or hidePlayed changes.
   const baseFilteredTracks = computed(() => {
     if (!tracks.value) return [];
@@ -40,10 +40,10 @@ export const SelectionView = ({ isHost }: { isHost: boolean }) => {
       }
 
       // Filter search
-      const matchesSearch = 
-        track.game.toLowerCase().includes(searchTerm.value.toLowerCase()) || 
+      const matchesSearch =
+        track.game.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
         track.title.toLowerCase().includes(searchTerm.value.toLowerCase());
-      
+
       // Filter played status
       const matchesPlayed = hidePlayed.value ? !track.played : true;
 
@@ -58,8 +58,8 @@ export const SelectionView = ({ isHost }: { isHost: boolean }) => {
     let results = [...baseFilteredTracks.value];
 
     if (activeCategories.length > 0) {
-      results = results.filter(track => 
-        activeCategories.every(([type, selectedVals]) => 
+      results = results.filter(track =>
+        activeCategories.every(([type, selectedVals]) =>
           track.tags?.some(t => t.type === type && selectedVals.includes(t.value))
         )
       );
@@ -73,7 +73,7 @@ export const SelectionView = ({ isHost }: { isHost: boolean }) => {
 
       // Sort by Game Name
       const gameComp = a.game.localeCompare(b.game);
-      
+
       // Secondary Sort: If games are the same, sort by Track Title
       if (gameComp === 0) {
         const titleComp = a.title.localeCompare(b.title);
@@ -113,8 +113,8 @@ export const SelectionView = ({ isHost }: { isHost: boolean }) => {
       const otherFilters = Object.entries(currentFilters)
         .filter(([type, vals]) => type !== catToSkip && vals.length > 0);
 
-      const reachableInCat = baseFilteredTracks.value.filter(track => 
-        otherFilters.every(([type, selectedVals]) => 
+      const reachableInCat = baseFilteredTracks.value.filter(track =>
+        otherFilters.every(([type, selectedVals]) =>
           track.tags.some(t => t.type === type && selectedVals.includes(t.value))
         )
       );
@@ -151,14 +151,14 @@ export const SelectionView = ({ isHost }: { isHost: boolean }) => {
     <div id="track-picker-container">
       <h2>Select the next track to challenge players:</h2>
       <div className="controls">
-        <SimpleDropdown 
+        <SimpleDropdown
           options={["Default Order", "A-Z", "Z-A"]}
           value={sortOrder.value}
           onChange={(val) => (sortOrder.value = val as SortOption)}
         />
 
         {playlists.value.length > 0 && (
-          <SimpleDropdown 
+          <SimpleDropdown
             options={["All playlists", ...playlists.value.map(p => p.name)]}
             value={selectedPlaylistName.value}
             onChange={(val) => (selectedPlaylistName.value = val)}
@@ -166,7 +166,7 @@ export const SelectionView = ({ isHost }: { isHost: boolean }) => {
         )}
 
         {Object.keys(availableTagsByType.value).length > 0 && (
-          <TagFilterDropdown 
+          <TagFilterDropdown
             availableTags={availableTagsByType.value}
             selectedTags={selectedTags}
             reachableTags={reachableTags.value}
@@ -214,7 +214,7 @@ export const SelectionView = ({ isHost }: { isHost: boolean }) => {
                 />
                 {track.played && <span className="played-overlay">PLAYED</span>}
               </div>
-              
+
               <div className="track-info">
                 <span className="game-name">
                   <HighlightText text={track.game} highlight={searchTerm.value} />
@@ -226,11 +226,11 @@ export const SelectionView = ({ isHost }: { isHost: boolean }) => {
                 </span>
               </div>
 
-              <button 
-                className="select-btn" 
+              <button
+                className="select-btn"
                 disabled={track.played}
                 onClick={async (e) => {
-                  // Preact's way of preventing double-clicks: 
+                  // Preact's way of preventing double-clicks:
                   // The button becomes disabled because tracks.value will update
                   // or the state will change to 'PLAYING' via the backend call.
                   (e.currentTarget as HTMLButtonElement).disabled = true;
@@ -280,7 +280,7 @@ export const TagFilterDropdown = ({
   const toggleTag = (type: string, value: string) => {
     const current = { ...selectedTags.value };
     const typeFilters = current[type] || [];
-    
+
     if (typeFilters.includes(value)) {
       current[type] = typeFilters.filter(v => v !== value);
     } else {
@@ -299,7 +299,7 @@ export const TagFilterDropdown = ({
   return (
     <div className="filter-dropdown">
       <div className="dropdown-trigger-wrapper">
-        <button 
+        <button
           className={`dropdown-trigger ${activeCount > 0 ? 'active' : ''}`}
           onClick={() => (isOpen.value = !isOpen.value)}
         >
@@ -333,8 +333,8 @@ export const TagFilterDropdown = ({
                     return (
                       <label key={val} className={`dropdown-item ${isDisabled ? 'disabled' : ''}`}>
                         <div className="item-label-group">
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             disabled={isDisabled}
                             checked={isSelected || false}
                             onChange={() => toggleTag(type, val)}
@@ -355,14 +355,14 @@ export const TagFilterDropdown = ({
   );
 };
 
-export const SimpleDropdown = ({ 
-  options, 
-  value, 
-  onChange 
-}: { 
-  options: string[], 
-  value: string, 
-  onChange: (val: string) => void 
+export const SimpleDropdown = ({
+  options,
+  value,
+  onChange
+}: {
+  options: string[],
+  value: string,
+  onChange: (val: string) => void
 }) => {
   const isOpen = useSignal(false);
   const isFiltering = value !== options[0];
@@ -373,7 +373,7 @@ export const SimpleDropdown = ({
       className="filter-dropdown"
       style={{ "--longest-text": `"${longestOption}"` }}
     >
-      <button 
+      <button
         className={`dropdown-trigger ${isFiltering ? 'active' : ''}`}
         onClick={() => (isOpen.value = !isOpen.value)}
       >
@@ -387,8 +387,8 @@ export const SimpleDropdown = ({
           <div className="dropdown-menu">
             <div className="scrollbar-container">
               {options.map(opt => (
-                <div 
-                  key={opt} 
+                <div
+                  key={opt}
                   className={`dropdown-item single-select ${value === opt ? 'active' : ''}`}
                   onClick={() => {
                     onChange(opt);

@@ -19,7 +19,7 @@ const port = 3001;
 const instances: Record<string, GameInstance> = {};
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const tracksPath = isMockMode 
+const tracksPath = isMockMode
   ? path.join(__dirname, '..', 'mock_data', 'mockTracks.json')
   : path.join(__dirname, 'data', 'tracks.json');
 
@@ -38,7 +38,7 @@ if (fs.existsSync(tracksPath)) {
   process.exit(1);
 }
 
-const playlistsPath = isMockMode 
+const playlistsPath = isMockMode
   ? path.join(__dirname, '..', 'mock_data', 'mockPlaylists.json')
   : path.join(__dirname, 'data', 'playlists.json');
 

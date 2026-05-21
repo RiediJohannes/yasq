@@ -66,7 +66,7 @@ test.describe('Host UI', () => {
 
     // Assertions for the "After" state
     await expect(transferBtn).toHaveText(/transferring/i);
-    
+
     // Once the backend processes this, the host UI is replaced by the guesser UI
     await expect(page.locator('#host-settings')).toBeHidden();
     await expect(page.locator('#waiting-setup-msg')).toBeVisible();

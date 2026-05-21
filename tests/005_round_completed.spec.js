@@ -41,8 +41,8 @@ test.describe('Host UI', () => {
         },
         readyUserIds: [],
         usedJokers: {
-          [players[1].id]: { 
-            "TRIVIA": 1 
+          [players[1].id]: {
+            "TRIVIA": 1
           }
         }
       }
@@ -141,7 +141,7 @@ test.describe('Player UI', () => {
   test('should display waiting message to guessers', async ({ page }) => {
     // Verify the waiting test displayed
     await expect(page.locator('#results')).toContainText('Waiting for host to review answers...');
-    
+
     // Verify host controls are hidden
     await expect(page.locator('#btn-submit-reviewed-results')).toBeHidden();
     await expect(page.locator('#guess-list')).toBeHidden();

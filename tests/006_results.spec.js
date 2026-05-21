@@ -38,7 +38,7 @@ test.describe('Host UI', () => {
             ]
           }
         },
-        readyUserIds: [] 
+        readyUserIds: []
       }
     });
 
@@ -113,7 +113,7 @@ test.describe('Player UI', () => {
             ]
           }
         },
-        readyUserIds: [] 
+        readyUserIds: []
       }
     });
 
@@ -140,7 +140,7 @@ test.describe('Player UI', () => {
     // Verify the Round Summary display
     const resultsContainer = page.locator('#results');
     await expect(resultsContainer.locator('h2')).toContainText('Round 1 Results');
-    
+
     // Check for the correct answer text from trackInfo
     await expect(resultsContainer).toContainText('Game A');
     await expect(resultsContainer).toContainText('Track A');
@@ -184,7 +184,7 @@ test.describe('Player UI', () => {
     // Verify the Round Summary display
     const resultsContainer = page.locator('#results');
     await expect(resultsContainer.locator('h2')).toContainText('Round 1 Results');
-    
+
     // Check for the correct answer text from trackInfo
     await expect(resultsContainer).toContainText('Game A');
     await expect(resultsContainer).toContainText('Track A');
@@ -212,7 +212,7 @@ test.describe('Player UI', () => {
     // Verify the Round Summary display
     const resultsContainer = page.locator('#results');
     await expect(resultsContainer.locator('h2')).toContainText('Round 1 Results');
-    
+
     // Check for the correct answer text from trackInfo
     await expect(resultsContainer).toContainText('Game A');
     await expect(resultsContainer).toContainText('Track A');
@@ -241,7 +241,7 @@ test.describe('Player UI', () => {
     const readyBtn = page.locator('#btn-ready');
     await expect(readyBtn).toHaveText('Ready Up');
     await readyBtn.click();
-    
+
     // Verify local UI update
     await expect(readyBtn).toHaveText("I'm Ready! ✅");
     await expect(readyBtn).toHaveClass(/ready/);
@@ -257,24 +257,24 @@ test.describe('Player UI', () => {
         leaderboard: {
           entries: [
             // Player 1: Correct (scoreValue 1)
-            { 
-              userId: players[1].id, 
-              roundHistory: [{ round: 1, scoreValue: 1, points: 100, guess: "Game A" }] 
+            {
+              userId: players[1].id,
+              roundHistory: [{ round: 1, scoreValue: 1, points: 100, guess: "Game A" }]
             },
             // Player 2: Partial (scoreValue 0.5)
-            { 
-              userId: players[2].id, 
-              roundHistory: [{ round: 1, scoreValue: 0.5, points: 50, guess: "Game A2" }] 
+            {
+              userId: players[2].id,
+              roundHistory: [{ round: 1, scoreValue: 0.5, points: 50, guess: "Game A2" }]
             },
             // Player 3: Wrong (scoreValue 0)
-            { 
-              userId: players[3].id, 
-              roundHistory: [{ round: 1, scoreValue: 0, points: 0, guess: "Game B" }] 
+            {
+              userId: players[3].id,
+              roundHistory: [{ round: 1, scoreValue: 0, points: 0, guess: "Game B" }]
             },
             // Player 4: Correct (scoreValue 1)
-            { 
-              userId: players[4].id, 
-              roundHistory: [{ round: 1, scoreValue: 1, points: 100, guess: "Game A" }] 
+            {
+              userId: players[4].id,
+              roundHistory: [{ round: 1, scoreValue: 1, points: 100, guess: "Game A" }]
             }
           ]
         }

@@ -37,7 +37,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
   // Logic for the Host's "Next Round" button
   const playersExcludingHost = participants.value.filter(p => p.id !== gameState.value.hostId);
   const readyCount = gameState.value.readyUsers.length;
-  const allPlayersReady = playersExcludingHost.length > 0 && 
+  const allPlayersReady = playersExcludingHost.length > 0 &&
                           playersExcludingHost.every(p => gameState.value.readyUsers.includes(p.id));
 
   const handleNextRound = async () => {
@@ -81,7 +81,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
           <hr className="divider" />
           <div>
             {results.map((res: any) => {
-              const discordUser = participants.value.find(p => p.id === res.userId) || 
+              const discordUser = participants.value.find(p => p.id === res.userId) ||
                                   { id: "0", username: 'Unknown' };
 
               return (
@@ -91,7 +91,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
 
                   <div className="round-result-box">
                     <div className="round-bubbles">
-                      <div 
+                      <div
                         className={`round-bubble ${res.scoreValue > 0 ? 'correct' : 'incorrect'} ${res.isFirst ? 'first' : ''}`}
                         title={res.guess || 'No guess'}
                       >
@@ -130,13 +130,13 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
       <div id="results" className="centered">
         <h2>Results Unavailable</h2>
         <p className="error-text">
-          {roundData.value.error === "NOT_FOUND" 
-            ? "You weren't in the leaderboard for this round." 
+          {roundData.value.error === "NOT_FOUND"
+            ? "You weren't in the leaderboard for this round."
             : "A server error occurred."}
         </p>
 
         <div>
-          <button 
+          <button
             className={`ready-btn ${gameState.value.readyUsers.includes(getUserId(auth.value)) ? 'ready' : ''} ${hasInteracted ? 'interacted' : ''}`}
             id="btn-ready"
             onClick={handleReady}
@@ -199,7 +199,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
       </div>
 
       <div>
-        <button 
+        <button
           className={`ready-btn ${gameState.value.readyUsers.includes(getUserId(auth.value)) ? 'ready' : ''} ${hasInteracted ? 'interacted' : ''}`}
           id="btn-ready"
           onClick={handleReady}

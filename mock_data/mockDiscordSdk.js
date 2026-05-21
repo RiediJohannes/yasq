@@ -15,7 +15,7 @@ export const mockDiscordSdk = {
     authenticate: async () => ({
       access_token: `token_${window.__MOCK_USER_ID__ || '0'}`,
       user: {
-        id: window.__MOCK_USER_ID__ || '0', 
+        id: window.__MOCK_USER_ID__ || '0',
         username: window.__MOCK_USER_NAME__ || 'MockPlayer1',
         avatar: null,
       },
