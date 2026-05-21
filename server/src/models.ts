@@ -98,10 +98,10 @@ export class GameInstance {
 
     // 2. Identify the fastest correct guess for this round
     let fastestUserId = "";
-    let minTime = Infinity;
+    let firstCorrectTime = Infinity;
     Object.entries(roundGuesses).forEach(([userId, data]) => {
-      if (data.scoreValue === 1 && data.timeTaken < minTime) {
-        minTime = data.timeTaken;
+      if (data.scoreValue === 1 && data.timeTaken < firstCorrectTime) {
+        firstCorrectTime = data.timeTaken;
         fastestUserId = userId;
       }
     });
@@ -111,14 +111,14 @@ export class GameInstance {
       if (this.isHost(userId)) return; // Skip host
 
       const data = roundGuesses[userId];
-      const score = data?.scoreValue || 0;
+      const scoreMultiplier = data?.scoreValue || 0;
       const isFirst = userId === fastestUserId;
       let pointsEarned = 0;
 
-      if (score > 0) {
+      if (scoreMultiplier > 0) {
         const timeTaken = data?.timeTaken || this.settings.trackDuration; // Fallback to max duration if missing
-        const multiplier = Math.max(1, 2 - (timeTaken / this.settings.trackDuration));
-        pointsEarned = BASE_POINTS * score * multiplier;
+        const timeMultiplier = Math.max(1, this.calculateDelayedLinearDecayMultiplier(timeTaken, firstCorrectTime));
+        pointsEarned = BASE_POINTS * scoreMultiplier * timeMultiplier;
         if (isFirst) pointsEarned *= FIRST_BONUS_MULTIPLIER;
       }
 
@@ -146,6 +146,14 @@ export class GameInstance {
 
     this.state = GameState.RESULTS;
     this.guessedPlayers = new Set();
+  }
+
+  private calculateDelayedLinearDecayMultiplier(evaluationTime: number, delay: number) : number {
+    // linear function passing through (delay, 2) and (maxTime, 1)
+    const maxTime = this.settings.trackDuration;
+    const multiplier = 2 - ((evaluationTime - delay) / (maxTime - delay));
+
+    return Number(multiplier.toFixed(4));
   }
 
   public advanceRound(): string {
@@ -227,6 +235,10 @@ export class GameInstance {
     }).join("");
   }
 
+  private hashWithGameState(str: string): number {
+    return hash(`${this.instanceId}-${str}-${this.currentGame}-${this.currentRound}`);
+  }
+
   public getTagHint(): Tag[] {
     return this.trackInfo?.track.tags || [];
   }
@@ -278,10 +290,6 @@ export class GameInstance {
 
     this.hostId = remainingPlayers[0] ?? null;
     return true;
-  }
-
-  private hashWithGameState(str: string): number {
-    return hash(`${this.instanceId}-${str}-${this.currentGame}-${this.currentRound}`);
   }
 
   toJSON() {

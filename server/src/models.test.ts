@@ -6,6 +6,7 @@ const HOST = "host_123";
 const INSTANCE_ID = "mock_instance"
 const PLAYER_1 = "player_123"
 const PLAYER_2 = "player_456"
+const PLAYER_3 = "player_789"
 
 const GAME_A = "Game A"
 const GAME_B = "Game B"
@@ -123,6 +124,7 @@ describe('GameInstance - submitResults', () => {
     game = new GameInstance(INSTANCE_ID, HOST);
     game.registeredUsers.add(PLAYER_1);
     game.registeredUsers.add(PLAYER_2);
+    game.registeredUsers.add(PLAYER_3);
     game.setupGame(10, 20, []); // 20s duration = 20000ms
     game.startGame();
 
@@ -131,44 +133,59 @@ describe('GameInstance - submitResults', () => {
     // Player 2: Correct, took 10s (Multiplier should be 1.5), but slower
     game.guesses[1] = {
       [PLAYER_1]: new UserGuess(GAME_A, 5000),
-      [PLAYER_2]: new UserGuess(GAME_B, 10000)
+      [PLAYER_2]: new UserGuess(GAME_B, 10000),
+      [PLAYER_3]: new UserGuess(GAME_B, 15000)
     };
   });
 
   it('should calculate points with time multipliers and first-place bonus', () => {
-    // Host marks both as correct (Score Value = 1.0)
-    game.submitResults({ [PLAYER_1]: 1, [PLAYER_2]: 1 });
+    // Host marks all answers as correct (Score Value = 1.0)
+    game.submitResults({ [PLAYER_1]: 1, [PLAYER_2]: 1, [PLAYER_3]: 1 });
 
     const entry1 = game.leaderboard.getEntry(PLAYER_1);
     const entry2 = game.leaderboard.getEntry(PLAYER_2);
+    const entry3 = game.leaderboard.getEntry(PLAYER_3);
 
     // Math for Player 1:
-    // Multiplier = 2 - (5000 / 20000) = 1.75
-    // Base = 100 * 1.0 * 1.75 = 175
-    // First Bonus = 175 * 1.2 = 210
+    // Multiplier = 2 (first correct guess) => FirstCorrect = 5000
+    // Base = 100 * 1.0 * 2 = 200
+    // First Bonus = 200 * 1.2 = 240
     expect(entry1).toBeDefined();
-    expect(entry1!.totalScore).toBe(210);
+    expect(entry1!.totalScore).toBe(240);
     expect(entry1!.roundHistory).toHaveLength(1);
     expect(entry1!.roundHistory[0]?.isFirst).toBe(true);
     expect(entry1!.roundHistory[0]?.scoreValue).toBe(1);
 
     // Math for Player 2:
-    // Multiplier = 2 - (10000 / 20000) = 1.5
-    // Base = 100 * 1.0 * 1.5 = 150
+    // FirstCorrect = 5000
+    // Multiplier = 2 - ((10000-5000) / (20000 - 5000)) = 1.6666
+    // Base = 100 * 1.0 * 1.6666 = 166.6 ~= 167
     // No First Bonus
     expect(entry2).toBeDefined();
-    expect(entry2!.totalScore).toBe(150);
+    expect(entry2!.totalScore).toBe(167);
     expect(entry2!.roundHistory).toHaveLength(1);
     expect(entry2!.roundHistory[0]?.isFirst).toBe(false);
     expect(entry2!.roundHistory[0]?.scoreValue).toBe(1);
+
+    // Math for Player 3:
+    // FirstCorrect = 5000
+    // Multiplier = 2 - ((15000-5000) / (20000 - 5000)) = 1.3333
+    // Base = 100 * 1.0 * 1.3333 = 133.3 ~= 133
+    // No First Bonus
+    expect(entry3).toBeDefined();
+    expect(entry3!.totalScore).toBe(133);
+    expect(entry3!.roundHistory).toHaveLength(1);
+    expect(entry3!.roundHistory[0]?.isFirst).toBe(false);
+    expect(entry3!.roundHistory[0]?.scoreValue).toBe(1);
   });
 
   it('should handle incorrect guesses correctly and assign first bonus to first correct player', () => {
-    // Host only marks Player 2 as correct (Score Value = 1.0)
-    game.submitResults({ [PLAYER_1]: 0, [PLAYER_2]: 1 });
+    // Host only marks Player 1 as incorrect (Score Value = 0.0) and the others as correct (Score Value = 1.0)
+    game.submitResults({ [PLAYER_1]: 0, [PLAYER_2]: 1, [PLAYER_3]: 1 });
 
     const entry1 = game.leaderboard.getEntry(PLAYER_1);
     const entry2 = game.leaderboard.getEntry(PLAYER_2);
+    const entry3 = game.leaderboard.getEntry(PLAYER_3);
 
     // Zero Points for Player 1
     expect(entry1).toBeDefined();
@@ -178,14 +195,25 @@ describe('GameInstance - submitResults', () => {
     expect(entry1!.roundHistory[0]?.scoreValue).toBe(0);
 
     // Math for Player 2:
-    // Multiplier = 2 - (10000 / 20000) = 1.5
-    // Base = 100 * 1.0 * 1.5 = 150
-    // First Bonus = 150 * 1.2 = 180
+    // Multiplier = 2 (first correct guess) => FirstCorrect = 10000
+    // Base = 100 * 1.0 * 2 = 200
+    // First Bonus = 200 * 1.2 = 240
     expect(entry2).toBeDefined();
-    expect(entry2!.totalScore).toBe(180);
+    expect(entry2!.totalScore).toBe(240);
     expect(entry2!.roundHistory).toHaveLength(1);
     expect(entry2!.roundHistory[0]?.isFirst).toBe(true);
     expect(entry2!.roundHistory[0]?.scoreValue).toBe(1);
+
+    // Math for Player 3:
+    // FirstCorrect = 10000
+    // Multiplier = 2 - ((15000-10000) / (20000 - 10000)) = 1.5
+    // Base = 100 * 1.0 * 1.5 = 150
+    // No First Bonus
+    expect(entry3).toBeDefined();
+    expect(entry3!.totalScore).toBe(150);
+    expect(entry3!.roundHistory).toHaveLength(1);
+    expect(entry3!.roundHistory[0]?.isFirst).toBe(false);
+    expect(entry3!.roundHistory[0]?.scoreValue).toBe(1);
   });
 
   it('should transition to RESULTS state and reset guessedPlayers', () => {

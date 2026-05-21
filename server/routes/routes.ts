@@ -217,7 +217,7 @@ export const setupRoutes = (instances: Record<string, GameInstance>, isMockMode:
       return res.status(400).send({ error: "Rounds and track duration must be greater than 0." });
     }
     if (trackDuration > maxAllowedDuration) {
-      return res.status(400).send({ error: `Rounds and track duration must not exceed ${maxAllowedDuration}.` });
+      return res.status(400).send({ error: `Track duration must not exceed ${maxAllowedDuration}.` });
     }
 
     game.setupGame(rounds, trackDuration, enabledJokers);
