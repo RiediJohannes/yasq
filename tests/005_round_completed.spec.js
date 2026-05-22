@@ -58,7 +58,7 @@ test.describe('Host UI', () => {
   test('should allow host to correct guesses and submit', async ({ page }) => {
     // Verify host view elements
     await expect(page.locator('#guess-list')).toBeVisible();
-    await expect(page.locator('h2')).toContainText(/Round/i);
+    await expect(page.locator('h2')).toContainText('Results');
     await expect(page.locator('#results p >> strong')).toHaveText(/Game A/i);
 
     // Verify guesses correctly displayed

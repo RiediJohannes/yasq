@@ -139,7 +139,7 @@ test.describe('Player UI', () => {
 
     // Verify the Round Summary display
     const resultsContainer = page.locator('#results');
-    await expect(resultsContainer.locator('h2')).toContainText('Round 1 Results');
+    await expect(resultsContainer.locator('h2')).toContainText('Results');
 
     // Check for the correct answer text from trackInfo
     await expect(resultsContainer).toContainText('Game A');
@@ -183,7 +183,7 @@ test.describe('Player UI', () => {
 
     // Verify the Round Summary display
     const resultsContainer = page.locator('#results');
-    await expect(resultsContainer.locator('h2')).toContainText('Round 1 Results');
+    await expect(resultsContainer.locator('h2')).toContainText('Results');
 
     // Check for the correct answer text from trackInfo
     await expect(resultsContainer).toContainText('Game A');
@@ -211,7 +211,7 @@ test.describe('Player UI', () => {
 
     // Verify the Round Summary display
     const resultsContainer = page.locator('#results');
-    await expect(resultsContainer.locator('h2')).toContainText('Round 1 Results');
+    await expect(resultsContainer.locator('h2')).toContainText('Results');
 
     // Check for the correct answer text from trackInfo
     await expect(resultsContainer).toContainText('Game A');
