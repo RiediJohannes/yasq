@@ -4,6 +4,7 @@ import { useEffect, useState } from "preact/hooks";
 import * as backend from "../utils/backend";
 import { gameState, auth, discordSdk, participants } from "../main";
 import { getAvatarUrl, getDisplayName, getUserId } from "../utils/helper";
+import { NonDraggableImg } from "../components/NonDraggableImg";
 
 export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
   const leaderboard = useSignal<any[]>([]);
@@ -62,7 +63,7 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
               >
                 <div className="player-main-info">
                   <div className="rank">#{index + 1}</div>
-                  <img src={getAvatarUrl(discordUser)} className="avatar-small" />
+                  <NonDraggableImg src={getAvatarUrl(discordUser)} className="avatar-small" />
                   <div className="name">{isWinner ? '👑 ' : ''}{getDisplayName(discordUser)}</div>
                   <div className="total-score">{player.totalScore} pts</div>
                 </div>

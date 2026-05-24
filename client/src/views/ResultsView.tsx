@@ -4,6 +4,7 @@ import { useEffect, useState } from "preact/hooks";
 import * as backend from "../utils/backend";
 import { gameState, auth, discordSdk, participants } from "../main";
 import { capitalize, getAvatarUrl, getDisplayName, getUserId } from "../utils/helper";
+import { NonDraggableImg } from "../components/NonDraggableImg";
 
 export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
   const roundData = useSignal<any>(null);
@@ -61,7 +62,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
           <h2>Results</h2>
           <hr className="divider" />
           <div className="track-details">
-            <img
+            <NonDraggableImg
               src={roundData.value.gameCover || '/game_covers/default.svg'}
               alt={`Cover of ${roundData.value.correctAnswer}`}
               onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/game_covers/default.svg'; }}
@@ -86,7 +87,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
 
               return (
                 <div key={res.userId} className="player-result">
-                  <img src={getAvatarUrl(discordUser)} className="avatar-small" />
+                  <NonDraggableImg src={getAvatarUrl(discordUser)} className="avatar-small" />
                   <div className="name">{getDisplayName(discordUser)}</div>
 
                   <div className="round-result-box">
@@ -168,7 +169,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
         <h2>Results</h2>
         <hr className="divider" />
         <div className="track-details">
-          <img
+          <NonDraggableImg
             src={roundData.value.gameCover || '/game_covers/default.svg'}
             alt={`Cover of ${roundData.value.correctAnswer}`}
             onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/game_covers/default.svg'; }}

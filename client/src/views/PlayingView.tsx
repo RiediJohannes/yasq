@@ -6,6 +6,7 @@ import { gameState, auth, discordSdk, audioPlayer, participants } from "../main"
 import { Joker, POLLING_INTERVAL } from "@yasq/shared";
 import { ALL_JOKER_ICONS } from './JokerIcons';
 import { capitalize, getAvatarUrl, getDisplayName } from "../utils/helper";
+import { NonDraggableImg } from "../components/NonDraggableImg";
 
 export const ArenaView = ({ isHost }: { isHost: boolean }) => {
   const hasSubmitted = useSignal(false);
@@ -138,7 +139,7 @@ export const ArenaView = ({ isHost }: { isHost: boolean }) => {
                 <h2>Now playing</h2>
                 <hr className="divider" />
                 <div className="track-details">
-                  <img
+                  <NonDraggableImg
                     src={activeTrackInfo.value.gameCover || '/game_covers/default.svg'}
                     alt={`Cover of ${activeTrackInfo.value.correctAnswer}`}
                     onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/game_covers/default.svg'; }}
@@ -184,7 +185,7 @@ export const ArenaView = ({ isHost }: { isHost: boolean }) => {
                         className="spy-select-button"
                         onClick={() => handleJokerUsage(Joker.SPY, targetId)}
                       >
-                        <img src={getAvatarUrl(discordUser)} className="avatar-small" />
+                        <NonDraggableImg src={getAvatarUrl(discordUser)} className="avatar-small" />
                         <span>{getDisplayName(discordUser)}</span>
                       </button>
                     );
@@ -236,7 +237,7 @@ export const ArenaView = ({ isHost }: { isHost: boolean }) => {
                                       { id: "0", username: 'Unknown' };
                     return (
                       <div className="spy-target-info">
-                        <img src={getAvatarUrl(targetUser)} className="avatar-small" />
+                        <NonDraggableImg src={getAvatarUrl(targetUser)} className="avatar-small" />
                         <span><strong>{getDisplayName(targetUser)}</strong></span>
                       </div>
                     );

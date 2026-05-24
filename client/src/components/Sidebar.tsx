@@ -1,6 +1,7 @@
 import { MAX_VOLUME } from "@yasq/shared";
 import { getAvatarUrl, getDisplayName } from "../utils/helper";
 import { gainNode, gameState, participants, volume } from "../main";
+import { NonDraggableImg } from "./NonDraggableImg";
 
 export const Sidebar = () => (
   <div className="sidebar">
@@ -15,7 +16,7 @@ export const Sidebar = () => (
 
           return (
             <div key={p.id} className="player-entry">
-              <img src={getAvatarUrl(p)} className="avatar-tiny" />
+              <NonDraggableImg src={getAvatarUrl(p)} className="avatar-tiny" />
               <div className="player-info-container">
                 <span className="player-name">{getDisplayName(p)}</span>
                 <div className="badge-container">

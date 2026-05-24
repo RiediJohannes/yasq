@@ -5,6 +5,7 @@ import { auth } from "../main";
 import { discordSdk } from "../main";
 import * as backend from "../utils/backend";
 import { Track, Playlist } from "../utils/types";
+import { NonDraggableImg } from "../components/NonDraggableImg";
 
 const selectedPlaylistName = signal<string>("All playlists");
 const selectedTags = signal<Record<string, string[]>>({});
@@ -207,7 +208,7 @@ export const SelectionView = ({ isHost }: { isHost: boolean }) => {
           filteredTracks.value.map(track => (
             <div key={track.audio} className={`track-card ${track.played ? 'played' : ''}`}>
               <div className="cover-wrapper">
-                <img
+                <NonDraggableImg
                   src={`/game_covers/${track.cover}` || '/game_covers/default.svg'}
                   alt={`Cover of ${track.game}`}
                   onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/game_covers/default.svg'; }}

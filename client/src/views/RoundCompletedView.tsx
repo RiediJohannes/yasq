@@ -6,6 +6,7 @@ import { auth, discordSdk, participants } from "../main";
 import { getAvatarUrl, getDisplayName } from "../utils/helper";
 import { ALL_JOKER_ICONS } from "./JokerIcons";
 import { ReviewData } from "../utils/types";
+import { NonDraggableImg } from "../components/NonDraggableImg";
 
 export const HostReviewView = ({ isHost }: { isHost: boolean }) => {
   const reviewData = useSignal<ReviewData | null>(null);
@@ -62,7 +63,7 @@ export const HostReviewView = ({ isHost }: { isHost: boolean }) => {
           return (
             <div key={userId} className="guess-item">
               <div className="user-info">
-                <img src={avatarUrl} className="avatar-small" alt={displayName} />
+                <NonDraggableImg src={avatarUrl} className="avatar-small" alt={displayName} />
                 <span className="username">{displayName}</span>
                 <span className="guess-text">"{guess.text}"</span>
                 {guess.joker && (() => {

@@ -8,15 +8,16 @@ import { Participant, GameStatus } from "./utils/types";
 import { GameState, MAX_VOLUME, DEFAULT_VOLUME_SLIDER_VAL, POLLING_INTERVAL } from '@yasq/shared';
 import { mockDiscordSdk } from "../../mock_data/mockDiscordSdk";
 
-import { SetupView } from './components/SetupView';
-import { LobbyView } from "./components/LobbyView";
-import { SelectionView } from "./components/TrackSelectionView";
-import { ArenaView } from "./components/PlayingView";
-import { HostReviewView } from "./components/RoundCompletedView";
-import { RoundResultsView } from "./components/ResultsView";
-import { FinalResultsView } from "./components/GameFinishedView";
 import { GameHeader } from './components/GameHeader';
 import { Sidebar } from './components/Sidebar';
+
+import { SetupView } from './views/SetupView';
+import { LobbyView } from "./views/LobbyView";
+import { SelectionView } from "./views/TrackSelectionView";
+import { ArenaView } from "./views/PlayingView";
+import { HostReviewView } from "./views/RoundCompletedView";
+import { RoundResultsView } from "./views/ResultsView";
+import { FinalResultsView } from "./views/GameFinishedView";
 
 import "./style.css";
 

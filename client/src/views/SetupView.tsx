@@ -5,6 +5,7 @@ import { participants, discordSdk, auth, gameState } from "../main";
 import { getDisplayName, getAvatarUrl } from "../utils/helper";
 import { ALL_JOKER_ICONS } from "./JokerIcons";
 import { DEFAULT_ROUNDS, DEFAULT_TRACK_DURATION, Joker } from "@yasq/shared";
+import { NonDraggableImg } from "../components/NonDraggableImg";
 
 export const SetupView = ({ isHost }: { isHost: boolean }) => {
   const roundCount = useSignal(gameState.value.rounds || DEFAULT_ROUNDS);
@@ -48,7 +49,7 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
 
   return (
     <div className="view-container centered">
-      <img src="/rocket.png" className="logo" alt="Discord" />
+      <NonDraggableImg src="/rocket.png" className="logo" alt="Discord" />
       <h1>Welcome to YASQ!</h1>
 
       {!isHost ? (
@@ -140,7 +141,7 @@ export const HostTransferDropdown = () => {
         <div className="custom-dropdown" id="host-dropdown" onClick={() => isOpen.value = !isOpen.value}>
           <div className="dropdown-header">
             {selectedPlayer.value ? (
-              <><img src={selectedPlayer.value.avatar} className="avatar-tiny" /><span>{selectedPlayer.value.name}</span></>
+              <><NonDraggableImg src={selectedPlayer.value.avatar} className="avatar-tiny" /><span>{selectedPlayer.value.name}</span></>
             ) : "Select a player..."}
           </div>
 
@@ -159,7 +160,7 @@ export const HostTransferDropdown = () => {
                     isOpen.value = false;
                   }}
                 >
-                  <img src={getAvatarUrl(p)} className="avatar-tiny" />
+                  <NonDraggableImg src={getAvatarUrl(p)} className="avatar-tiny" />
                   <span>{getDisplayName(p)}</span>
                 </div>
               ))}
