@@ -228,7 +228,7 @@ export const SelectionView = ({ isHost }: { isHost: boolean }) => {
               </div>
 
               <button
-                className="select-btn"
+                className="track-select-btn"
                 disabled={track.played}
                 onClick={async (e) => {
                   // Preact's way of preventing double-clicks:
