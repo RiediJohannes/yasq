@@ -194,7 +194,7 @@ export class GameInstance {
     return this.currentRound >= this.settings.rounds;
   }
 
-  public playTrack(track: Track): void {
+  public playTrack(track: Track, roundFinishedCallback: () => void): void {
     const startTime = Date.now() + COUNTDOWN_DURATION;
     const endTime = startTime + this.settings.trackDuration;
 
@@ -210,6 +210,7 @@ export class GameInstance {
       if (this.state === GameState.PLAYING && this.currentRound === roundAtStart) {
         this.state = GameState.ROUND_COMPLETED;
         console.log(`[TIMER] Round ${roundAtStart} expired.`);
+        roundFinishedCallback()
       }
     }, totalWaitTime);
   }

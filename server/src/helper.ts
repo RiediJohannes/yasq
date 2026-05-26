@@ -1,4 +1,7 @@
-// Token -> { userId: string, expires: number }
+import type { Server } from "socket.io";
+import type { GameInstance } from "./models.js";
+import { UI_UPDATES_DELAY_IN_E2E, WS_GAME_STATUS_UPDATE_EVENT } from "@yasq/shared";
+
 const tokenCache = new Map<string, { userId: string, expires: number }>();
 const TTL = 10 * 60 * 1000; // Cache for 10 minutes
 
@@ -49,4 +52,35 @@ export function hash(str: string): number {
     h &= 0xFFFFFFFF   // only keep lower 32 bits
   }
   return h & 0xFFFFFFFF
+}
+
+export function getGameStatusPayload(game: GameInstance) {
+  return {
+    state: game.state,
+    hostId: game.hostId,
+    readyUsers: [...game.readyUsers],
+    guessedPlayers: [...game.guessedPlayers],
+    currentRound: game.currentRound,
+    isFinalRound: game.isFinalRound(),
+    currentGame: game.currentGame,
+    lastWinnerId: game.lastWinnerId,
+    gameSettings: {
+      ...game.settings,
+      enabledJokers: [...game.settings.enabledJokers],
+    }
+  };
+}
+
+export function broadcastGameStatus(server: Server, instanceId: string, game: GameInstance) {
+  const emitUpdate = () => {
+    server.to(instanceId).emit(WS_GAME_STATUS_UPDATE_EVENT, getGameStatusPayload(game));
+  };
+
+  if (process.env.UI_TEST_MODE === 'true') {
+    // Artificial delay so the UI tests can safely check for transient UI states
+    setTimeout(emitUpdate, UI_UPDATES_DELAY_IN_E2E);
+  } else {
+    // Instantaneous updates during production and local mock debugging
+    emitUpdate();
+  }
 }

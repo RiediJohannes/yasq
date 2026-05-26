@@ -17,7 +17,8 @@
     "dotenv": "^17.0.0",
     "express": "^4.18.2",
     "mersenne-twister": "^1.1.0",
-    "node-fetch": "^3.3.2"
+    "node-fetch": "^3.3.2",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
