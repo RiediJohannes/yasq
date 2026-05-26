@@ -1,11 +1,20 @@
 import { render } from 'preact';
 import { signal } from '@preact/signals';
 import { DiscordSDK } from "@discord/embedded-app-sdk";
+import { io } from 'socket.io-client';
 
 import * as backend from "./utils/backend";
 import { getUserId } from "./utils/helper";
 import { GameStatus, Participant } from "./utils/types";
-import { DEFAULT_VOLUME_SLIDER_VAL, GameSettings, GameState, Joker, MAX_VOLUME, POLLING_INTERVAL } from '@yasq/shared';
+import {
+  DEFAULT_VOLUME_SLIDER_VAL,
+  GameState,
+  GameSettings,
+  Joker,
+  MAX_VOLUME,
+  WS_GAME_STATUS_UPDATE_EVENT,
+  WS_JOIN_INSTANCE_EVENT
+} from '@yasq/shared';
 import { mockDiscordSdk } from "../../mock_data/mockDiscordSdk";
 
 import { GameHeader } from './components/GameHeader';
@@ -126,9 +135,15 @@ render(<App />, document.getElementById('app')!);
   // Register with our backend
   await backend.registerUser(auth.value.access_token, discordSdk.instanceId);
 
-  setInterval(async () => {
-    gameState.value  = await backend.getGameStatus(discordSdk.instanceId);
-  }, POLLING_INTERVAL);
+  // Additionally, establish a websocket communication for continuous game state updates
+  const socket = io({ auth: { token: auth.value.access_token } });
+  // Register this client-socket with the current quiz instance
+  socket.emit(WS_JOIN_INSTANCE_EVENT, { instanceId: discordSdk.instanceId });
+
+  // Update the client-side game state whenever the server pushes an update
+  socket.on(WS_GAME_STATUS_UPDATE_EVENT, (updatedState) => {
+    gameState.value = updatedState;
+  });
 
   participants.value = (await discordSdk.commands.getInstanceConnectedParticipants()).participants;
   discordSdk.subscribe('ACTIVITY_INSTANCE_PARTICIPANTS_UPDATE', (e: any) => participants.value = e.participants);

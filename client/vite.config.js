@@ -22,7 +22,12 @@ export default defineConfig(({ mode }) => {
           target: 'http://localhost:3001',
           changeOrigin: true,
           secure: false,
+        },
+        '/socket.io': {
+          target: 'http://localhost:3001',
           ws: true,
+          changeOrigin: true,
+          secure: false,
         },
         '/music': 'http://localhost:3001',
         '/game_covers': 'http://localhost:3001',

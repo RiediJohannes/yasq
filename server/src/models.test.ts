@@ -489,8 +489,11 @@ describe('GameInstance - advanceRound', () => {
 describe('GameInstance - playTrack', () => {
   let game: GameInstance;
 
+  const mockCallback = vi.fn();
+
   beforeEach(() => {
     vi.useFakeTimers();
+    mockCallback.mockClear();
     game = new GameInstance(INSTANCE_ID, HOST);
     game.settings.trackDuration = 10_000; // 10 seconds
   });
@@ -502,7 +505,7 @@ describe('GameInstance - playTrack', () => {
   it('should set correct TrackInfo and transition to PLAYING', () => {
     const track = new Track(GAME_A, "Track A", "file123", "", []);
 
-    game.playTrack(track);
+    game.playTrack(track, mockCallback);
 
     const expectedStart = Date.now() + 4000; // now + countdown
     const expectedEnd = expectedStart + 10_000; // start + duration
@@ -515,7 +518,7 @@ describe('GameInstance - playTrack', () => {
 
   it('should transition to ROUND_COMPLETED automatically after time expires', () => {
     const track = new Track(GAME_A, "Track A", "file123", "", []);
-    game.playTrack(track);
+    game.playTrack(track, mockCallback);
 
     // Verify we are still playing initially
     expect(game.state).toBe(GameState.PLAYING);
@@ -528,11 +531,12 @@ describe('GameInstance - playTrack', () => {
     vi.advanceTimersByTime(200);
 
     expect(game.state).toBe(GameState.ROUND_COMPLETED);
+    expect(mockCallback).toHaveBeenCalled()
   });
 
   it('should not transition if the round has already changed (Race Condition Check)', () => {
     const track = new Track(GAME_A, "Track A", "file123", "", []);
-    game.playTrack(track);
+    game.playTrack(track, mockCallback);
 
     // Manually bump the round (simulating all players submitted guess before countdown ends)
     game.currentRound = 2;
@@ -567,13 +571,15 @@ describe('GameInstance - canUseJoker', () => {
 describe('GameInstance - getPartialHint', () => {
   let game: GameInstance;
 
+  const mockCallback = vi.fn();
+
   beforeEach(() => {
     game = new GameInstance(INSTANCE_ID, HOST);
   });
 
   it('should return a string of underscores and special characters matching the title length', () => {
     const track = new Track(GAME_LONG, "", "", "", []);
-    game.playTrack(track);
+    game.playTrack(track, mockCallback);
     const hint = game.getPartialHint(0.5);
 
     expect(hint.length).toBe(GAME_LONG.length);
@@ -586,7 +592,7 @@ describe('GameInstance - getPartialHint', () => {
   it('should return a consistent hint for the same instance_id + solution combination', () => {
     const track = new Track(GAME_LONG, "", "", "", []);
 
-    game.playTrack(track);
+    game.playTrack(track, mockCallback);
 
     // run hint generation multiple times to be sure
     const probabilities = [0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0]
@@ -604,8 +610,8 @@ describe('GameInstance - getPartialHint', () => {
     const track = new Track(GAME_LONG, "", "", "", []);
     const newGame = new GameInstance("NEW_" + INSTANCE_ID, HOST);
 
-    game.playTrack(track)
-    newGame.playTrack(track);
+    game.playTrack(track, mockCallback)
+    newGame.playTrack(track, mockCallback);
 
     const controlHint = game.getPartialHint(0.5);
     const differentHint = newGame.getPartialHint(0.5);
@@ -618,13 +624,15 @@ describe('GameInstance - getPartialHint', () => {
 describe('GameInstance - getTagHint', () => {
   let game: GameInstance;
 
+  const mockCallback = vi.fn();
+
   beforeEach(() => {
     game = new GameInstance(INSTANCE_ID, HOST);
   });
 
-  it('should return the coressponding tags', () => {
+  it('should return the corresponding tags', () => {
     const track = new Track(GAME_A, "", "", "", [new Tag("platform", "Platform A"), new Tag("release", "2026")])
-    game.playTrack(track);
+    game.playTrack(track, mockCallback);
     const hint = game.getTagHint();
 
     expect(hint.length).toBe(2);
@@ -636,6 +644,7 @@ describe('GameInstance - getTagHint', () => {
 describe('GameInstance - getAnswersHint', () => {
   let game: GameInstance, gameSameId: GameInstance;
 
+  const mockCallback = vi.fn();
   const correctTrack = new Track(GAME_A, "Track A", "1", "", [])
   const wrongTracks = [
     new Track("Game B", "Track B", "2", "", []),
@@ -651,7 +660,7 @@ describe('GameInstance - getAnswersHint', () => {
   });
 
   it('should return a list of four answers (correct + three wrong)', () => {
-    game.playTrack(correctTrack);
+    game.playTrack(correctTrack, mockCallback);
     const hint = game.getMultipleChoiceHint(allTracks);
 
     expect(hint.length).toBe(4);
@@ -672,8 +681,8 @@ describe('GameInstance - getAnswersHint', () => {
   });
 
   it('should return the same list of answers for the same instance_id + solution combination', () => {
-    game.playTrack(correctTrack);
-    gameSameId.playTrack(correctTrack);
+    game.playTrack(correctTrack, mockCallback);
+    gameSameId.playTrack(correctTrack, mockCallback);
 
     // run hint generation multiple times to be sure
     for (let i = 0; i < 10; i++) {

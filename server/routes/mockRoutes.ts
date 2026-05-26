@@ -1,9 +1,18 @@
 import express from 'express';
 import { GameInstance, Leaderboard, TrackInfo } from '../src/models.js';
 import { GameSettings, Joker } from '@yasq/shared';
+import type { Server } from "socket.io";
+import { broadcastGameStatus } from "../src/helper.js";
 
-export const setupMockRoutes = (instances: Record<string, GameInstance>) => {
+export const setupMockRoutes = (server: Server, instances: Record<string, GameInstance>) => {
   const router = express.Router();
+
+  const triggerUpdate = (instanceId: string): void => {
+    const game = instances[instanceId];
+    if (game) {
+      broadcastGameStatus(server, instanceId, game);
+    }
+  };
 
   router.post("/setup-session", (req, res) => {
     const {
@@ -34,12 +43,9 @@ export const setupMockRoutes = (instances: Record<string, GameInstance>) => {
     game.state = state;
     game.currentRound = currentRound;
     game.readyUsers = new Set(readyUserIds);
-    game.settings = settings;
     game.settings = {
-      rounds: settings.rounds,
-      trackDuration: settings.trackDuration,
+      ...settings,
       enabledJokers: new Set(settings.enabledJokers || []),
-      firstBonusMultiplier: settings.firstBonusMultiplier,
     };
     game.trackInfo = trackInfo;
     game.guesses = guesses;
@@ -50,6 +56,8 @@ export const setupMockRoutes = (instances: Record<string, GameInstance>) => {
     game.usedJokers = usedJokers;
 
     instances[instanceId] = game;
+
+    triggerUpdate(instanceId);
 
     res.status(200).send({ message: "Mock data loaded", instance: instances[instanceId] });
   });
@@ -80,10 +88,8 @@ export const setupMockRoutes = (instances: Record<string, GameInstance>) => {
     }
     if (updates.settings) {
       game.settings = {
-        rounds: updates.settings.rounds,
-        trackDuration: updates.settings.trackDuration,
+        ...updates.settings,
         enabledJokers: new Set(updates.settings.enabledJokers || []),
-        firstBonusMultiplier: updates.settings.firstBonusMultiplier,
       };
     }
     if (updates.trackInfo) {
@@ -105,6 +111,8 @@ export const setupMockRoutes = (instances: Record<string, GameInstance>) => {
       game.usedJokers = updates.usedJokers;
     }
 
+    triggerUpdate(instanceId);
+
     res.status(200).send({ message: "Instance updated", instance: game });
   });
 
@@ -116,6 +124,8 @@ export const setupMockRoutes = (instances: Record<string, GameInstance>) => {
       console.log(`Successfully purged test instance: ${instanceId}`);
       return res.status(200).send({ message: `Instance ${instanceId} deleted` });
     }
+
+    triggerUpdate(instanceId);
 
     res.status(204).send();
   });

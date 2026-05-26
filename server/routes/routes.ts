@@ -1,10 +1,11 @@
-import express from 'express';
 import type { NextFunction, Request, Response } from 'express';
+import express from 'express';
 import { GameInstance, Track } from '../src/models.js';
 import type { InstanceQuery, InstanceUserQuery } from '../src/types.js';
 import { COUNTDOWN_DURATION, GameState, INT32_MAX_VALUE, Joker } from '@yasq/shared';
-import { invalidateToken, validateToken } from '../src/helper.js';
+import { broadcastGameStatus, invalidateToken, validateToken } from '../src/helper.js';
 import { isAllowed } from '../src/access_control.js';
+import type { Server } from "socket.io";
 
 
 declare global {
@@ -17,8 +18,15 @@ declare global {
   }
 }
 
-export const setupRoutes = (instances: Record<string, GameInstance>, isMockMode: boolean, allTracks: any, allPlaylists: any) => {
+export const setupRoutes = (server: Server, instances: Record<string, GameInstance>, isMockMode: boolean, allTracks: any, allPlaylists: any) => {
   const router = express.Router();
+
+  const triggerUpdate = (instanceId: string): void => {
+    const game = instances[instanceId];
+    if (game) {
+      broadcastGameStatus(server, instanceId, game);
+    }
+  };
 
   /**
    * Authenticate a user via the Discord OAuth2 API based on the request's authorization header.
@@ -100,6 +108,8 @@ export const setupRoutes = (instances: Record<string, GameInstance>, isMockMode:
     const game = instances[instanceId];
     game.registeredUsers.add(userId);
 
+    triggerUpdate(instanceId);
+
     res.send({
       isHost: game.isHost(userId),
       hostId: game.hostId
@@ -130,6 +140,8 @@ export const setupRoutes = (instances: Record<string, GameInstance>, isMockMode:
       }
     }
 
+    triggerUpdate(instanceId);
+
     res.send({
       success: true,
       hostId: game.hostId
@@ -152,6 +164,8 @@ export const setupRoutes = (instances: Record<string, GameInstance>, isMockMode:
       game.readyUsers.delete(userId);
     }
 
+    triggerUpdate(instanceId);
+
     res.send({
       readyUsers: [...game.readyUsers]
     });
@@ -164,6 +178,8 @@ export const setupRoutes = (instances: Record<string, GameInstance>, isMockMode:
     if (!game) {
       return res.status(400).send({ error: "Instance not found" });
     }
+
+    triggerUpdate(instanceId);
 
     res.send({
       readyUsers: [...game.readyUsers]
@@ -188,6 +204,9 @@ export const setupRoutes = (instances: Record<string, GameInstance>, isMockMode:
     game.hostId = newHostId;
     game.readyUsers.delete(newHostId); // New host not required to be ready
     console.log(`[HOST ASSIGNED] Host changed to ${newHostId} in instance ${instanceId}`);
+
+    triggerUpdate(instanceId);
+
     res.send({ status: "success" });
   });
 
@@ -212,6 +231,9 @@ export const setupRoutes = (instances: Record<string, GameInstance>, isMockMode:
 
     game.setupGame(settings);
     console.log(`[GAME] Instance ${instanceId} has been set up with settings: rounds: ${game.settings.rounds}, trackDuration: ${game.settings.trackDuration}, enabledJokers: ${[...game.settings.enabledJokers]}, firstBonusMultiplier: ${game.settings.firstBonusMultiplier}!`);
+
+    triggerUpdate(instanceId);
+
     res.send({ status: GameState.LOBBY });
   });
 
@@ -228,31 +250,10 @@ export const setupRoutes = (instances: Record<string, GameInstance>, isMockMode:
 
     game.startGame();
     console.log(`[GAME] Instance ${instanceId} has started!`);
+
+    triggerUpdate(instanceId);
+
     res.send({ status: GameState.TRACK_SELECTION });
-  });
-
-  router.get("/game-status", (req, res) => {
-    const { instanceId } = req.query as InstanceQuery;
-    const game = instances[instanceId];
-
-    if (!game) {
-      return res.status(400).send({ error: "Instance not found" });
-    }
-
-    res.send({
-      state: game.state,
-      hostId: game.hostId,
-      readyUsers: [...game.readyUsers],
-      guessedPlayers: [...game.guessedPlayers],
-      currentRound: game.currentRound,
-      isFinalRound: game.isFinalRound(),
-      currentGame: game.currentGame,
-      lastWinnerId: game.lastWinnerId,
-      gameSettings: {
-        ...game.settings,
-        enabledJokers: [...game.settings.enabledJokers],
-      }
-    });
   });
 
   router.get("/track-list", authenticateUser, async (req, res) => {
@@ -308,6 +309,8 @@ export const setupRoutes = (instances: Record<string, GameInstance>, isMockMode:
     if (game.state === GameState.ROUND_COMPLETED) {
       console.log(`[STATE] Instance ${instanceId} moved to ROUND_COMPLETED`);
     }
+
+    triggerUpdate(instanceId);
 
     res.send({ status: "submitted" });
   });
@@ -368,6 +371,9 @@ export const setupRoutes = (instances: Record<string, GameInstance>, isMockMode:
     game.submitResults(corrections);
 
     console.log(`[RESULTS] Results calculated for instance ${instanceId}: ${JSON.stringify(game.leaderboard.getRoundResults(game.currentRound))}.`);
+
+    triggerUpdate(instanceId);
+
     res.send({ status: "success" });
   });
 
@@ -430,6 +436,8 @@ export const setupRoutes = (instances: Record<string, GameInstance>, isMockMode:
       console.log(`[GAME] Instance ${instanceId} has advanced to next round!`);
     }
 
+    triggerUpdate(instanceId);
+
     res.send({ status: newState });
   });
 
@@ -455,9 +463,12 @@ export const setupRoutes = (instances: Record<string, GameInstance>, isMockMode:
       return res.status(400).send({ error: "Track not found." });
     }
 
-    game.playTrack(track);
+    game.playTrack(track, () => triggerUpdate(instanceId));
 
     console.log(`[MUSIC] Instance ${instanceId} started playing ${fileName}`);
+
+    triggerUpdate(instanceId);
+
     res.send({
       status: "playing",
       track: game.trackInfo
@@ -516,6 +527,8 @@ export const setupRoutes = (instances: Record<string, GameInstance>, isMockMode:
     }
 
     game.restart();
+
+    triggerUpdate(instanceId);
 
     res.send({ success: true });
   });
@@ -585,6 +598,8 @@ export const setupRoutes = (instances: Record<string, GameInstance>, isMockMode:
     }
 
     game.markJokerUsed(userId, jokerType);
+
+    triggerUpdate(instanceId);
 
     res.send({
       jokerType,
