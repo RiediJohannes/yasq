@@ -1,13 +1,14 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { STATIC_FILES_DIR } from "@yasq/shared";
 
 const isMockMode = process.env.VITE_MOCK_MODE === 'true'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const permissionsPath = isMockMode
   ? path.join(__dirname, '..', '..', 'mock_data', 'mockPermissions.json')
-  : path.join(__dirname, '..', 'data', 'permissions.json');
+  : path.join(__dirname, '..', STATIC_FILES_DIR, 'permissions.json');
 
 // Internal lookup tables
 const WHITELISTS = new Map<string, Set<string>>(); // Filename -> Set of UserIDs

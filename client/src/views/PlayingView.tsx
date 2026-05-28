@@ -7,12 +7,103 @@ import { Joker, POLLING_INTERVAL } from "@yasq/shared";
 import { ALL_JOKER_ICONS } from '../components/JokerIcons';
 import { capitalize, getAvatarUrl, getDisplayName } from "../utils/helper";
 import { NonDraggableImg } from "../components/NonDraggableImg";
+import { Tag } from "../utils/types";
+
+type JokerHint =
+  | { type: Joker.OBFUSCATION; data: string }
+  | { type: Joker.MULTIPLE_CHOICE; data: string[] }
+  | { type: Joker.TRIVIA; data: Tag[] }
+  | { type: Joker.SPY; data: { text: string, targetId: string } }
+  | { type: Joker.GLIMPSE; data: string };
+
+type SubmitFunction = (guess: string) => Promise<void>;
+
+const renderJokerHint = (activeHint: JokerHint, submit: SubmitFunction) => {
+  switch (activeHint.type) {
+    case Joker.OBFUSCATION:
+      return (
+        <p className="obfuscated-text" id="obfuscation-hint-text">
+          {activeHint.data}
+        </p>
+      );
+
+    case Joker.TRIVIA:
+      return (
+        <div className="tags-container">
+          {activeHint.data.map((tag: any) => (
+            <span key={tag.type} className="tag-badge">
+              <strong>{tag.type}:</strong> {tag.value}
+            </span>
+          ))}
+        </div>
+      );
+
+    case Joker.MULTIPLE_CHOICE:
+      return (
+        <div className="choices-grid">
+          {activeHint.data.map((choice: string) => (
+            <button
+              key={choice}
+              className="choice-button"
+              onClick={async (e) => {
+                e.preventDefault();
+                await submit(choice)
+              }}
+            >
+              {choice}
+            </button>
+          ))}
+        </div>
+      );
+
+    case Joker.SPY: {
+      const targetUser = participants.value.find(p => p.id === activeHint.data.targetId) ||
+        { id: "0", username: 'Unknown' };
+
+      return (
+        <div className="spy-hint-display">
+          <div className="spy-target-info">
+            <NonDraggableImg
+              src={getAvatarUrl(targetUser)}
+              className="avatar-small"
+            />
+
+            <span>
+              <strong>{getDisplayName(targetUser)}</strong>
+            </span>
+          </div>
+
+          <button
+            className="choice-button"
+            onClick={async (e) => {
+              e.preventDefault();
+              await submit(activeHint.data.text)
+            }}
+          >
+            {activeHint.data.text}
+          </button>
+        </div>
+      );
+    }
+
+    case Joker.GLIMPSE:
+      return (
+        <div className="glimpse">
+          <NonDraggableImg src={activeHint.data}></NonDraggableImg>
+        </div>
+      );
+
+    default:
+      return null;
+  }
+};
 
 export const ArenaView = ({ isHost }: { isHost: boolean }) => {
   const hasSubmitted = useSignal(false);
+  const jokerError = useSignal<string | null>(null);
   const countdown = useSignal<number | null>(3);
   const inputRef = useRef<HTMLInputElement>(null);
-  const activeHint = useSignal<{ type: Joker, data: any } | null>(null);
+  const activeHint = useSignal<JokerHint | null>(null);
   const availableJokers = useSignal<string[]>([]);
   const isSelectingSpyTarget = useSignal(false);
   const activeTrackInfo = useSignal<any>(null);
@@ -32,16 +123,37 @@ export const ArenaView = ({ isHost }: { isHost: boolean }) => {
 
     try {
       const response = await backend.useJoker(auth.value.access_token, discordSdk.instanceId, jokerType, targetId);
-      activeHint.value = {
-        type: jokerType,
-        data: targetId ? { text: response.hint, targetId } : response.hint
-      };
+      const payload = await response.json();
+      if (response.status === 200) {
+        activeHint.value = {
+          type: jokerType,
+          data: targetId ? { text: payload.hint, targetId } : payload.hint
+        };
+      } else {
+        jokerError.value = payload.error;
+      }
+      // Joker becomes unusable for the CURRENT round either way
       availableJokers.value = availableJokers.value.filter(j => j !== jokerType);
       isSelectingSpyTarget.value = false;
     } catch (err) {
       console.error("Failed to use joker:", err);
       isSelectingSpyTarget.value = false;
     }
+  };
+
+  const resetJokerHint = () => {
+    activeHint.value = null;
+    jokerError.value = null;
+  }
+
+  const submitGuess = async (guess: string) => {
+    hasSubmitted.value = true;
+
+    await backend.submitGuess(
+      auth.value.access_token,
+      discordSdk.instanceId,
+      guess
+    );
   };
 
   useEffect(() => {
@@ -198,63 +310,14 @@ export const ArenaView = ({ isHost }: { isHost: boolean }) => {
 
           {activeHint.value && !hasSubmitted.value && (
             <div className="hint-container">
-              {activeHint.value.type === Joker.OBFUSCATION && (
-                <p className="obfuscated-text" id="obfuscation-hint-text">{activeHint.value.data}</p>
-              )}
+              {renderJokerHint(activeHint.value, submitGuess)}
+            </div>
+          )}
 
-              {activeHint.value.type === Joker.TRIVIA && (
-                <div className="tags-container">
-                  {activeHint.value.data.map((tag: any) => (
-                    <span key={tag.type} className="tag-badge">
-                      <strong>{tag.type}:</strong> {tag.value}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {activeHint.value.type === Joker.MULTIPLE_CHOICE && (
-                <div className="choices-grid">
-                  {activeHint.value.data.map((choice: string) => (
-                    <button
-                      key={choice}
-                      className="choice-button"
-                      onClick={async (e) => {
-                        e.preventDefault();
-                        hasSubmitted.value = true;
-                        await backend.submitGuess(auth.value.access_token, discordSdk.instanceId, choice);
-                      }}
-                    >
-                      {choice}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {activeHint.value?.type === Joker.SPY && (
-                <div className="spy-hint-display">
-                  {(() => {
-                    const targetUser = participants.value.find(p => p.id === activeHint.value?.data.targetId) ||
-                                      { id: "0", username: 'Unknown' };
-                    return (
-                      <div className="spy-target-info">
-                        <NonDraggableImg src={getAvatarUrl(targetUser)} className="avatar-small" />
-                        <span><strong>{getDisplayName(targetUser)}</strong></span>
-                      </div>
-                    );
-                  })()}
-
-                  <button
-                    className="choice-button"
-                    onClick={async (e) => {
-                      e.preventDefault();
-                      hasSubmitted.value = true;
-                      await backend.submitGuess(auth.value.access_token, discordSdk.instanceId, activeHint.value?.data.text);
-                    }}
-                  >
-                    {activeHint.value?.data.text}
-                  </button>
-                </div>
-              )}
+          {jokerError.value && (
+            <div class="joker-error-container">
+              <span>⚠️ {jokerError.value}</span>
+              <button onClick={resetJokerHint}>Ok</button>
             </div>
           )}
 
@@ -270,8 +333,7 @@ export const ArenaView = ({ isHost }: { isHost: boolean }) => {
                   const guess = input.value.trim();
                   if (!guess) return;
 
-                  hasSubmitted.value = true;
-                  await backend.submitGuess(auth.value.access_token, discordSdk.instanceId, guess);
+                  await submitGuess(guess);
                 }}
               >
                 <input

@@ -177,7 +177,7 @@ export async function getAvailableJokers(access_token: string, instanceId: strin
 }
 
 export async function useJoker(access_token: string, instanceId: string, jokerType: Joker, targetId?: string) {
-  const response = await fetch("/api/use-joker", {
+  return await fetch("/api/use-joker", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -185,7 +185,6 @@ export async function useJoker(access_token: string, instanceId: string, jokerTy
     },
     body: JSON.stringify({ instanceId, jokerType, targetId }),
   });
-  return response.json();
 }
 
 export async function playTrack(access_token: string, fileName: string, instanceId: string) {

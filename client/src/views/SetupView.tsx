@@ -7,6 +7,7 @@ import { auth, discordSdk, gameState, participants } from "../main";
 import { getAvatarUrl, getDisplayName } from "../utils/helper";
 import { ALL_JOKER_ICONS } from "../components/JokerIcons";
 import {
+  DEFAULT_ENABLED_JOKERS,
   DEFAULT_ROUNDS,
   DEFAULT_TRACK_DURATION,
   FirstBonusMultiplier,
@@ -41,7 +42,7 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
     new Set(
       gameState.value.gameSettings.enabledJokers?.length
         ? gameState.value.gameSettings.enabledJokers
-        : [Joker.OBFUSCATION, Joker.TRIVIA, Joker.MULTIPLE_CHOICE, Joker.SPY]
+        : DEFAULT_ENABLED_JOKERS
     )
   );
 

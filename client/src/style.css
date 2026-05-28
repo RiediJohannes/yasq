@@ -37,6 +37,7 @@
   background-color: var(--bg-main);
 
   --gap-medium: 20px;
+  --border-radius-medium: 8px;
 }
 
 @media (prefers-color-scheme: light) {
@@ -138,7 +139,7 @@ img {
   margin: 0 auto;
   padding: 20px;
   background: var(--bg-sidebar-card);
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   box-sizing: border-box;
 }
 
@@ -172,7 +173,7 @@ img {
   justify-content: center;
   background: var(--bg-sidebar-card);
   border: 2px solid var(--border-muted);
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   color: var(--text-muted);
   cursor: pointer;
   transition: all 0.2s ease;
@@ -202,7 +203,7 @@ img {
 }
 
 input[type="text"], input[type="number"], select {
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   border: 1px solid transparent;
   padding: 0.6em 1.2em;
   font-size: 1em;
@@ -246,7 +247,7 @@ input:hover {
 }
 
 button {
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   border: 1px solid transparent;
   padding: 0.6em 1.2em;
   font-size: 1em;
@@ -276,7 +277,7 @@ button:disabled {
   margin: 0 auto 20px;
   padding: 20px;
   background: var(--bg-sidebar-card);
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
 }
 
 .divider {
@@ -321,7 +322,7 @@ button:disabled {
   align-items: center;
   justify-content: center;
   border: 1pt solid var(--border-input-header);
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   background-color: var(--bg-input);
   aspect-ratio: 1 / 1;
   height: 35px;
@@ -346,7 +347,7 @@ button:disabled {
   background: var(--bg-dark);
   color: var(--text-main);
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   font-size: 12px;
   opacity: 0;
   pointer-events: none;
@@ -464,7 +465,7 @@ button:disabled {
 .sidebar-box {
   background: var(--bg-sidebar-card);
   padding: 15px;
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
 }
 
 .sidebar-box.participants {
@@ -621,7 +622,7 @@ input[type="radio"]:checked + .btn-radio {
 .dropdown-header,
 #btn-confirm-transfer {
   height: 40px;
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -654,7 +655,7 @@ input[type="radio"]:checked + .btn-radio {
   right: 0;
   background: var(--bg-dropdown-menu);
   border: 1px solid var(--border-input-header);
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   z-index: 1000;
   max-height: 200px;
   overflow-y: auto;
@@ -706,7 +707,7 @@ input[type="radio"]:checked + .btn-radio {
   gap: var(--gap-medium);
   background: var(--bg-sidebar-card);
   padding: 10px;
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   margin-left: 100px;
   margin-right: 100px;
   margin-bottom: 20px;
@@ -741,7 +742,7 @@ input[type="radio"]:checked + .btn-radio {
   padding: 8px 16px;
   border: 1px solid var(--border-muted);
   color: var(--text-main);
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   cursor: pointer;
   display: inline-grid;
   grid-template-columns: 1fr auto;
@@ -788,7 +789,7 @@ input[type="radio"]:checked + .btn-radio {
   z-index: 1000;
   background: var(--bg-dropdown-menu);
   border: 1px solid var(--border-muted);
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   margin-top: 4px;
   overflow: hidden;
   width: 250px;
@@ -852,7 +853,7 @@ input[type="radio"]:checked + .btn-radio {
   background: var(--bg-dark);
   color: var(--text-muted);
   padding: 2px 6px;
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   min-width: 20px;
   text-align: center;
 }
@@ -863,7 +864,7 @@ input[type="radio"]:checked + .btn-radio {
 
 .filter-dropdown .dropdown-item {
   justify-content: space-between;
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
 }
 
 .filter-dropdown .dropdown-item:hover {
@@ -907,7 +908,7 @@ input[type="radio"]:checked + .btn-radio {
 
 .track-card {
   background: var(--bg-sidebar-card);
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -970,8 +971,25 @@ input[type="radio"]:checked + .btn-radio {
 .hint-container {
   background: var(--bg-input);
   padding: 10px;
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   margin-bottom: 15px;
+}
+
+.joker-error-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg-input);
+  padding: 10px;
+  border-radius: var(--border-radius-medium);
+  margin-bottom: 15px;
+  white-space: preserve-breaks;
+}
+
+.joker-error-container button {
+  margin: 0 3px 3px;
+  background: var(--bg-main);
+  min-width: 100px;
 }
 
 .obfuscated-text {
@@ -1015,12 +1033,19 @@ input[type="radio"]:checked + .btn-radio {
   width: 100%;
 }
 
+/* Responsive: stack them on very narrow screens */
+@media (max-width: 400px) {
+  .choices-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .choice-button {
   background-color: var(--bg-sidebar-card);
   border: 2px solid var(--border-muted);
   color: var(--text-main);
   padding: 12px 8px;
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
@@ -1060,11 +1085,17 @@ input[type="radio"]:checked + .btn-radio {
   margin-bottom: 10px;
 }
 
-/* Responsive: stack them on very narrow screens */
-@media (max-width: 400px) {
-  .choices-grid {
-    grid-template-columns: 1fr;
-  }
+.glimpse {
+  display: flex;
+  align-items: center;
+}
+
+.glimpse img {
+  width: 100%;
+  max-width: 350px;
+  aspect-ratio: 1/1;
+  object-fit: cover;
+  border-radius: var(--border-radius-medium);
 }
 
 .joker-list {
@@ -1111,7 +1142,7 @@ input[type="radio"]:checked + .btn-radio {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
   margin: 10px;
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   background: var(--countdown-overlay);
   display: flex;
   justify-content: center;
@@ -1148,7 +1179,7 @@ input[type="radio"]:checked + .btn-radio {
   background: var(--bg-sidebar-card);
   padding: 12px;
   margin-bottom: 8px;
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1169,7 +1200,7 @@ input[type="radio"]:checked + .btn-radio {
   align-items: center;
   justify-content: center;
   border: 1pt solid var(--border-input-header);
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   background-color: var(--bg-input);
   height: 35px;
   padding-left: 10px;
@@ -1183,7 +1214,7 @@ input[type="radio"]:checked + .btn-radio {
   margin: 0 auto;
   padding: 4px;
   background: var(--bg-button-group);
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   gap: 4px;
 }
 
@@ -1230,7 +1261,7 @@ input[value="1"]:checked + .btn-radio.correct {
 .round-result-summary {
   background: var(--bg-sidebar-card);
   padding: 10px;
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   width: 100%;
   max-width: 500px;
   margin: 0 auto 20px;
@@ -1247,7 +1278,7 @@ input[value="1"]:checked + .btn-radio.correct {
 .track-details img {
   width: 150px;
   height: 150px;
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   aspect-ratio: 1/1;
 }
 
@@ -1258,7 +1289,7 @@ input[value="1"]:checked + .btn-radio.correct {
 
 .own-results .result {
   color: var(--fixed-white);
-  border-radius: 8px;
+  border-radius: var(--border-radius-medium);
   font-weight: bolder;
   font-size: larger;
   height: 50px;
