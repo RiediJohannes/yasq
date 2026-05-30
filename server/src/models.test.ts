@@ -705,7 +705,6 @@ describe('GameInstance - getGlimpseHint', () => {
 
   const rootDir: string = process.cwd();
   const gameCoverDir: string = path.join(rootDir, STATIC_FILES_DIR, "game_covers");
-  const MOCK_SECRET = 'test-secret';
 
   const mockCallback = vi.fn();
   const testCover = "test.png";
@@ -714,8 +713,6 @@ describe('GameInstance - getGlimpseHint', () => {
   beforeEach(() => {
     game = new GameInstance(INSTANCE_ID, HOST);
     setupTempDir(rootDir);
-
-    vi.stubEnv('VITE_DISCORD_CLIENT_ID', MOCK_SECRET);  // mock client secret env var
 
     // Create a minimal test image
     const testImageBuffer = Buffer.from(
@@ -748,13 +745,12 @@ describe('GameInstance - getGlimpseHint', () => {
     expect(fs.existsSync(instanceTempDir)).toBeTruthy();
 
     // Instance temp dir contains the modified image file with the expected name
-    expect(process.env.VITE_DISCORD_CLIENT_ID).toBe(MOCK_SECRET);
-    const secretHash = game.hashWithGameState(MOCK_SECRET)
-    expect(fs.readdirSync(instanceTempDir)).toContain(`glimpse_${secretHash}.jpg`);
+    const modifiedImgName = `glimpse_${game.currentRound}.jpg`
+    expect(fs.readdirSync(instanceTempDir)).toContain(modifiedImgName);
 
     // Temp image is different from original image
     const originalImg = fs.readFileSync(path.join(rootDir, STATIC_FILES_DIR, "game_covers", track.cover));
-    const modifiedImg = fs.readFileSync(path.join(instanceTempDir, `glimpse_${secretHash}.jpg`));
+    const modifiedImg = fs.readFileSync(path.join(instanceTempDir, modifiedImgName));
     expect(originalImg).not.toEqual(modifiedImg);
   });
 
@@ -772,9 +768,8 @@ describe('GameInstance - getGlimpseHint', () => {
     const instanceTempDir = path.join(rootDir, STATIC_FILES_DIR, TEMP_FILES_DIR, game.instanceId);
     await game.playTrack(track, mockCallback);
 
-    const secretHash = game.hashWithGameState(MOCK_SECRET)
     expect(fs.existsSync(instanceTempDir)).toBeTruthy();
-    expect(fs.readdirSync(instanceTempDir)).toContain(`glimpse_${secretHash}.jpg`);
+    expect(fs.readdirSync(instanceTempDir)).toContain(`glimpse_${game.currentRound}.jpg`);
 
     // Instance temp dir was removed after the round timer ran out
     vi.advanceTimersByTime(game.settings.trackDuration + COUNTDOWN_DURATION + 100);
@@ -796,9 +791,8 @@ describe('GameInstance - getGlimpseHint', () => {
     const instanceTempDir = path.join(rootDir, STATIC_FILES_DIR, TEMP_FILES_DIR, game.instanceId);
     await game.playTrack(track, mockCallback);
 
-    const secretHash = game.hashWithGameState(MOCK_SECRET)
     expect(fs.existsSync(instanceTempDir)).toBeTruthy();
-    expect(fs.readdirSync(instanceTempDir)).toContain(`glimpse_${secretHash}.jpg`);
+    expect(fs.readdirSync(instanceTempDir)).toContain(`glimpse_${game.currentRound}.jpg`);
 
     game.submitGuess(PLAYER_1, GAME_A);
     expect(fs.existsSync(instanceTempDir)).toBeTruthy();  // still there

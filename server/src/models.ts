@@ -17,6 +17,7 @@ import { hash } from "./helper.js";
 import sharp from "sharp";
 import path from "path";
 import fs from "fs";
+import fsAsync from 'fs/promises';
 
 export class GameInstance {
   public instanceId: string;
@@ -34,7 +35,6 @@ export class GameInstance {
   public trackHistory: string[] = [];
   public lastWinnerId: string | null = null;
   public usedJokers: Record<string, Partial<Record<Joker, number>>> = {};
-  private tempImageUrl: string | null = null;
 
   constructor(instanceId: string, hostId: string) {
     this.instanceId = instanceId
@@ -214,7 +214,7 @@ export class GameInstance {
 
     // Generate the blurred cover art on the server once at the beginning of the round if needed
     if (new Set(this.settings.enabledJokers).has(Joker.GLIMPSE)) {
-      this.tempImageUrl = await this.generateBlurredImage(`/game_covers/${track.cover}`);
+      await this.generateBlurredImage(`/game_covers/${track.cover}`);
     }
 
     const totalWaitTime = COUNTDOWN_DURATION + this.settings.trackDuration;
@@ -271,7 +271,7 @@ export class GameInstance {
     }).join("");
   }
 
-  public hashWithGameState(str: string): number {
+  private hashWithGameState(str: string): number {
     return hash(`${this.instanceId}-${this.currentGame}-${this.currentRound}-${str}`);
   }
 
@@ -309,8 +309,17 @@ export class GameInstance {
     return this.guesses[this.currentRound]?.[userId]?.text ?? null;
   }
 
-  public getGlimpseHint(): string | null {
-    return this.tempImageUrl;
+  public async getGlimpseHint(): Promise<string | null> {
+    const tempDir = this.temporaryDirectory();
+    const imagePath = path.join(tempDir, `glimpse_${this.currentRound}.jpg`);
+
+    if (!fs.existsSync(imagePath)) return null;
+
+    const glimpseBase64 = await fsAsync.readFile(imagePath, {
+      encoding: 'base64'
+    });
+
+    return `data:image/jpeg;base64,${glimpseBase64}`;
   }
 
   private temporaryDirectory(createIfAbsent: boolean = false): string {
@@ -325,25 +334,20 @@ export class GameInstance {
     return instanceTempDir;
   }
 
-  private async generateBlurredImage(relativeImagePath: string) {
+  private async generateBlurredImage(sourcePathRelative: string) {
     const staticFilesDir = path.join(process.cwd(), STATIC_FILES_DIR)
     const outputDir = this.temporaryDirectory(true);
 
     try {
-      // Generate secure random image file name (seeded by client secret)
-      const randomNumber = this.hashWithGameState(process.env.VITE_DISCORD_CLIENT_ID!)
-      const outputFile = `glimpse_${randomNumber}.jpg`;
+      const outputPath = path.join(outputDir, `glimpse_${this.currentRound}.jpg`);
 
-      await sharp(path.join(staticFilesDir, relativeImagePath))
+      await sharp(path.join(staticFilesDir, sourcePathRelative))
         .resize(500)
         .blur(GLIMPSE_BLUR_INTENSITY)
         .jpeg()
-        .toFile(path.join(outputDir, outputFile));
-
-      return `/${TEMP_FILES_DIR}/${this.instanceId}/${outputFile}`;
+        .toFile(outputPath);
     } catch (e) {
       console.log(e)
-      return null;
     }
   }
 
@@ -353,8 +357,6 @@ export class GameInstance {
       recursive: true,
       force: true
     })
-
-    this.tempImageUrl = null;
   }
 
   public markJokerUsed(userId: string, joker: Joker): void {

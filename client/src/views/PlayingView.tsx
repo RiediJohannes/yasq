@@ -10,11 +10,11 @@ import { NonDraggableImg } from "../components/NonDraggableImg";
 import { Tag } from "../utils/types";
 
 type JokerHint =
-  | { type: Joker.OBFUSCATION; data: string }
-  | { type: Joker.MULTIPLE_CHOICE; data: string[] }
-  | { type: Joker.TRIVIA; data: Tag[] }
-  | { type: Joker.SPY; data: { text: string, targetId: string } }
-  | { type: Joker.GLIMPSE; data: string };
+  | { type: Joker.OBFUSCATION;      data: string }
+  | { type: Joker.MULTIPLE_CHOICE;  data: string[] }
+  | { type: Joker.TRIVIA;           data: Tag[] }
+  | { type: Joker.SPY;              data: { text: string, targetId: string } }
+  | { type: Joker.GLIMPSE;          data: string };
 
 type SubmitFunction = (guess: string) => Promise<void>;
 

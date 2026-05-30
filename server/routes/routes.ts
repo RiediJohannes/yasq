@@ -595,7 +595,7 @@ export const setupRoutes = (server: Server, instances: Record<string, GameInstan
         }
         break;
       case Joker.GLIMPSE:
-        hint = game.getGlimpseHint();
+        hint = await game.getGlimpseHint();
         if (hint === null) {
           return res.status(500).send({ error: "Failed to generate blurred image.\nJoker not consumed." });
         }
