@@ -23,7 +23,7 @@
     "test:e2e:ui": "cross-env VITE_MOCK_MODE=true UI_TEST_MODE=true playwright test --config=tests/playwright.config.ts --ui"
   },
   "devDependencies": {
-    "@playwright/test": "^1.58.2",
+    "@playwright/test": "^1.60.0",
     "concurrently": "^8.2.0",
     "wait-on": "^9.0.10"
   }
