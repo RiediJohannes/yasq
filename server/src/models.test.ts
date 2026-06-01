@@ -1,14 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GameInstance, LeaderboardEntry, Tag, Track, TrackInfo, UserGuess } from './models.js';
 import {
+  COUNTDOWN_DURATION,
   DEFAULT_FIRST_BONUS_MULTIPLIER,
   FirstBonusMultiplier,
   GameState,
   Joker,
   MAX_TIME_MULTIPLIER,
   MIN_TIME_MULTIPLIER,
+  STATIC_FILES_DIR,
+  TEMP_FILES_DIR,
   TimeBonus,
 } from '@yasq/shared';
+import path from "path";
+import { setupTempDir } from "./helper.js";
+import fs from "fs";
 
 const HOST = "host_123";
 const INSTANCE_ID = "mock_instance"
@@ -502,10 +508,10 @@ describe('GameInstance - playTrack', () => {
     vi.useRealTimers();
   });
 
-  it('should set correct TrackInfo and transition to PLAYING', () => {
+  it('should set correct TrackInfo and transition to PLAYING', async () => {
     const track = new Track(GAME_A, "Track A", "file123", "", []);
 
-    game.playTrack(track, mockCallback);
+    await game.playTrack(track, mockCallback);
 
     const expectedStart = Date.now() + 4000; // now + countdown
     const expectedEnd = expectedStart + 10_000; // start + duration
@@ -516,9 +522,9 @@ describe('GameInstance - playTrack', () => {
     expect(game.trackHistory).toContain("file123");
   });
 
-  it('should transition to ROUND_COMPLETED automatically after time expires', () => {
+  it('should transition to ROUND_COMPLETED automatically after time expires', async () => {
     const track = new Track(GAME_A, "Track A", "file123", "", []);
-    game.playTrack(track, mockCallback);
+    await game.playTrack(track, mockCallback);
 
     // Verify we are still playing initially
     expect(game.state).toBe(GameState.PLAYING);
@@ -534,9 +540,9 @@ describe('GameInstance - playTrack', () => {
     expect(mockCallback).toHaveBeenCalled()
   });
 
-  it('should not transition if the round has already changed (Race Condition Check)', () => {
+  it('should not transition if the round has already changed (Race Condition Check)', async () => {
     const track = new Track(GAME_A, "Track A", "file123", "", []);
-    game.playTrack(track, mockCallback);
+    await game.playTrack(track, mockCallback);
 
     // Manually bump the round (simulating all players submitted guess before countdown ends)
     game.currentRound = 2;
@@ -577,9 +583,9 @@ describe('GameInstance - getPartialHint', () => {
     game = new GameInstance(INSTANCE_ID, HOST);
   });
 
-  it('should return a string of underscores and special characters matching the title length', () => {
+  it('should return a string of underscores and special characters matching the title length', async () => {
     const track = new Track(GAME_LONG, "", "", "", []);
-    game.playTrack(track, mockCallback);
+    await game.playTrack(track, mockCallback);
     const hint = game.getPartialHint(0.5);
 
     expect(hint.length).toBe(GAME_LONG.length);
@@ -589,10 +595,10 @@ describe('GameInstance - getPartialHint', () => {
     expect(hint[9]).toBe(' ');
   });
 
-  it('should return a consistent hint for the same instance_id + solution combination', () => {
+  it('should return a consistent hint for the same instance_id + solution combination', async () => {
     const track = new Track(GAME_LONG, "", "", "", []);
 
-    game.playTrack(track, mockCallback);
+    await game.playTrack(track, mockCallback);
 
     // run hint generation multiple times to be sure
     const probabilities = [0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0]
@@ -606,12 +612,12 @@ describe('GameInstance - getPartialHint', () => {
     }
   });
 
-  it('should return a different hint for another game', () => {
+  it('should return a different hint for another game', async () => {
     const track = new Track(GAME_LONG, "", "", "", []);
     const newGame = new GameInstance("NEW_" + INSTANCE_ID, HOST);
 
-    game.playTrack(track, mockCallback)
-    newGame.playTrack(track, mockCallback);
+    await game.playTrack(track, mockCallback)
+    await newGame.playTrack(track, mockCallback);
 
     const controlHint = game.getPartialHint(0.5);
     const differentHint = newGame.getPartialHint(0.5);
@@ -630,9 +636,9 @@ describe('GameInstance - getTagHint', () => {
     game = new GameInstance(INSTANCE_ID, HOST);
   });
 
-  it('should return the corresponding tags', () => {
+  it('should return the corresponding tags', async () => {
     const track = new Track(GAME_A, "", "", "", [new Tag("platform", "Platform A"), new Tag("release", "2026")])
-    game.playTrack(track, mockCallback);
+    await game.playTrack(track, mockCallback);
     const hint = game.getTagHint();
 
     expect(hint.length).toBe(2);
@@ -659,8 +665,8 @@ describe('GameInstance - getAnswersHint', () => {
     gameSameId = new GameInstance(INSTANCE_ID, HOST);
   });
 
-  it('should return a list of four answers (correct + three wrong)', () => {
-    game.playTrack(correctTrack, mockCallback);
+  it('should return a list of four answers (correct + three wrong)', async () => {
+    await game.playTrack(correctTrack, mockCallback);
     const hint = game.getMultipleChoiceHint(allTracks);
 
     expect(hint.length).toBe(4);
@@ -680,9 +686,9 @@ describe('GameInstance - getAnswersHint', () => {
     });
   });
 
-  it('should return the same list of answers for the same instance_id + solution combination', () => {
-    game.playTrack(correctTrack, mockCallback);
-    gameSameId.playTrack(correctTrack, mockCallback);
+  it('should return the same list of answers for the same instance_id + solution combination', async () => {
+    await game.playTrack(correctTrack, mockCallback);
+    await gameSameId.playTrack(correctTrack, mockCallback);
 
     // run hint generation multiple times to be sure
     for (let i = 0; i < 10; i++) {
@@ -692,6 +698,125 @@ describe('GameInstance - getAnswersHint', () => {
       expect(gameSameId.getMultipleChoiceHint(allTracks)).toStrictEqual(controlHint);
     }
   })
+});
+
+describe('GameInstance - getGlimpseHint', () => {
+  let game: GameInstance;
+
+  const rootDir: string = process.cwd();
+  const gameCoverDir: string = path.join(rootDir, STATIC_FILES_DIR, "game_covers");
+
+  const mockCallback = vi.fn();
+  const testCover = "test.png";
+  const track = new Track(GAME_A, "Track A", "test.mp3", testCover, [])
+
+  beforeEach(() => {
+    game = new GameInstance(INSTANCE_ID, HOST);
+    setupTempDir(rootDir);
+
+    // Create a minimal test image
+    const testImageBuffer = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      'base64'
+    );
+
+    const testImagePath = path.join(gameCoverDir, testCover);
+    fs.writeFileSync(testImagePath, testImageBuffer);
+  });
+
+  afterEach(() => {
+    // Clean up temporary test image
+    fs.rmSync('./temp', { recursive: true, force: true });
+  })
+
+  it('should generate a modified JPEG version of the cover image at the beginning of the round', async () => {
+    game.setupGame({
+      rounds: 3,
+      trackDuration: 20,
+      enabledJokers: [Joker.OBFUSCATION, Joker.MULTIPLE_CHOICE, Joker.GLIMPSE],
+      firstBonusMultiplier: DEFAULT_FIRST_BONUS_MULTIPLIER,
+      timeBonus: TimeBonus.LINEAR
+    });
+
+    const instanceTempDir = path.join(rootDir, STATIC_FILES_DIR, TEMP_FILES_DIR, game.instanceId);
+    // Instance temp dir is automatically created when needed
+    expect(fs.existsSync(instanceTempDir)).toBeFalsy();
+    await game.playTrack(track, mockCallback);
+    expect(fs.existsSync(instanceTempDir)).toBeTruthy();
+
+    // Instance temp dir contains the modified image file with the expected name
+    const modifiedImgName = `glimpse_${game.currentRound}.jpg`
+    expect(fs.readdirSync(instanceTempDir)).toContain(modifiedImgName);
+
+    // Temp image is different from original image
+    const originalImg = fs.readFileSync(path.join(rootDir, STATIC_FILES_DIR, "game_covers", track.cover));
+    const modifiedImg = fs.readFileSync(path.join(instanceTempDir, modifiedImgName));
+    expect(originalImg).not.toEqual(modifiedImg);
+  });
+
+  it("should clean up its own temp directory when the round timer runs out", async () => {
+    vi.useFakeTimers();
+
+    game.setupGame({
+      rounds: 3,
+      trackDuration: 10,
+      enabledJokers: [Joker.OBFUSCATION, Joker.MULTIPLE_CHOICE, Joker.GLIMPSE],
+      firstBonusMultiplier: DEFAULT_FIRST_BONUS_MULTIPLIER,
+      timeBonus: TimeBonus.LINEAR
+    });
+
+    const instanceTempDir = path.join(rootDir, STATIC_FILES_DIR, TEMP_FILES_DIR, game.instanceId);
+    await game.playTrack(track, mockCallback);
+
+    expect(fs.existsSync(instanceTempDir)).toBeTruthy();
+    expect(fs.readdirSync(instanceTempDir)).toContain(`glimpse_${game.currentRound}.jpg`);
+
+    // Instance temp dir was removed after the round timer ran out
+    vi.advanceTimersByTime(game.settings.trackDuration + COUNTDOWN_DURATION + 100);
+    expect(fs.existsSync(instanceTempDir)).toBeFalsy();
+  });
+
+  it("should clean up its own temp directory after the last player has guessed", async () => {
+    game.setupGame({
+      rounds: 3,
+      trackDuration: 10,
+      enabledJokers: [Joker.OBFUSCATION, Joker.MULTIPLE_CHOICE, Joker.GLIMPSE],
+      firstBonusMultiplier: DEFAULT_FIRST_BONUS_MULTIPLIER,
+      timeBonus: TimeBonus.LINEAR
+    });
+
+    game.registeredUsers.add(PLAYER_1);
+    game.registeredUsers.add(PLAYER_2);
+
+    const instanceTempDir = path.join(rootDir, STATIC_FILES_DIR, TEMP_FILES_DIR, game.instanceId);
+    await game.playTrack(track, mockCallback);
+
+    expect(fs.existsSync(instanceTempDir)).toBeTruthy();
+    expect(fs.readdirSync(instanceTempDir)).toContain(`glimpse_${game.currentRound}.jpg`);
+
+    game.submitGuess(PLAYER_1, GAME_A);
+    expect(fs.existsSync(instanceTempDir)).toBeTruthy();  // still there
+    game.submitGuess(PLAYER_2, GAME_B);
+
+    // Instance temp dir was removed after the last player submitted their guess
+    expect(fs.existsSync(instanceTempDir)).toBeFalsy();
+  });
+
+  it('should NOT generate a temporary image file if GLIMPSE is not among the enabled jokers', async () => {
+    game.setupGame({
+      rounds: 3,
+      trackDuration: 20,
+      enabledJokers: [Joker.OBFUSCATION, Joker.MULTIPLE_CHOICE],
+      firstBonusMultiplier: DEFAULT_FIRST_BONUS_MULTIPLIER,
+      timeBonus: TimeBonus.LINEAR
+    });
+
+    const instanceTempDir = path.join(rootDir, STATIC_FILES_DIR, TEMP_FILES_DIR, game.instanceId);
+    expect(fs.existsSync(instanceTempDir)).toBeFalsy();
+
+    await game.playTrack(track, mockCallback);
+    expect(fs.existsSync(instanceTempDir)).toBeFalsy();
+  });
 });
 
 describe('GameInstance - pickNewHost', () => {

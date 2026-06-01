@@ -2,15 +2,22 @@ import {
   BASE_POINTS,
   COUNTDOWN_DURATION,
   EXPONENTIAL_DECAY_INTENSITY,
-  GameState,
   GameSettings,
+  GameState,
+  GLIMPSE_BLUR_INTENSITY,
   Joker,
   MAX_TIME_MULTIPLIER,
   MIN_TIME_MULTIPLIER,
+  STATIC_FILES_DIR,
+  TEMP_FILES_DIR,
   TimeBonus
 } from "@yasq/shared";
 import MersenneTwister from 'mersenne-twister';
 import { hash } from "./helper.js";
+import sharp from "sharp";
+import path from "path";
+import fs from "fs";
+import fsAsync from 'fs/promises';
 
 export class GameInstance {
   public instanceId: string;
@@ -45,6 +52,7 @@ export class GameInstance {
       enabledJokers: new Set(settings.enabledJokers)
     };
     this.state = GameState.LOBBY;
+    this.removeTempFiles()
   }
 
   public startGame(): void {
@@ -72,6 +80,7 @@ export class GameInstance {
 
     if (guessersCount >= totalPlayers) {
       this.state = GameState.ROUND_COMPLETED;
+      this.removeTempFiles();
     }
 
     this.guessedPlayers.add(userId);
@@ -194,7 +203,7 @@ export class GameInstance {
     return this.currentRound >= this.settings.rounds;
   }
 
-  public playTrack(track: Track, roundFinishedCallback: () => void): void {
+  public async playTrack(track: Track, roundFinishedCallback: () => void): Promise<void> {
     const startTime = Date.now() + COUNTDOWN_DURATION;
     const endTime = startTime + this.settings.trackDuration;
 
@@ -203,6 +212,11 @@ export class GameInstance {
     this.trackHistory.push(track.audio);
     const roundAtStart = this.currentRound;
 
+    // Generate the blurred cover art on the server once at the beginning of the round if needed
+    if (new Set(this.settings.enabledJokers).has(Joker.GLIMPSE)) {
+      await this.generateBlurredImage(`/game_covers/${track.cover}`);
+    }
+
     const totalWaitTime = COUNTDOWN_DURATION + this.settings.trackDuration;
 
     // Set a timer to automatically transition to ROUND_COMPLETED after trackDuration
@@ -210,7 +224,9 @@ export class GameInstance {
       if (this.state === GameState.PLAYING && this.currentRound === roundAtStart) {
         this.state = GameState.ROUND_COMPLETED;
         console.log(`[TIMER] Round ${roundAtStart} expired.`);
+
         roundFinishedCallback()
+        this.removeTempFiles()
       }
     }, totalWaitTime);
   }
@@ -256,7 +272,7 @@ export class GameInstance {
   }
 
   private hashWithGameState(str: string): number {
-    return hash(`${this.instanceId}-${str}-${this.currentGame}-${this.currentRound}`);
+    return hash(`${this.instanceId}-${this.currentGame}-${this.currentRound}-${str}`);
   }
 
   public getTagHint(): Tag[] {
@@ -293,6 +309,56 @@ export class GameInstance {
     return this.guesses[this.currentRound]?.[userId]?.text ?? null;
   }
 
+  public async getGlimpseHint(): Promise<string | null> {
+    const tempDir = this.temporaryDirectory();
+    const imagePath = path.join(tempDir, `glimpse_${this.currentRound}.jpg`);
+
+    if (!fs.existsSync(imagePath)) return null;
+
+    const glimpseBase64 = await fsAsync.readFile(imagePath, {
+      encoding: 'base64'
+    });
+
+    return `data:image/jpeg;base64,${glimpseBase64}`;
+  }
+
+  private temporaryDirectory(createIfAbsent: boolean = false): string {
+    const instanceTempDir = path.join(process.cwd(), STATIC_FILES_DIR, TEMP_FILES_DIR, this.instanceId);
+
+    if (createIfAbsent && !fs.existsSync(instanceTempDir)) {
+      fs.mkdirSync(instanceTempDir, {
+        recursive: true
+      });
+    }
+
+    return instanceTempDir;
+  }
+
+  private async generateBlurredImage(sourcePathRelative: string) {
+    const staticFilesDir = path.join(process.cwd(), STATIC_FILES_DIR)
+    const outputDir = this.temporaryDirectory(true);
+
+    try {
+      const outputPath = path.join(outputDir, `glimpse_${this.currentRound}.jpg`);
+
+      await sharp(path.join(staticFilesDir, sourcePathRelative))
+        .resize(500)
+        .blur(GLIMPSE_BLUR_INTENSITY)
+        .jpeg()
+        .toFile(outputPath);
+    } catch (e) {
+      console.log(e)
+    }
+  }
+
+  private removeTempFiles() {
+    const tempDir = this.temporaryDirectory();
+    fs.rmSync(tempDir, {
+      recursive: true,
+      force: true
+    })
+  }
+
   public markJokerUsed(userId: string, joker: Joker): void {
     if (!this.usedJokers[userId]) {
       this.usedJokers[userId] = {};
@@ -310,6 +376,10 @@ export class GameInstance {
 
     this.hostId = remainingPlayers[0] ?? null;
     return true;
+  }
+
+  public dispose(): void {
+    this.removeTempFiles();
   }
 
   toJSON() {

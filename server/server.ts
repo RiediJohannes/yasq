@@ -10,8 +10,8 @@ import { GameInstance } from './src/models.js';
 
 import { setupRoutes } from "./routes/routes.js";
 import { setupMockRoutes } from "./routes/mockRoutes.js";
-import { getGameStatusPayload } from "./src/helper.js";
-import { WS_GAME_STATUS_UPDATE_EVENT, WS_JOIN_INSTANCE_EVENT } from "@yasq/shared";
+import { getGameStatusPayload, setupTempDir } from "./src/helper.js";
+import { STATIC_FILES_DIR, TEMP_FILES_DIR, WS_GAME_STATUS_UPDATE_EVENT, WS_JOIN_INSTANCE_EVENT } from "@yasq/shared";
 
 dotenv.config({ path: "../.env" });
 
@@ -21,7 +21,7 @@ const instances: Record<string, GameInstance> = {};
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const tracksPath = isMockMode
   ? path.join(__dirname, '..', 'mock_data', 'mockTracks.json')
-  : path.join(__dirname, 'data', 'tracks.json');
+  : path.join(__dirname, STATIC_FILES_DIR, 'tracks.json');
 
 let allTracks = [];
 
@@ -40,7 +40,7 @@ if (fs.existsSync(tracksPath)) {
 
 const playlistsPath = isMockMode
   ? path.join(__dirname, '..', 'mock_data', 'mockPlaylists.json')
-  : path.join(__dirname, 'data', 'playlists.json');
+  : path.join(__dirname, STATIC_FILES_DIR, 'playlists.json');
 
 let allPlaylists = [];
 
@@ -74,10 +74,14 @@ server.on('connection', (socket) => {
 
 // Allow express to parse JSON bodies
 app.use(express.json());
-app.use('/music', express.static(path.join(__dirname, 'data/music')));
-app.use('/game_covers', express.static(path.join(__dirname, 'data/game_covers')));
+app.use('/music', express.static(path.join(__dirname, STATIC_FILES_DIR, 'music')));
+app.use('/game_covers', express.static(path.join(__dirname, STATIC_FILES_DIR, 'game_covers')));
 
-// Register routes
+// Folder for serving temporary static files
+const tempDir = setupTempDir(__dirname);
+app.use(`/${TEMP_FILES_DIR}`, express.static(tempDir));
+
+// Register routes for REST communication between clients and server
 app.use('/api', setupRoutes(server, instances, isMockMode, allTracks, allPlaylists));
 
 // Add a simple endpoint for health checks

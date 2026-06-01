@@ -1,6 +1,8 @@
 import type { Server } from "socket.io";
 import type { GameInstance } from "./models.js";
-import { UI_UPDATES_DELAY_IN_E2E, WS_GAME_STATUS_UPDATE_EVENT } from "@yasq/shared";
+import { STATIC_FILES_DIR, TEMP_FILES_DIR, UI_UPDATES_DELAY_IN_E2E, WS_GAME_STATUS_UPDATE_EVENT } from "@yasq/shared";
+import fs from "fs";
+import path from "path";
 
 const tokenCache = new Map<string, { userId: string, expires: number }>();
 const TTL = 10 * 60 * 1000; // Cache for 10 minutes
@@ -48,7 +50,7 @@ export function invalidateToken(token: string) {
 export function hash(str: string): number {
   let h: number = 0;
   for (let i = 0; i < str.length; i++) {
-    h = 13 * h + str.charCodeAt(i);
+    h = 13 * h + 7 * str.charCodeAt(i);
     h &= 0xFFFFFFFF   // only keep lower 32 bits
   }
   return h & 0xFFFFFFFF
@@ -83,4 +85,19 @@ export function broadcastGameStatus(server: Server, instanceId: string, game: Ga
     // Instantaneous updates during production and local mock debugging
     emitUpdate();
   }
+}
+
+export function setupTempDir(projectRootDir: string): string {
+  const tempDir = path.join(projectRootDir, STATIC_FILES_DIR, TEMP_FILES_DIR);
+
+  if (fs.existsSync(tempDir)) {
+    // Clear any stale data inside the temp directory
+    for (const entry of fs.readdirSync(tempDir)) {
+      fs.rmSync(path.join(tempDir, entry), { recursive: true, force: true });
+    }
+  } else {
+    fs.mkdirSync(tempDir, { recursive: true });
+  }
+
+  return tempDir
 }

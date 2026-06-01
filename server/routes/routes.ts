@@ -135,6 +135,7 @@ export const setupRoutes = (server: Server, instances: Record<string, GameInstan
 
       if (!isGameActive) {
         console.log(`Terminating empty instance: ${instanceId}`);
+        game.dispose();
         delete instances[instanceId];
         return res.send({ message: "Instance terminated" });
       }
@@ -463,7 +464,7 @@ export const setupRoutes = (server: Server, instances: Record<string, GameInstan
       return res.status(400).send({ error: "Track not found." });
     }
 
-    game.playTrack(track, () => triggerUpdate(instanceId));
+    await game.playTrack(track, () => triggerUpdate(instanceId));
 
     console.log(`[MUSIC] Instance ${instanceId} started playing ${fileName}`);
 
@@ -590,7 +591,13 @@ export const setupRoutes = (server: Server, instances: Record<string, GameInstan
 
         hint = game.getSpyHint(targetId);
         if (hint === null) {
-          return res.status(202).send({ error: "Target hasn't submitted yet. Joker not consumed." });
+          return res.status(202).send({ error: "Target hasn't submitted yet.\nJoker not consumed." });
+        }
+        break;
+      case Joker.GLIMPSE:
+        hint = await game.getGlimpseHint();
+        if (hint === null) {
+          return res.status(500).send({ error: "Failed to generate blurred image.\nJoker not consumed." });
         }
         break;
       default:
@@ -601,7 +608,7 @@ export const setupRoutes = (server: Server, instances: Record<string, GameInstan
 
     triggerUpdate(instanceId);
 
-    res.send({
+    res.status(200).send({
       jokerType,
       hint
     });
