@@ -815,7 +815,6 @@ input[type="radio"]:checked + .btn-radio {
   margin-top: 4px;
   overflow: hidden;
   width: 300px;
-  padding-left: 8px;
   padding-right: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
@@ -825,9 +824,7 @@ input[type="radio"]:checked + .btn-radio {
   flex-flow: column;
   max-height: 380px;
   overflow-y: auto;
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-right: 8px;
+  padding: 8px;
   overscroll-behavior: contain;
   gap: var(--gap-small);
 }
@@ -1591,7 +1588,7 @@ input[value="1"]:checked + .btn-radio.correct {
 .streak-tier-3 { background-color: #ff2a00; }
 .streak-tier-4 {
   background-color: #cc0000;
-  box-shadow: 0 0 8px #ff2a00;
+  box-shadow: 0 0 8px #ff2a00 !important;
 }
 .badge.streak.broken {
   display: inline-block;

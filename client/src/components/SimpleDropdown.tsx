@@ -1,4 +1,5 @@
 import { useSignal } from "@preact/signals";
+import { useEffect } from "preact/hooks";
 
 export const SimpleDropdown = ({
   options,
@@ -12,6 +13,19 @@ export const SimpleDropdown = ({
   const isOpen = useSignal(false);
   const isFiltering = value !== options[0];
   const longestOption = options.reduce((a, b) => (a.length > b.length ? a : b), "");
+
+  useEffect(() => {
+    if (!isOpen.value) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        isOpen.value = false;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen.value]);
 
   const closeMenuAndFocusTrigger = (currentTarget: HTMLElement) => {
     isOpen.value = false;
@@ -47,7 +61,21 @@ export const SimpleDropdown = ({
       {isOpen.value && (
         <>
           <div className="dropdown-overlay" onClick={() => (isOpen.value = false)} />
-          <div className="dropdown-menu">
+          <div
+            className="dropdown-menu"
+            onWheel={(e) => {
+              const container = e.currentTarget.querySelector(".scrollbar-container") as HTMLElement;
+              if (!container) return;
+
+              const atTop = container.scrollTop === 0;
+              const atBottom = container.scrollHeight - container.scrollTop === container.clientHeight;
+
+              // If the wheel movement goes up at the top, or down at the bottom, stop it
+              if ((e.deltaY < 0 && atTop) || (e.deltaY > 0 && atBottom)) {
+                e.preventDefault();
+              }
+            }}
+          >
             <div className="scrollbar-container">
               {options.map(opt => {
                 const selectOption = (currentTarget: HTMLElement) => {
@@ -81,7 +109,7 @@ export const SimpleDropdown = ({
                       } else if (e.key === "Escape") {
                         e.preventDefault();
                         isOpen.value = false;
-                        closeMenuAndFocusTrigger(target);;
+                        closeMenuAndFocusTrigger(target);
                       }
                     }}
                   >

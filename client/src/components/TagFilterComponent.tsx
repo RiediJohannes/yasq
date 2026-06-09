@@ -1,4 +1,5 @@
 import { Signal, useSignal } from "@preact/signals";
+import { useEffect } from "preact/hooks";
 
 export const TagFilterDropdown = ({
   availableTags,
@@ -10,6 +11,19 @@ export const TagFilterDropdown = ({
   reachableTags: Map<string, number>
 }) => {
   const isOpen = useSignal(false);
+
+  useEffect(() => {
+    if (!isOpen.value) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        isOpen.value = false;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen.value]);
 
   const toggleTag = (type: string, value: string) => {
     const current = { ...selectedTags.value };
@@ -72,7 +86,21 @@ export const TagFilterDropdown = ({
       {isOpen.value && (
         <>
           <div className="dropdown-overlay" onClick={() => (isOpen.value = false)} />
-          <div className="dropdown-menu">
+          <div
+            className="dropdown-menu"
+            onWheel={(e) => {
+              const container = e.currentTarget.querySelector(".scrollbar-container") as HTMLElement;
+              if (!container) return;
+
+              const atTop = container.scrollTop === 0;
+              const atBottom = container.scrollHeight - container.scrollTop === container.clientHeight;
+
+              // If the wheel movement goes up at the top, or down at the bottom, stop it
+              if ((e.deltaY < 0 && atTop) || (e.deltaY > 0 && atBottom)) {
+                e.preventDefault();
+              }
+            }}
+          >
             <div className="scrollbar-container">
               {Object.entries(availableTags).map(([type, values]) => (
                 <div key={type} className="dropdown-group">
@@ -97,7 +125,7 @@ export const TagFilterDropdown = ({
                             const enabledItems = Array.from(
                               document.querySelectorAll(".dropdown-menu .dropdown-item:not(.disabled)")
                             ) as HTMLElement[];
-                            const currentIndex = enabledItems.indexOf(e.currentTarget);
+                            const currentIndex = enabledItems.indexOf(target);
                             if (currentIndex > -1 && currentIndex < enabledItems.length - 1) {
                               enabledItems[currentIndex + 1].focus();
                             }
@@ -106,16 +134,16 @@ export const TagFilterDropdown = ({
                             const enabledItems = Array.from(
                               document.querySelectorAll(".dropdown-menu .dropdown-item:not(.disabled)")
                             ) as HTMLElement[];
-                            const currentIndex = enabledItems.indexOf(e.currentTarget);
+                            const currentIndex = enabledItems.indexOf(target);
                             if (currentIndex > 0) {
                               enabledItems[currentIndex - 1].focus();
                             } else {
-                              closeMenuAndFocusTrigger(e.currentTarget);
+                              closeMenuAndFocusTrigger(target);
                             }
                           } else if (e.key === "Escape") {
                             e.preventDefault();
                             isOpen.value = false;
-                            closeMenuAndFocusTrigger(e.currentTarget);
+                            closeMenuAndFocusTrigger(target);
                           }
                         }}
                       >
