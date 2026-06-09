@@ -71,6 +71,12 @@ export const SelectionView = ({ isHost }: { isHost: boolean }) => {
     // Apply Sorting (Default Order, A-Z, or Z-A)
     return results.sort((a, b) => {
       if (sortOrder.value === "Default Order") {
+        // Maintain playlist order if playlist is selected
+        const activePlaylist = playlists.value.find(p => p.name === selectedPlaylistName.value);
+        if (activePlaylist) {
+          return activePlaylist.tracks.indexOf(a.audio) - activePlaylist.tracks.indexOf(b.audio);
+        }
+        // Otherwise use standard order
         return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
       }
 
