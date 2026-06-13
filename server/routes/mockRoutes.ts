@@ -29,7 +29,9 @@ export const setupMockRoutes = (server: Server, instances: Record<string, GameIn
       currentGame = 1,
       trackHistory = [],
       lastWinnerId,
-      usedJokers = {}
+      usedJokers = {},
+      streaks = {},
+      currentRoundLostStreaks = {}
     } = req.body;
 
     if (!instanceId) {
@@ -54,6 +56,8 @@ export const setupMockRoutes = (server: Server, instances: Record<string, GameIn
     game.trackHistory = trackHistory;
     game.lastWinnerId = lastWinnerId;
     game.usedJokers = usedJokers;
+    game.streaks = streaks;
+    game.currentRoundLostStreaks = currentRoundLostStreaks;
 
     instances[instanceId] = game;
 
@@ -109,6 +113,12 @@ export const setupMockRoutes = (server: Server, instances: Record<string, GameIn
     }
     if (updates.usedJokers) {
       game.usedJokers = updates.usedJokers;
+    }
+    if (updates.streaks) {
+      game.streaks = updates.streaks;
+    }
+    if (updates.currentRoundLostStreaks) {
+      game.currentRoundLostStreaks = updates.currentRoundLostStreaks;
     }
 
     triggerUpdate(instanceId);

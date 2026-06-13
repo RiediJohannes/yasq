@@ -67,7 +67,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
 
     return (
       <div id="results" className="centered">
-        <div className="round-result-summary">
+        <div className="card-container">
           <h2>Results</h2>
           <hr className="divider" />
           <div className="track-details">
@@ -188,7 +188,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
 
   return (
     <div id="results" className="centered">
-      <div className="round-result-summary">
+      <div className="card-container">
         <h2>Results</h2>
         <hr className="divider" />
         <div className="track-details">
@@ -237,7 +237,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
           id="btn-ready"
           onClick={handleReady}
         >
-          {gameState.value.readyUsers.includes(getUserId(auth.value)) ? "I'm Ready! ✅" : "Ready Up"}
+          {gameState.value.readyUsers.includes(getUserId(auth.value)) ? "I'm Ready! ✅" : "Ready for Next Round"}
         </button>
         <span className="shortcut-badge">
           <kbd>Alt</kbd>+<kbd>R</kbd>

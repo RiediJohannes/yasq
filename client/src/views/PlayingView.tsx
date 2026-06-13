@@ -258,7 +258,7 @@ export const ArenaView = ({ isHost }: { isHost: boolean }) => {
         <div id="game-host-ui">
           {activeTrackInfo.value ? (
             <div>
-              <div className="round-result-summary">
+              <div className="card-container">
                 <h2>Now playing</h2>
                 <hr className="divider" />
                 <div className="track-details">

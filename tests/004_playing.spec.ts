@@ -1,10 +1,14 @@
 import { test, expect } from '@playwright/test';
 import { generatePlayers, Player } from './helper.js'
+import { PlayingPage } from './pages/PlayingPage.js';
+import { Sidebar } from './pages/components/Sidebar.js';
+import { TestApi } from './api.js';
 
 test.describe('Host UI', () => {
 
   let players: Player[] = [];
   let currentInstanceId: string;
+  let api: TestApi;
 
   test.beforeEach(async ({ page, request }, testInfo) => {
     currentInstanceId = `test-instance-${testInfo.testId}`;
@@ -19,29 +23,24 @@ test.describe('Host UI', () => {
       window.__MOCK_INSTANCE_ID__ = instanceId;
     }, { allPlayers: players, user: user, instanceId: currentInstanceId });
 
-    await request.post('http://localhost:3001/api/test/setup-session', {
-      data: {
-        instanceId: currentInstanceId,
-        hostId: players[0].id,
-        registeredUsers: players,
-        state: 'PLAYING',
-        readyUserIds: [],
-        settings: {
-          rounds: 5,
-          trackDuration: 30_000,
-          enabledJokers: ['OBFUSCATION', 'TRIVIA', 'MULTIPLE_CHOICE', 'SPY']
-        },
-        trackInfo: {
-          url: "some url",
-          track: {
-            game: 'Game A',
-            title: 'Track A',
-            tags: [
-              { 'type': 'platform', 'value': 'Platform A'},
-              { 'type': 'release', 'value': '2026'}
-            ]
-          }
-        },
+    // Setup current game state
+    api = new TestApi(request, currentInstanceId);
+    await api.setupSession(players, 'PLAYING', {
+      settings: {
+        rounds: 5,
+        trackDuration: 30_000,
+        enabledJokers: ['OBFUSCATION', 'TRIVIA', 'MULTIPLE_CHOICE', 'SPY']
+      },
+      trackInfo: {
+        url: "some url",
+        track: {
+          game: 'Game A',
+          title: 'Track A',
+          tags: [
+            { 'type': 'platform', 'value': 'Platform A'},
+            { 'type': 'release', 'value': '2026'}
+          ]
+        }
       }
     });
 
@@ -49,28 +48,27 @@ test.describe('Host UI', () => {
     await page.goto('/?mock=true');
   });
 
-  test.afterEach(async ({ request }) => {
-    await request.delete(`http://localhost:3001/api/test/instance/${currentInstanceId}`);
+  test.afterEach(async () => {
+    await api.deleteSession();
   });
 
   test('should display information about current track', async ({ page }) => {
-    const hostUi = page.locator('#game-host-ui');
-    await expect(hostUi).toBeVisible();
+    const playing = new PlayingPage(page);
+
+    await expect(playing.hostUi).toBeVisible();
 
     // Verify track info
-    const summary = hostUi.locator('.round-result-summary');
-    await expect(summary.getByText('Now playing')).toBeVisible();
-    await expect(summary.getByText('Game A')).toBeVisible();
-    await expect(summary.getByText('Track A')).toBeVisible();
+    await expect(playing.summary.getByText('Now playing')).toBeVisible();
+    await expect(playing.summary.getByText('Game A')).toBeVisible();
+    await expect(playing.summary.getByText('Track A')).toBeVisible();
 
     // Verify tags
-    const tags = summary.locator('.tag-badge');
-    await expect(tags).toHaveCount(2);
-    await expect(tags.filter({ hasText: 'Platform A' })).toBeVisible();
-    await expect(tags.filter({ hasText: '2026' })).toBeVisible();
+    await expect(playing.tagBadges).toHaveCount(2);
+    await expect(playing.getTagBadge('Platform A')).toBeVisible();
+    await expect(playing.getTagBadge('2026')).toBeVisible();
 
     // Check for wait message
-    await expect(hostUi.getByText(/wait/i)).toBeVisible();
+    await expect(playing.hostUi.getByText(/wait/i)).toBeVisible();
   });
 });
 
@@ -78,6 +76,7 @@ test.describe('Player UI', () => {
 
   let players: Player[] = [];
   let currentInstanceId: string;
+  let api: TestApi;
 
   test.beforeEach(async ({ page, request }, testInfo) => {
     currentInstanceId = `test-instance-${testInfo.testId}`;
@@ -92,29 +91,24 @@ test.describe('Player UI', () => {
       window.__MOCK_INSTANCE_ID__ = instanceId;
     }, { allPlayers: players, user: user, instanceId: currentInstanceId });
 
-    await request.post('http://localhost:3001/api/test/setup-session', {
-      data: {
-        instanceId: currentInstanceId,
-        hostId: players[0].id,
-        registeredUsers: players,
-        state: 'PLAYING',
-        readyUserIds: [],
-        settings: {
-          rounds: 5,
-          trackDuration: 30_000,
-          enabledJokers: ['OBFUSCATION', 'TRIVIA', 'MULTIPLE_CHOICE', 'SPY']
-        },
-        trackInfo: {
-          url: "some url",
-          track: {
-            game: 'Game A',
-            title: 'Track A',
-            tags: [
-              { 'type': 'platform', 'value': 'Platform A'},
-              { 'type': 'release', 'value': '2026'}
-            ]
-          }
-        },
+    // Setup current game state
+    api = new TestApi(request, currentInstanceId);
+    await api.setupSession(players, 'PLAYING', {
+      settings: {
+        rounds: 5,
+        trackDuration: 30_000,
+        enabledJokers: ['OBFUSCATION', 'TRIVIA', 'MULTIPLE_CHOICE', 'SPY']
+      },
+      trackInfo: {
+        url: "some url",
+        track: {
+          game: 'Game A',
+          title: 'Track A',
+          tags: [
+            { 'type': 'platform', 'value': 'Platform A'},
+            { 'type': 'release', 'value': '2026'}
+          ]
+        }
       }
     });
 
@@ -122,175 +116,138 @@ test.describe('Player UI', () => {
     await page.goto('/?mock=true');
   });
 
-  test.afterEach(async ({ request }) => {
-    await request.delete(`http://localhost:3001/api/test/instance/${currentInstanceId}`);
+  test.afterEach(async () => {
+    await api.deleteSession();
   });
 
   test('should show wait message after submitting a guess', async ({ page }) => {
-    const guessInput = page.locator('#guess-input');
-    const submitBtn = page.locator('#btn-submit');
-    const waitMessage = page.locator('#waiting-msg');
+    const playing = new PlayingPage(page);
+    const sidebar = new Sidebar(page);
 
     // Playing UI visible as expected
-    await expect(guessInput).toBeVisible();
-    await expect(submitBtn).toBeVisible();
-    await expect(waitMessage).toBeHidden();
+    await expect(playing.guessInput).toBeVisible();
+    await expect(playing.waitMessage).toBeHidden();
 
     // Submit a guess
-    await guessInput.fill('Game XY');
-    await submitBtn.click();
+    await playing.guessInput.fill('Game XY');
+    await playing.submitBtn.click();
 
     // Verify UI state change
-    await expect(guessInput).toBeHidden();
-    await expect(submitBtn).toBeHidden();
-    await expect(waitMessage).toBeVisible();
-    await expect(waitMessage).toHaveText(/wait/i);
+    await expect(playing.guessInput).toBeHidden();
+    await expect(playing.waitMessage).toBeVisible();
+    await expect(playing.waitMessage).toHaveText(/wait/i);
 
     // Check for the GUESSED badge
-    const playerEntry = page.locator(`.player-entry:has-text("${players[1].username}")`);
-    await expect(playerEntry.locator('.badge.guessed')).toBeVisible();
-    await expect(playerEntry.locator('.badge.guessed')).toHaveText('GUESSED');
+    await expect(sidebar.getBadge(players[1].username, 'guessed')).toBeVisible();
+    await expect(sidebar.getBadge(players[1].username, 'guessed')).toHaveText('GUESSED');
   });
 
-  test('should switch to next state once all players have submitted a guess', async ({ page, request }) => {
-    const guessInput = page.locator('#guess-input');
-    const submitBtn = page.locator('#btn-submit');
-    const gameArena = page.locator('#game-arena');
-    const resultsUI = page.locator('#results');
+  test('should switch to next state once all players have submitted a guess', async ({ page }) => {
+    const playing = new PlayingPage(page);
 
-    // Other players submits guess
+    // Other players submit guesses
     for (const index of [2, 4, 3]) {
-      await request.post('http://localhost:3001/api/submit-guess', {
-        data: {
-          instanceId: currentInstanceId,
-          guess: 'Some Game'
-        },
-        headers: {
-          'Authorization': `Bearer token_${players[index].id}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      await api.submitGuess(players[index].id, 'Some Game');
     }
 
     // Submit own guess
-    await guessInput.fill('Game XY');
-    await submitBtn.click();
+    await playing.guessInput.fill('Game XY');
+    await playing.submitBtn.click();
 
     // Verify UI state change
-    await expect(resultsUI).toBeVisible();
-    await expect(gameArena).toBeHidden();
+    await expect(playing.resultsUI).toBeVisible();
+    await expect(playing.gameArena).toBeHidden();
   });
 
   test('should display obfuscated hint when using obfuscation joker', async ({ page }) => {
-    const jokerBtn = page.locator('#btn-joker-obfuscation');
-    const hintText = page.locator('#obfuscation-hint-text');
+    const playing = new PlayingPage(page);
 
     // Activate joker
-    await jokerBtn.click();
+    await playing.jokerObfuscationBtn.click();
 
     // Verify UI change
-    await expect(jokerBtn).toBeDisabled();
-    await expect(hintText).toBeVisible();
+    await expect(playing.jokerObfuscationBtn).toBeDisabled();
+    await expect(playing.hintText).toBeVisible();
     const validChars = /^[a-zA-Z0-9_\s\-!:'?]+$/;
-    const text = await hintText.innerText();
+    const text = await playing.hintText.innerText();
     await expect(text).toMatch(validChars);
   });
 
   test('should display trivia hint when using tags joker', async ({ page }) => {
-    const jokerBtn = page.locator('#btn-joker-trivia');
-    const tagsContainer = page.locator('.tags-container');
-    const tagBadges = page.locator('.tag-badge');
+    const playing = new PlayingPage(page);
 
     // Activate joker
-    await jokerBtn.click();
+    await playing.jokerTriviaBtn.click();
 
     // Verify UI change
-    await expect(tagsContainer).toBeVisible();
-    await expect(tagBadges).toHaveCount(2);
+    await expect(playing.tagsContainer).toBeVisible();
+    await expect(playing.tagBadges).toHaveCount(2);
 
     // Verify platform tag
-    const platformTag = page.locator('.tag-badge', { hasText: 'platform' });
-    await expect(platformTag).toContainText('Platform A');
+    await expect(playing.getTagBadge('platform')).toContainText('Platform A');
 
     // Verify release tag
-    const releaseTag = page.locator('.tag-badge', { hasText: 'release' });
-    await expect(releaseTag).toContainText('2026');
+    await expect(playing.getTagBadge('release')).toContainText('2026');
   });
 
   test('should display 4 multiple choice buttons when using mc joker', async ({ page }) => {
-    const jokerBtn = page.locator('#btn-joker-multiple-choice');
-    const choiceButtons = page.locator('.choice-button');
-    const guessInput = page.locator('#guess-input');
-    const waitMessage = page.locator('#waiting-msg');
+    const playing = new PlayingPage(page);
 
     // Activate joker
-    await jokerBtn.click();
+    await playing.jokerMcBtn.click();
 
     // Verify UI state
-    await expect(jokerBtn).toBeDisabled();
-    await expect(choiceButtons).toHaveCount(4);
+    await expect(playing.jokerMcBtn).toBeDisabled();
+    await expect(playing.choiceButtons).toHaveCount(4);
 
     // Verify uniqueness (none of the buttons should have the same text)
-    const texts = await choiceButtons.allInnerTexts();
+    const texts = await playing.choiceButtons.allInnerTexts();
     const uniqueTexts = new Set(texts);
     expect(uniqueTexts.size).toBe(4);
 
     // Test Interaction: Click the first choice
-    await choiceButtons.first().click();
+    await playing.choiceButtons.first().click();
 
     // Verify guess successfully submitted
-    await expect(guessInput).toBeHidden();
-    await expect(waitMessage).toBeVisible();
-    await expect(waitMessage).toHaveText(/wait/i);
+    await expect(playing.guessInput).toBeHidden();
+    await expect(playing.waitMessage).toBeVisible();
+    await expect(playing.waitMessage).toHaveText(/wait/i);
   });
 
-  test('should display player answer hint when using spy joker', async ({ page, request }) => {
-    const jokerBtn = page.locator('#btn-joker-spy');
-    const targetUser = players[2];
+  test('should display player answer hint when using spy joker', async ({ page }) => {
+    const playing = new PlayingPage(page);
 
-    await jokerBtn.click();
+    await playing.jokerSpyBtn.click();
+    await expect(playing.spyOverlay).toBeVisible();
 
-    const spyOverlay = page.locator('.hint-container:has-text("Pick a player to spy on")');
-    await expect(spyOverlay).toBeVisible();
+    await expect(playing.spyEmptyMsg).toBeVisible();
+    await expect(playing.spyEmptyMsg).toHaveText(/no player has submitted/i);
 
-    const emptyMsg = spyOverlay.locator('.no-results');
-    await expect(emptyMsg).toBeVisible();
-    await expect(emptyMsg).toHaveText(/no player has submitted/i);
-
-    // Other players submits guess
+    // Other players submit guesses
     for (const index of [2, 4, 3]) {
-      await request.post('http://localhost:3001/api/submit-guess', {
-        data: {
-          instanceId: currentInstanceId,
-          guess: 'Game A'
-        },
-        headers: {
-          'Authorization': `Bearer token_${players[index].id}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      await api.submitGuess(players[index].id, 'Game A');
     }
 
     // Verify order of MockPlayers in list
-    const actionButtons = spyOverlay.locator('.spy-select-button');
-    await expect(actionButtons.filter({ hasText: players[3].username })).toBeVisible();
-    const buttonTexts = await actionButtons.allTextContents();
+    await expect(playing.spyActionButtons.filter({ hasText: players[3].username })).toBeVisible();
+    const buttonTexts = await playing.spyActionButtons.allTextContents();
     const expectedOrder = [
-      targetUser.username,
+      players[2].username,
       players[4].username,
       players[3].username
     ];
     expect(buttonTexts).toEqual(expectedOrder);
 
-    const targetBtn = spyOverlay.locator('button').filter({ hasText: targetUser.username });
-    await expect(targetBtn).toBeVisible();
-    await targetBtn.click();
+    // Select target
+    await playing.getSpyPlayerButton(players[2].username).click();
 
-    const stolenResultBtn = page.locator('.choice-button');
-    await expect(stolenResultBtn).toBeVisible();
-    await expect(stolenResultBtn).toHaveText('Game A');
+    // Verify and use result
+    await expect(playing.stolenResultBtn).toBeVisible();
+    await expect(playing.stolenResultBtn).toHaveText('Game A');
+    await playing.stolenResultBtn.click();
 
-    await stolenResultBtn.click();
-    await expect(page.locator('#waiting-msg')).toBeVisible();
+    // Verify UI change
+    await expect(playing.waitMessage).toBeVisible();
+    await expect(playing.waitMessage).toHaveText(/wait/i);
   });
 });

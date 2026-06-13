@@ -103,7 +103,7 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
           <h2>Waiting for host to setup game...</h2>
         </div>
       ) : (
-        <div className="host-settings" id="host-settings">
+        <div className="card-container" id="host-settings">
           <h2>Game Setup</h2>
           <hr className="divider" />
           <label className="setting-item">

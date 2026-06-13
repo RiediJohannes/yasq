@@ -62,19 +62,19 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
 
   return (
     <div id="lobby" className="centered">
-      <div className="settings-info">
+      <div className="card-container">
         <h2>Game Settings</h2>
         <hr className="divider" />
 
-        <div className="settings-grid">
-          <div className="settings-label">🔄 Rounds</div>
-          <div className="settings-value">{gameState.value.gameSettings.rounds}</div>
+        <dl className="settings-grid">
+          <dt>🔄 Rounds</dt>
+          <dd>{gameState.value.gameSettings.rounds}</dd>
 
-          <div className="settings-label">⏳ Track Duration</div>
-          <div className="settings-value">{(gameState.value.gameSettings.trackDuration ?? 0) / 1000}s</div>
+          <dt>⏳ Track Duration</dt>
+          <dd>{(gameState.value.gameSettings.trackDuration ?? 0) / 1000}s</dd>
 
-          <div className="settings-label">❓ Jokers</div>
-          <div className="settings-value">
+          <dt>❓ Jokers</dt>
+          <dd>
             <div className="joker-column">
               {gameState.value.gameSettings.enabledJokers.length ? (
                 gameState.value.gameSettings.enabledJokers.map((jokerType) => {
@@ -102,23 +102,23 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
                 <span className="no-jokers">None</span>
               )}
             </div>
-          </div>
+          </dd>
 
-          <div className="settings-label">⏱️ Time Bonus</div>
-          <div className="settings-value">
+          <dt>⏱️ Time Bonus</dt>
+          <dd>
             {PLAYER_TIME_BONUS_LABELS[gameState.value.gameSettings.timeBonus ?? OptionalTimeBonus.NONE]}
-          </div>
+          </dd>
 
-          <div className="settings-label">🥇 First Bonus</div>
-          <div className="settings-value">
+          <dt>🥇 First Bonus</dt>
+          <dd>
             {formatBonusMultiplier(gameState.value.gameSettings.firstBonusMultiplier)}
-          </div>
+          </dd>
 
-          <div className="settings-label">🔥 Streak Bonus</div>
-          <div className="settings-value">
+          <dt>🔥 Streak Bonus</dt>
+          <dd>
             {formatBonusMultiplier(gameState.value.gameSettings.streakBonusMultiplier)}
-          </div>
-        </div>
+          </dd>
+        </dl>
 
         {isHost && (
           <button

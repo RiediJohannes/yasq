@@ -1,10 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { generatePlayers, Player } from './helper.js'
+import { TrackSelectionPage } from './pages/TrackSelectionPage.js';
+import { TestApi } from './api.js';
 
 test.describe('Host UI', () => {
 
   let players: Player[] = [];
   let currentInstanceId: string;
+  let api: TestApi;
 
   test.beforeEach(async ({ page, request }, testInfo) => {
     currentInstanceId = `test-instance-${testInfo.testId}`;
@@ -19,122 +22,98 @@ test.describe('Host UI', () => {
       window.__MOCK_INSTANCE_ID__ = instanceId;
     }, { allPlayers: players, user: user, instanceId: currentInstanceId });
 
-    await request.post('http://localhost:3001/api/test/setup-session', {
-      data: {
-        instanceId: currentInstanceId,
-        hostId: players[0].id,
-        registeredUsers: players,
-        state: 'TRACK_SELECTION',
-        readyUserIds: [],
-        trackHistory: ["track003.mp3"]
-      }
+    // Setup current game state
+    api = new TestApi(request, currentInstanceId);
+    await api.setupSession(players, 'TRACK_SELECTION', {
+      trackHistory: ["track003.mp3"]
     });
 
     // Navigate to the app
     await page.goto('/?mock=true');
   });
 
-  test.afterEach(async ({ request }) => {
-    await request.delete(`http://localhost:3001/api/test/instance/${currentInstanceId}`);
+  test.afterEach(async () => {
+    await api.deleteSession();
   });
 
   test('should show track selection', async ({ page }) => {
-    const selectionTitle = page.locator('h2:has-text("Select the next track to challenge players:")');
-    await expect(selectionTitle).toBeVisible();
+    const trackSelection = new TrackSelectionPage(page);
+    await expect(trackSelection.selectionTitle).toBeVisible();
 
     // Verify the list of tracks is rendered
-    const trackList = page.locator('#track-selection-grid');
-    await expect(trackList).toBeVisible();
+    await expect(trackSelection.trackList).toBeVisible();
 
     // Verify there are track items
-    const trackItems = trackList.locator('button');
-    const count = await trackItems.count();
-    expect(count).toBeGreaterThan(0);
+    expect(await trackSelection.trackItems.count()).toBeGreaterThan(0);
   });
 
   test('should move to next state when clicking on track', async ({ page }) => {
-    const trackButtons = page.locator('#track-selection-grid button');
-    await expect(trackButtons.first()).toBeVisible();
+    const trackSelection = new TrackSelectionPage(page);
 
     // Click the first track
-    await trackButtons.first().click();
+    await trackSelection.selectTrack(0);
 
     // Verify the state transition in the UI
-    const selectionTitle = page.locator('h2:has-text("Select the next track to challenge players:")');
-    await expect(selectionTitle).toBeHidden();
-    const waitingTitle = page.locator('h2:has-text("Waiting for players to submit their guesses...")');
-    await expect(waitingTitle).toBeVisible();
-    const progressBar = page.locator('#progress-bar');
-    await expect(progressBar).toBeVisible();
+    await expect(trackSelection.selectionTitle).toBeHidden();
+    await expect(trackSelection.waitingTitle).toBeVisible();
+    await expect(trackSelection.progressBar).toBeVisible();
   });
 
   test('should filter tracks when searching', async ({ page }) => {
-    const trackList = page.locator('#track-selection-grid');
-    await expect(trackList).toBeVisible();
-    const trackItems = trackList.locator('button');
+    const trackSelection = new TrackSelectionPage(page);
+    await expect(trackSelection.trackList).toBeVisible();
 
     // Initial mock track count
-    let count = await trackItems.count();
-    expect(count).toBe(4);
+    expect(await trackSelection.trackItems.count()).toBe(4);
 
     // Search for all tracks with "B" in name or title
-    const searchInput = page.locator('#track-search');
-    await searchInput.fill('B');
+    await trackSelection.searchInput.fill('B');
 
     // Find exactly one game ("Game B")
-    count = await trackItems.count();
-    expect(count).toBe(1);
+    expect(await trackSelection.trackItems.count()).toBe(1);
   });
 
   test('should filter tracks when filtering by tags', async ({ page }) => {
-    const trackList = page.locator('#track-selection-grid');
-    await expect(trackList).toBeVisible();
-    const trackItems = trackList.locator('button');
+    const trackSelection = new TrackSelectionPage(page);
+    await expect(trackSelection.trackList).toBeVisible();
 
-    // Initial mock track count
-    let count = await trackItems.count();
-    expect(count).toBe(4);
+    // Initial mock track count (4)
+    expect(await trackSelection.trackItems.count()).toBe(4);
 
-    let tagFilterDropdown = page.locator('.filter-dropdown:has-text("Filter by Tags")');
-    await tagFilterDropdown.click();
+    // Open tag filter dropdown
+    await trackSelection.tagFilterDropdown.filter({ hasText: 'Filter by Tags' }).click();
 
-    const platformADropdownItem = page.locator('.dropdown-item:has-text("Platform C")');
-    await platformADropdownItem.click();
+    // Select Platform C
+    await trackSelection.selectTag('Platform C');
 
-    count = await trackItems.count();
-    expect(count).toBe(2);
+    // Verify tracks are filtered to show only those matching Platform C (2)
+    expect(await trackSelection.trackItems.count()).toBe(2);
 
-    const year2026DropdownItem = page.locator('.dropdown-item:has-text("2026")');
-    await year2026DropdownItem.click();
+    // Select Year 2026
+    await trackSelection.selectTag('2026');
 
-    count = await trackItems.count();
-    expect(count).toBe(1);
+    // Verify tracks are filtered to show only those matching both Platform C and 2026 (1)
+    expect(await trackSelection.trackItems.count()).toBe(1);
 
-    tagFilterDropdown = page.locator('.filter-dropdown:has-text("Filters (2)")');
-    await tagFilterDropdown.click({ force: true });
+    // Clear all filters
+    await trackSelection.tagFilterDropdown.filter({ hasText: 'Filters (2)' }).click({ force: true });
+    await trackSelection.clearFiltersButton.click();
 
-    const clearButton = page.locator('button[title="Clear all filters"]');
-    await clearButton.click();
-
-    count = await trackItems.count();
-    expect(count).toBe(4);
+    // Verify all tracks are visible again after clearing filters (1)
+    expect(await trackSelection.trackItems.count()).toBe(4);
   });
 
   test('should filter tracks when hiding played tracks', async ({ page }) => {
-    const trackList = page.locator('#track-selection-grid');
-    await expect(trackList).toBeVisible();
-    const trackItems = trackList.locator('button');
+    const trackSelection = new TrackSelectionPage(page);
+    await expect(trackSelection.trackList).toBeVisible();
 
-    // Initial mock track count
-    let count = await trackItems.count();
-    expect(count).toBe(4);
+    // Initial mock track count (4)
+    expect(await trackSelection.trackItems.count()).toBe(4);
 
     // Hide all played tracks
-    const hidePlayedCheckbox = page.locator('#hide-played');
-    await hidePlayedCheckbox.check();
+    await trackSelection.hidePlayedCheckbox.check();
 
-    // Find exactly two games (excluding "Game C")
-    count = await trackItems.count();
-    expect(count).toBe(3);
+    // Find exactly three games (excluding "Game C")
+    expect(await trackSelection.trackItems.count()).toBe(3);
   });
 });

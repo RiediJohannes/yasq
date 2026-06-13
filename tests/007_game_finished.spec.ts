@@ -1,11 +1,15 @@
 import { test, expect } from '@playwright/test';
 import { generatePlayers, Player } from './helper.js'
 import mockLeaderboard from '../mock_data/mockLeaderboard.json';
+import { GameFinishedPage } from './pages/GameFinishedPage.js';
+import { Sidebar } from './pages/components/Sidebar.js';
+import { TestApi } from './api.js';
 
 test.describe('Player UI', () => {
 
   let players: Player[] = [];
   let currentInstanceId: string;
+  let api: TestApi;
 
   test.beforeEach(async ({ page, request }, testInfo) => {
     currentInstanceId = `test-instance-${testInfo.testId}`;
@@ -20,71 +24,65 @@ test.describe('Player UI', () => {
       window.__MOCK_INSTANCE_ID__ = instanceId;
     }, { allPlayers: players, user: user, instanceId: currentInstanceId });
 
-    await request.post('http://localhost:3001/api/test/setup-session', {
-      data: {
-        instanceId: currentInstanceId,
-        registeredUsers: players,
-        hostId: players[0].id,
-        state: 'GAME_FINISHED',
-        leaderboard: mockLeaderboard,
-        lastWinnerId: players[1].id
-      }
+    // Setup current game state
+    api = new TestApi(request, currentInstanceId);
+    await api.setupSession(players, 'GAME_FINISHED', {
+      leaderboard: mockLeaderboard,
+      lastWinnerId: players[1].id
     });
 
+    // Navigate to the app
     await page.goto('/?mock=true');
   });
 
-  test.afterEach(async ({ request }) => {
-    await request.delete(`http://localhost:3001/api/test/instance/${currentInstanceId}`);
+  test.afterEach(async () => {
+    await api.deleteSession();
   });
 
   test('should display final leaderboard with correct scores and round history', async ({ page }) => {
+    const gameFinished = new GameFinishedPage(page);
+
     // Verify total count
-    const playerCards = page.locator('.player-card');
-    await expect(playerCards).toHaveCount(3);
+    await expect(gameFinished.playerCards).toHaveCount(3);
 
     // Check the Last Entry (Rank #3)
-    const thirdPlace = playerCards.last();
-    await expect(thirdPlace).not.toHaveClass(/winner/);
-    await expect(thirdPlace.locator('.rank')).toHaveText('#3');
-    await expect(thirdPlace.locator('.name')).toContainText('MockPlayer3');
-    await expect(thirdPlace.locator('.total-score')).toContainText('0 pts');
-    await expect(thirdPlace.locator('.round-bubble.incorrect')).toHaveCount(3);
-
-    const wrongBubble = thirdPlace.locator('.round-bubble').nth(0);
-    await expect(wrongBubble).toHaveClass(/incorrect/);
-    await expect(wrongBubble).toContainText('0');
+    const thirdPlace = gameFinished.getPlayerCard(2);
+    await expect(thirdPlace.card).not.toHaveClass(/winner/);
+    await expect(thirdPlace.rank).toHaveText('#3');
+    await expect(thirdPlace.name).toContainText('MockPlayer3');
+    await expect(thirdPlace.score).toContainText('0 pts');
+    await expect(thirdPlace.getBubbles('incorrect')).toHaveCount(3);
+    await expect(thirdPlace.bubbles.first()).toContainText('0');
 
     // Check the Middle Entry (Rank #2)
-    const secondPlace = playerCards.nth(1);
-    await expect(secondPlace).not.toHaveClass(/winner/);
-    await expect(secondPlace.locator('.rank')).toHaveText('#2');
-    await expect(secondPlace.locator('.name')).toContainText('MockPlayer2');
-    await expect(secondPlace.locator('.total-score')).toContainText('421 pts');
+    const secondPlace = gameFinished.getPlayerCard(1);
+    await expect(secondPlace.card).not.toHaveClass(/winner/);
+    await expect(secondPlace.rank).toHaveText('#2');
+    await expect(secondPlace.name).toContainText('MockPlayer2');
+    await expect(secondPlace.score).toContainText('421 pts');
 
     // Check the Winner (Rank #1)
-    const firstPlace = playerCards.first();
-    await expect(firstPlace).toHaveClass(/winner/);
-    await expect(firstPlace.locator('.rank')).toHaveText('#1');
-    await expect(firstPlace.locator('.name')).toContainText('MockPlayer1');
-    await expect(firstPlace.locator('.total-score')).toContainText('585 pts');
+    const firstPlace = gameFinished.getPlayerCard(0);
+    await expect(firstPlace.card).toHaveClass(/winner/);
+    await expect(firstPlace.rank).toHaveText('#1');
+    await expect(firstPlace.name).toContainText('MockPlayer1');
+    await expect(firstPlace.score).toContainText('585 pts');
 
-    const winnerBubbles = firstPlace.locator('.round-bubble');
-    await expect(winnerBubbles).toHaveCount(3);
-    await expect(winnerBubbles.first()).toHaveClass(/correct/);
-    await expect(winnerBubbles.first()).toHaveClass(/first/);
-    await expect(winnerBubbles.nth(2)).toHaveClass(/correct/);
-    await expect(winnerBubbles.nth(2)).not.toHaveClass(/first/);
+    await expect(firstPlace.bubbles).toHaveCount(3);
+    await expect(firstPlace.bubbles.first()).toHaveClass(/correct/);
+    await expect(firstPlace.bubbles.first()).toHaveClass(/first/);
+    await expect(firstPlace.bubbles.nth(2)).toHaveClass(/correct/);
+    await expect(firstPlace.bubbles.nth(2)).not.toHaveClass(/first/);
 
-    // Verify we don't see the host UI
-    await expect(page.locator('#btn-ready')).toBeVisible();
-    await expect(page.locator('#btn-restart')).not.toBeVisible();
+    // Verify UI visibility
+    await expect(gameFinished.readyBtn).toBeVisible();
+    await expect(gameFinished.restartBtn).toBeHidden();
   });
 
-  test('should display winner badge in player list', async ({ page }) => {
-    // Check for the WINNER badge
-    const winnerEntry = page.locator(`.player-entry:has-text("${players[1].username}")`);
-    await expect(winnerEntry.locator('.badge.winner')).toBeVisible();
-    await expect(winnerEntry.locator('.badge.winner')).toHaveText('👑');
+  test('should display winner badge in sidebar', async ({ page }) => {
+    const sidebar = new Sidebar(page); // Utilizing existing SidebarPage class
+
+    await expect(sidebar.getBadge(players[1].username, 'winner')).toBeVisible();
+    await expect(sidebar.getBadge(players[1].username, 'winner')).toHaveText('👑');
   });
 });

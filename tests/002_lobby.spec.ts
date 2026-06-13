@@ -1,10 +1,14 @@
 import { test, expect } from '@playwright/test';
 import { generatePlayers, Player } from './helper.js'
+import { LobbyPage } from './pages/LobbyPage.js';
+import { TestApi } from './api.js';
+import { Sidebar } from './pages/components/Sidebar.js';
 
 test.describe('Host UI', () => {
 
   let players: Player[] = [];
   let currentInstanceId: string;
+  let api: TestApi;
 
   test.beforeEach(async ({ page, request }, testInfo) => {
     currentInstanceId = `test-instance-${testInfo.testId}`;
@@ -19,98 +23,62 @@ test.describe('Host UI', () => {
       window.__MOCK_INSTANCE_ID__ = instanceId;
     }, { allPlayers: players, user: user, instanceId: currentInstanceId });
 
-    await request.post('http://localhost:3001/api/test/setup-session', {
-      data: {
-        instanceId: currentInstanceId,
-        hostId: players[0].id,
-        registeredUsers: players,
-        state: 'LOBBY',
-        readyUserIds: []
-      }
-    });
+    // Setup current game state
+    api = new TestApi(request, currentInstanceId);
+    await api.setupSession(players, 'LOBBY');
 
     // Navigate to the app
     await page.goto('/?mock=true');
   });
 
-  test.afterEach(async ({ request }) => {
-    await request.delete(`http://localhost:3001/api/test/instance/${currentInstanceId}`);
+  test.afterEach(async () => {
+    await api.deleteSession();
   });
 
-  test('should toggle start button based on participant ready-state updates', async ({ page }) => {
+  test('should toggle start button based on participant ready-state updates', async ({ page, request }) => {
+    const lobbyPage = new LobbyPage(page);
+
     // Check for the Start Game button
-    const startBtn = page.locator('#btn-start');
-    await expect(startBtn).toBeVisible();
-    await expect(startBtn).toBeDisabled();
+    await expect(lobbyPage.startBtn).toBeVisible();
+    await expect(lobbyPage.startBtn).toBeDisabled();
 
     // MockPlayer1 is ready
-    await page.request.post('http://localhost:3001/api/ready', {
-      data: { instanceId: currentInstanceId, ready: true },
-      headers: {
-        'Authorization': `Bearer token_${players[1].id}`,
-        'Content-Type': 'application/json'
-      }
-    });
+    await api.setReady(players[1], true);
 
     // Not all players ready yet
-    await expect(startBtn).toBeDisabled();
+    await expect(lobbyPage.startBtn).toBeDisabled();
 
     // MockPlayer2 is ready
-    await page.request.post('http://localhost:3001/api/ready', {
-      data: { instanceId: currentInstanceId, ready: true },
-      headers: {
-        'Authorization': `Bearer token_${players[2].id}`,
-        'Content-Type': 'application/json'
-      }
-    });
+    await api.setReady(players[2], true);
 
     // Button enabled when all players are ready
-    await expect(startBtn).toBeEnabled();
+    await expect(lobbyPage.startBtn).toBeEnabled();
 
     // MockPlayer2 is no longer ready
-    await page.request.post('http://localhost:3001/api/ready', {
-      data: { instanceId: currentInstanceId, ready: false },
-      headers: {
-        'Authorization': `Bearer token_${players[2].id}`,
-        'Content-Type': 'application/json'
-      }
-    });
+    await api.setReady(players[2], false);
 
     // Button disabled again
-    await expect(startBtn).toBeDisabled();
+    await expect(lobbyPage.startBtn).toBeDisabled();
   });
 
   test('should display correct badges for host and ready status', async ({ page, request }) => {
+    const sidebar = new Sidebar(page);
+
     const host = players[0];
-    const guest = players[1];
+    const player = players[1];
 
     // Check for the HOST badge
-    const hostEntry = page.locator(`.player-entry:has-text("${host.username}")`);
-    await expect(hostEntry.locator('.badge.host')).toBeVisible();
-    await expect(hostEntry.locator('.badge.host')).toHaveText('HOST');
+    await expect(sidebar.getBadge(host.username, 'host')).toBeVisible();
+    await expect(sidebar.getBadge(host.username, 'host')).toHaveText('HOST');
 
-    // Check for the READY badge
-    await request.post('http://localhost:3001/api/ready', {
-      data: { instanceId: currentInstanceId, ready: true },
-      headers: {
-        'Authorization': `Bearer token_${guest.id}`,
-        'Content-Type': 'application/json'
-      }
-    });
+    // Set ready and check for the READY badge
+    await api.setReady(player, true);
+    await expect(sidebar.getBadge(player.username, 'ready')).toBeVisible();
+    await expect(sidebar.getBadge(player.username, 'ready')).toHaveText('READY');
 
-    const playerEntry = page.locator(`.player-entry:has-text("${guest.username}")`);
-    await expect(playerEntry.locator('.badge.ready')).toBeVisible();
-    await expect(playerEntry.locator('.badge.ready')).toHaveText('READY');
-
-    await request.post('http://localhost:3001/api/ready', {
-      data: { instanceId: currentInstanceId, ready: false },
-      headers: {
-        'Authorization': `Bearer token_${guest.id}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    await expect(playerEntry.locator('.badge.ready')).toBeHidden();
+    // Unset ready and check badge gone
+    await api.setReady(player, false);
+    await expect(sidebar.getBadge(player.username, 'ready')).toBeHidden();
   });
 });
 
@@ -118,6 +86,7 @@ test.describe('Player UI', () => {
 
   let players: Player[] = [];
   let currentInstanceId: string;
+  let api: TestApi;
 
   test.beforeEach(async ({ page, request }, testInfo) => {
     currentInstanceId = `test-instance-${testInfo.testId}`;
@@ -132,43 +101,43 @@ test.describe('Player UI', () => {
       window.__MOCK_INSTANCE_ID__ = instanceId;
     }, { allPlayers: players, user: user, instanceId: currentInstanceId });
 
-    await request.post('http://localhost:3001/api/test/setup-session', {
-      data: {
-        instanceId: currentInstanceId,
-        hostId: players[0].id,
-        registeredUsers: players,
-        state: 'LOBBY',
-        readyUserIds: []
-      }
-    });
+    // Setup current game state
+    api = new TestApi(request, currentInstanceId);
+    await api.setupSession(players, 'LOBBY');
 
     // Navigate to the app
     await page.goto('/?mock=true');
   });
 
-  test('should display ready button and toggle status', async ({ page, request }) => {
+  test.afterEach(async () => {
+    await api.deleteSession();
+  });
+
+  test('should display ready button and toggle status', async ({ page }) => {
+    const lobby = new LobbyPage(page);
+    const sidebar = new Sidebar(page);
+    const player = players[1];
+
     // Verify Ready Button Visible
-    const readyBtn = page.locator('#btn-ready');
-    await expect(readyBtn).toBeVisible();
-    await expect(readyBtn).toHaveText('Ready Up');
+    await expect(lobby.readyBtn).toBeVisible();
+    await expect(lobby.readyBtn).toHaveText("Ready Up");
 
     // Click the Ready button
-    await readyBtn.click();
+    await lobby.readyBtn.click();
 
     // Verify the button text changes
-    await expect(readyBtn).toHaveText("I'm Ready! ✅");
+    await expect(lobby.readyBtn).toHaveText("I'm Ready! ✅");
 
     // Verify the Badge appears in the player list
-    const localPlayerRow = page.locator(`.player-entry:has-text("${players[1].username}")`);
-    await expect(localPlayerRow.locator('.badge.ready')).toBeVisible();
+    await expect(sidebar.getBadge(player.username, 'ready')).toBeVisible();
 
     // Click the Ready button again
-    await readyBtn.click();
+    await lobby.readyBtn.click();
 
     // Verify the button text changes
-    await expect(readyBtn).toHaveText("Ready Up");
+    await expect(lobby.readyBtn).toHaveText("Ready Up");
 
     // Verify the Badge disappears in the player list
-    await expect(localPlayerRow.locator('.badge.ready')).toBeHidden();
+    await expect(sidebar.getBadge(player.username, 'ready')).toBeHidden();
   });
 });
