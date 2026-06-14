@@ -99,64 +99,6 @@ export const setupRoutes = (server: Server, instances: Record<string, GameInstan
     res.sendStatus(200);
   });
 
-  router.post("/register", authenticateUser, async (req, res) => {
-    const { instanceId } = req.body;
-    const userId = req.userId!;
-
-    if (!instanceId) {
-      return res.status(400).send({ error: "Missing data" });
-    }
-
-    // If no one has registered for this instance yet, this user is the host
-    if (!instances[instanceId]) {
-      instances[instanceId] = new GameInstance(instanceId, userId);
-      console.log(`[HOST ASSIGNED] ${userId} is the host of new instance ${instanceId}`);
-    }
-
-    const game = instances[instanceId];
-    game.registeredUsers.add(userId);
-
-    triggerUpdate(instanceId);
-
-    res.send({
-      isHost: game.isHost(userId),
-      hostId: game.hostId
-    });
-  });
-
-  router.post("/deregister", authenticateUser, async (req, res) => {
-    const { instanceId } = req.body;
-    const token = req.token!;
-    const userId = req.userId!;
-
-    const game = instances[instanceId];
-
-    if (!game) {
-      return res.status(400).send({ error: "Instance not found" });
-    }
-
-    game.registeredUsers.delete(userId);
-    invalidateToken(token);
-
-    if (game.isHost(userId)) {
-      const isGameActive = game.pickNewHost();
-
-      if (!isGameActive) {
-        console.log(`Terminating empty instance: ${instanceId}`);
-        game.dispose();
-        delete instances[instanceId];
-        return res.send({ message: "Instance terminated" });
-      }
-    }
-
-    triggerUpdate(instanceId);
-
-    res.send({
-      success: true,
-      hostId: game.hostId
-    });
-  });
-
   router.post("/ready", authenticateUser, async (req, res) => {
     const { instanceId, ready } = req.body;
     const userId = req.userId!;

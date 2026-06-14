@@ -10,7 +10,7 @@ import { GameInstance } from './src/models.js';
 
 import { setupRoutes } from "./routes/routes.js";
 import { setupMockRoutes } from "./routes/mockRoutes.js";
-import { getGameStatusPayload, setupTempDir } from "./src/helper.js";
+import { getGameStatusPayload, invalidateToken, setupTempDir, validateToken } from "./src/helper.js";
 import { STATIC_FILES_DIR, TEMP_FILES_DIR, WS_GAME_STATUS_UPDATE_EVENT, WS_JOIN_INSTANCE_EVENT } from "@yasq/shared";
 
 dotenv.config({ path: "../.env" });
@@ -61,14 +61,63 @@ const app = express();
 const httpServer = createServer(app);
 const server = new Server(httpServer, { cors: { origin: "*" } });
 
+server.use(async (socket, next) => {
+  const token = socket.handshake.auth.token;
+  if (!token) return next(new Error("Missing token"));
+
+  try {
+    const userId = await validateToken(token);
+
+    // Bind it to the socket so it's available everywhere
+    socket.data.userId = userId;
+    next();
+  } catch (err) {
+    next(new Error("Invalid token"));
+  }
+});
+
 server.on('connection', (socket) => {
   socket.on(WS_JOIN_INSTANCE_EVENT, ({ instanceId }) => {
     socket.join(instanceId);
-    // Send them the current state immediately upon joining
-    let game = instances[instanceId];
-    if (game) {
-      socket.emit(WS_GAME_STATUS_UPDATE_EVENT, getGameStatusPayload(game));
+    socket.data.instanceId = instanceId;
+
+    // Use userId from the middleware
+    const userId = socket.data.userId;
+
+    // If no one has registered for this instance yet, this user is the host
+    if (!instances[instanceId]) {
+      instances[instanceId] = new GameInstance(instanceId, userId);
     }
+
+    const game = instances[instanceId];
+
+    game.registeredUsers.add(userId);
+
+    server.to(instanceId).emit(WS_GAME_STATUS_UPDATE_EVENT, getGameStatusPayload(game));
+  });
+
+  socket.on('disconnect', () => {
+    const { userId, instanceId } = socket.data;
+    if (!userId || !instanceId) return;
+
+    const game = instances[instanceId];
+    if (!game) return;
+
+    game.registeredUsers.delete(userId);
+
+    invalidateToken(socket.handshake.auth.token);
+
+    if (game.isHost(userId)) {
+      const isGameActive = game.pickNewHost();
+
+      if (!isGameActive) {
+        console.log(`Terminating empty instance: ${instanceId}`);
+        game.dispose();
+        delete instances[instanceId];
+      }
+    }
+
+    server.to(instanceId).emit(WS_GAME_STATUS_UPDATE_EVENT, getGameStatusPayload(game));
   });
 });
 

@@ -9,30 +9,6 @@ export async function getToken(code: string) {
   return response.json();
 }
 
-export async function registerUser(access_token: string, instanceId: string) {
-  const response = await fetch("/api/register", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      'Authorization': `Bearer ${access_token}`
-    },
-    body: JSON.stringify({ instanceId }),
-  });
-  return response.json();
-}
-
-export async function deregisterUser(access_token: string, instanceId: string) {
-  return fetch("/api/deregister", {
-    method: "POST",
-    keepalive: true,
-    headers: {
-      "Content-Type": "application/json",
-      'Authorization': `Bearer ${access_token}`
-    },
-    body: JSON.stringify({ instanceId }),
-  });
-}
-
 export async function updateReadyStatus(access_token: string, instanceId: string, isReady: boolean) {
   return fetch("/api/ready", {
     method: "POST",

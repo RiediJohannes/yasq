@@ -162,7 +162,10 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
             id="btn-ready"
             onClick={handleReady}
           >
-            {gameState.value.readyUsers.includes(getUserId(auth.value)) ? "I'm Ready! ✅" : "Ready for Next Round"}
+            {gameState.value.readyUsers.includes(getUserId(auth.value))
+              ? "I'm Ready! ✅" :
+              (isFinalRound ? "Ready for Final Results" : "Ready for Next Round")
+            }
           </button>
           <span className="shortcut-badge">
             <kbd>Alt</kbd>+<kbd>R</kbd>
@@ -237,7 +240,10 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
           id="btn-ready"
           onClick={handleReady}
         >
-          {gameState.value.readyUsers.includes(getUserId(auth.value)) ? "I'm Ready! ✅" : "Ready for Next Round"}
+          {gameState.value.readyUsers.includes(getUserId(auth.value))
+            ? "I'm Ready! ✅" :
+            (isFinalRound ? "Ready for Final Results" : "Ready for Next Round")
+          }
         </button>
         <span className="shortcut-badge">
           <kbd>Alt</kbd>+<kbd>R</kbd>

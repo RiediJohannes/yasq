@@ -129,14 +129,7 @@ render(<App />, document.getElementById('app')!);
     throw new Error("Authenticate command failed");
   }
 
-  window.addEventListener('pagehide', () => {
-    backend.deregisterUser(auth.value.access_token, discordSdk.instanceId);
-  });
-
-  // Register with our backend
-  await backend.registerUser(auth.value.access_token, discordSdk.instanceId);
-
-  // Additionally, establish a websocket communication for continuous game state updates
+  // Establish a websocket communication for continuous game state updates
   const socket = io({ auth: { token: auth.value.access_token } });
   // Register this client-socket with the current quiz instance
   socket.emit(WS_JOIN_INSTANCE_EVENT, { instanceId: discordSdk.instanceId });
