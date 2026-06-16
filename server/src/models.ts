@@ -610,12 +610,13 @@ export class Leaderboard {
       return {
         userId: entry.userId,
         guess: r?.guess,
-        points: r?.points,
+        points: r?.points || 0,
         scoreValue: r?.scoreValue,
         isFirst: r?.isFirst,
         time: r?.time
       };
-    });
+    })
+    .sort((a, b) => b.points - a.points);
   }
 
   public getWinnerId(): string | null {

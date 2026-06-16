@@ -888,6 +888,10 @@ input[type="radio"]:checked + .btn-radio {
   gap: var(--gap-small);
 }
 
+.item-label-group span {
+  text-align: left;
+}
+
 .tag-count {
   font-size: 0.7rem;
   background: var(--bg-dark);
