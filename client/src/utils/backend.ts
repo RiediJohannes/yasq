@@ -198,15 +198,22 @@ export async function downloadResultsImage(instanceId: string, discordSdk: any) 
     .catch((err: any) => console.warn("Discord SDK prompt breakout error:", err));
 }
 
-export async function postResultsToDiscordChannel(instanceId: string, channelId: string) {
+export async function postResultsToDiscordChannel(access_token: string, instanceId: string, channelId: string) {
   return fetch('/api/post-results-to-channel', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${access_token}`
+    },
     body: JSON.stringify({ instanceId, channelId }),
   });
 }
 
-export async function getChannels(guildId: string) {
-  const response = await fetch(`/api/get-channels?guildId=${guildId}`);
+export async function getChannels(access_token: string, instanceId: string, guildId: string) {
+  const response = await fetch(`/api/get-channels?instanceId=${instanceId}&guildId=${guildId}`, {
+    headers: {
+      "Authorization": `Bearer ${access_token}`
+    },
+  });
   return response.json();
 }

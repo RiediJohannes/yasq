@@ -45,7 +45,11 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
   const handlePostToChannel = async () => {
     setIsPosting(true);
     try {
-      const response = await backend.postResultsToDiscordChannel(discordSdk.instanceId, selectedChannel)
+      const response = await backend.postResultsToDiscordChannel(
+        auth.value.access_token,
+        discordSdk.instanceId,
+        selectedChannel
+      );
 
       if (response.ok) {
         setHasPosted(true);
@@ -60,9 +64,14 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
   };
 
   useEffect(() => {
-    backend.getChannels(discordSdk.guildId!)
-      .then(data => setChannels(data));
-  }, []);
+    if (!isHost) return;
+
+    backend.getChannels(
+      auth.value.access_token,
+      discordSdk.instanceId,
+      discordSdk.guildId!
+    ).then(data => setChannels(data));
+  }, [isHost]);
 
   useKeyboardShortcut({ key: "R", altKey: !isMac, metaKey: isMac }, () => {
     if (!isHost) handleReady();

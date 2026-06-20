@@ -6,9 +6,9 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 import { GameInstance, Track } from '../src/models.js';
-import type { InstanceQuery, InstanceUserQuery } from '../src/types.js';
+import type { InstanceGuildQuery, InstanceQuery, InstanceUserQuery } from '../src/types.js';
 import { COUNTDOWN_DURATION, GameState, INT32_MAX_VALUE, Joker } from '@yasq/shared';
-import { broadcastGameStatus, invalidateToken, userDataCache, validateToken } from '../src/helper.js';
+import { broadcastGameStatus, userDataCache, validateToken } from '../src/helper.js';
 import { isAllowed } from '../src/access_control.js';
 import { generateResultsImage } from '../src/export_results.js';
 
@@ -584,18 +584,26 @@ export const setupRoutes = (server: Server, instances: Record<string, GameInstan
     });
   });
 
-  router.post('/post-results-to-channel', async (req, res) => {
+  router.post('/post-results-to-channel', authenticateUser, async (req, res) => {
     const { instanceId, channelId } = req.body;
+    const userId = req.userId!;
+
+    const game = instances[instanceId];
+    if (!game) {
+      return res.status(400).send({ error: "Instance not found" });
+    }
+
+    // Security check: only host can post results to discord channel
+    if (!game?.isHost(userId)) {
+      return res.status(403).json({ error: "Only host can post results to discord channel" });
+    }
+
     const filePath = path.join(__dirname, `../data/temp/${instanceId}/results.png`);
 
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ error: 'Results image has not been generated yet.' });
     }
 
-    const game = instances[instanceId];
-    if (!game) {
-      return res.status(400).send({ error: "Instance not found" });
-    }
     const winnerMention = `<@${game.lastWinnerId}>`;
 
     try {
@@ -628,8 +636,24 @@ export const setupRoutes = (server: Server, instances: Record<string, GameInstan
     }
   });
 
-  router.get('/get-channels', async (req, res) => {
-    const { guildId } = req.query;
+  router.get('/get-channels', authenticateUser, async (req, res) => {
+    const { instanceId, guildId } = req.query as InstanceGuildQuery;
+    const userId = req.userId!;
+
+    // Return empty list if bot token is not set
+    if (!process.env.DISCORD_BOT_TOKEN) {
+      return res.json([]);
+    }
+
+    const game = instances[instanceId];
+    if (!game) {
+      return res.status(400).send({ error: "Instance not found" });
+    }
+
+    // Security check: only host can fetch channels
+    if (!game?.isHost(userId)) {
+      return res.status(403).json({ error: "Only host can fetch channels" });
+    }
 
     try {
       const response = await fetch(`https://discord.com/api/v10/guilds/${guildId}/channels`, {
