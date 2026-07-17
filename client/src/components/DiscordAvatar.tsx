@@ -5,13 +5,14 @@ import { NonDraggableImg } from "./NonDraggableImg";
 interface DiscordAvatarProps {
   src: string;
   userName: string;
-  tiny?: boolean
+  tiny?: boolean;
+  className?: string;
 }
 
 // Discord avatar image with alt-text but no tooltip logic
-export const DiscordAvatar = ({ src, userName, tiny = false }: DiscordAvatarProps) => {
+export const DiscordAvatar = ({ src, userName, tiny = false, className = "" }: DiscordAvatarProps) => {
   const cssClass = tiny ? "avatar-tiny" : "avatar-small";
-  return <NonDraggableImg src={src} alt={`Avatar of ${userName}`} className={cssClass} />;
+  return <NonDraggableImg src={src} alt={`Avatar of ${userName}`} className={`${cssClass} ${className}`} />;
 };
 
 
@@ -20,7 +21,7 @@ interface DiscordAvatarWithTooltipProps extends DiscordAvatarProps {
 }
 
 // Discord avatar image extended by a dynamic custom tooltip
-export const DiscordAvatarWithTooltip = ({ src, userName, tiny = false, userId }: DiscordAvatarWithTooltipProps) => {
+export const DiscordAvatarWithTooltip = ({ src, userName, tiny = false, className = "", userId }: DiscordAvatarWithTooltipProps) => {
   const { activeTooltipId, setActiveTooltipId } = useExclusiveTooltip();
   const instanceId = useId();
 
@@ -54,7 +55,7 @@ export const DiscordAvatarWithTooltip = ({ src, userName, tiny = false, userId }
         setActiveTooltipId(isTooltipOpen ? null : tooltipId);
       }}
     >
-      <DiscordAvatar src={src} userName={userName} tiny={tiny} />
+      <DiscordAvatar src={src} userName={userName} tiny={tiny} className={className} />
     </div>
   );
 };

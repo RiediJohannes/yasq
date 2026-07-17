@@ -44,6 +44,24 @@
   --gap-medium: 20px;
   --border-radius-small: 4px;
   --border-radius-medium: 8px;
+
+  /* Colors for time bonus plot */
+  --color-plot-background: #0b0f19; /* alt.: #1e1e1e */
+  --color-plot-border: #1e293b;
+  --color-plot-axis: #334155;
+  --color-hover-line: #475569;
+  --color-curve: var(--blurple); /* alt.: #38bdf8*/
+  --color-curve-start: #51a1e3; /* alt.: var(--color-marker-correct) */
+  /* Colors for player guess markers on time bonus plot */
+  --color-marker-current: #df3554;
+  --color-marker-correct: #10b981;
+  --color-marker-partial: #f59e0b;
+  --color-marker-incorrect: #64748b;
+  --marker-color: grey;  /* fallback; real color will be injected at runtime */
+  /* Plot hover effects */
+  --color-plot-tooltip-fill: #020617;
+  --color-plot-tooltip-border: #334155;
+  --color-crosshair: #64748b;
 }
 
 @media (prefers-color-scheme: light) {
@@ -64,6 +82,23 @@
     --shimmer-color: rgba(0, 0, 0, 0.04);
     --countdown-overlay: rgba(240, 240, 240, 0.9);
     --tags-border: rgba(0, 0, 0, 0.1);
+
+    /* Time bonus plot colors */
+    --color-plot-background: #fdfdfd;
+    --color-plot-border: #e2e8f0;
+    --color-plot-axis: #cbd5e1;
+    --color-hover-line: #94a3b8;
+    --color-curve: var(--blurple); /* alt.: #0284c7*/
+    --color-curve-start: #1b279f;
+    /* Player guess markers */
+    --color-marker-current: #e11d48;
+    --color-marker-correct: #059669;
+    --color-marker-partial: #d97706;
+    --color-marker-incorrect: #94a3b8;
+    /* Plot hover effects */
+    --color-plot-tooltip-fill: #fdfdfd;
+    --color-plot-tooltip-border: var(--blurple);
+    --color-crosshair: #64748b;
   }
 }
 
@@ -152,6 +187,7 @@ img {
   max-width: 500px;
   margin: 0 auto 20px;
   padding: var(--padding-large);
+  padding-top: var(--padding-medium);
   background: var(--bg-sidebar-card);
   border-radius: var(--border-radius-medium);
   box-sizing: border-box;
@@ -1721,7 +1757,7 @@ input[value="1"]:checked + .btn-radio.correct {
 
 .points-bubble {
   padding: 0.3em 0.6em;
-  color: color-mix(in srgb, var(--blurple), white 7%);
+  color: color-mix(in srgb, var(--blurple), white 5%);
   font-weight: bold;
   font-size: 1.2em;
   border-radius: var(--border-radius-medium);
@@ -1732,20 +1768,53 @@ input[value="1"]:checked + .btn-radio.correct {
   filter: brightness(120%);
 }
 
+@media (prefers-color-scheme: light) {
+  .points-bubble {
+    color: var(--blurple);
+    border-color: var(--blurple);
+  }
+}
+
 
 .score-details-panel {
   display: block;
-  padding: var(--padding-medium);
-  padding-top: 0;
+  padding: 0 var(--padding-medium);
 }
 
-.points-table-heading {
+.score-details-panel .divider {
+  margin-top: 0.8em;
+  clear: both;
+  visibility: hidden;
+}
+
+.host-details-panel {
+  padding: 0 6px;
+}
+
+.host-details-panel .section-heading {
+  display: block;
+  font-weight: bold;
+  font-size: 1.1em;
+  text-align: start;
+  margin-left: 4px;
+  margin-bottom: 8px;
+  /*text-align: center;*/
+}
+
+.score-details-panel .section-heading {
   display: block;
   text-align: start;
-  margin-bottom: 5px;
   font-weight: bold;
   font-size: 0.9em;
   margin-left: 4px;
+}
+
+.points-table-heading {
+  margin-bottom: 3px;
+}
+
+.time-bonus-heading {
+  margin-bottom: 7px;
 }
 
 .points-table {
@@ -1831,6 +1900,227 @@ input[value="1"]:checked + .btn-radio.correct {
   opacity: 0.7;
   font-style: italic;
 }
+
+
+.time-bonus-plot-area {
+  position: relative;
+  width: 100%;
+  background-color: var(--color-plot-background);
+  border: 1px solid var(--color-plot-border);
+  border-radius: 12px;
+  padding: 25px 16px 10px 16px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.time-bonus-plot {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  cursor: crosshair;
+  contain: layout;
+  will-change: transform;
+}
+
+/* Base Layers */
+.curve-line {
+  fill: none;
+  stroke: var(--color-curve);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.5));
+}
+
+.axis-line {
+  stroke: var(--color-plot-axis);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* Base Generic Tracker Hover */
+.curve-hover-line {
+  stroke: var(--color-hover-line);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+}
+
+.curve-hover-node {
+  fill: var(--color-curve);
+  stroke: #0f172a;
+  stroke-width: 2;
+  filter: drop-shadow(0 0 6px var(--color-curve));
+}
+
+.player-marker {
+  stroke: var(--marker-color);
+  fill: var(--marker-color);
+  transition: opacity 0.15s ease-out;
+}
+
+.player-line {
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+  opacity: 0.8;
+  transition: stroke-width 0.15s ease, opacity 0.15s ease-out;
+}
+
+.player-node {
+  stroke: #0f172a;
+  stroke-width: 1.5;
+  transition: r 0.15s ease;
+}
+
+.player-node-x line {
+  stroke-width: 2;
+  stroke-linecap: round;
+  transition: stroke-width 0.15s ease-out;
+}
+
+.player-avatar-bundle {
+  transform-origin: center;
+  transform-box: fill-box;
+  transition: transform 0.2s ease-out;
+}
+
+.player-avatar-ring {
+  fill: none;
+  stroke-width: 2;
+  opacity: 0.6;
+  transition: stroke-width 0.15s ease, opacity 0.15s ease;
+}
+
+@media (prefers-color-scheme: light) {
+  .player-line {
+    stroke-width: 2.5;
+  }
+
+  .player-node {
+    stroke-width: 1.5;
+  }
+
+  .player-node-x line {
+    stroke-width: 2.5;
+  }
+
+  .player-avatar-ring {
+    stroke-width: 2;
+  }
+}
+
+.player-avatar {
+  opacity: 1;
+}
+
+.player-chevron {
+  filter: drop-shadow(0 0 4px var(--marker-color));
+  fill: var(--marker-color);
+}
+
+/* Highlight current player's marker */
+.current .player-line {
+  stroke-width: 2;
+  stroke-dasharray: 0;
+  opacity: 1;
+  filter: drop-shadow(0 0 2px var(--marker-color));
+}
+
+.current.is-hovered .player-line {
+  stroke-width: 3 !important;
+  opacity: 1;
+}
+
+.current .player-avatar-ring {
+  stroke-width: 2;
+  opacity: 1;
+  filter: drop-shadow(0 0 2px var(--marker-color));
+}
+
+/* Highlight hovered marker */
+.player-marker.is-hovered {
+  opacity: 1;
+}
+
+.player-marker.is-hovered .player-chevron {
+  filter: drop-shadow(0 0 2px var(--marker-color)) !important;
+}
+
+.player-marker.is-hovered .player-line {
+  stroke-width: 2.5;
+  opacity: 1;
+  filter: drop-shadow(0 0 6px var(--marker-color));
+}
+
+.player-marker.is-hovered .player-node {
+  r: 7px;
+  filter: drop-shadow(0 0 6px var(--marker-color));
+}
+
+.player-marker.is-hovered .player-node-x line {
+  stroke-width: 3.5;
+  filter: drop-shadow(0 0 6px var(--marker-color));
+}
+
+.player-marker.is-hovered .player-avatar-bundle {
+  /*transform: scale(1.2);*/  /* decided not to use this because it slightly shifts the whole layout of the SVG -> visually annoying */
+  filter: drop-shadow(0 0 8px var(--marker-color));
+}
+
+.player-marker.is-hovered .player-avatar-ring {
+  opacity: 1;
+}
+
+.plot-tooltip {
+  position: absolute;
+  pointer-events: none;
+  transform: translate(-50%, -100%);
+  margin-top: -12px;
+  min-width: 4em;
+  border: 1px solid var(--color-plot-tooltip-border);
+  border-radius: 6px;
+  z-index: 10;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.6),
+              0 0 8px rgba(0, 0, 0, 0.5);
+
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 12px 4px 12px;
+  background-color: var(--color-plot-tooltip-fill);
+  color: light-dark(#000000, #ffffff);
+  white-space: nowrap;
+  font-size: 1rem;
+}
+
+@media (prefers-color-scheme: light) {
+  .plot-tooltip {
+    border: 2px solid var(--color-plot-tooltip-border);
+    box-shadow: 0 5px 8px -3px rgba(0, 0, 0, 0.2),
+    0 0 8px rgba(0, 0, 0, 0.5);
+  }
+}
+
+.tooltip-title {
+  font-size: 0.8em;
+  letter-spacing: 0.08em;
+  font-weight: 800;
+  margin-bottom: 2px;
+}
+
+.tooltip-time {
+  font-size: 0.8em;
+  margin-bottom: 2px;
+  font-family: monospace;
+}
+
+.tooltip-multiplier {
+  font-size: 0.9em;
+  line-height: 1.2;
+  font-weight: 700;
+  font-family: monospace;
+}
+
 
 .export-section {
   margin-bottom: 20px;

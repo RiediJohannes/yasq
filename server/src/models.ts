@@ -12,7 +12,9 @@ import {
   PointsBonus,
   STATIC_FILES_DIR,
   TEMP_FILES_DIR,
-  TimeBonus
+  TimeBonus,
+  type TimeBonusSummary,
+  type TimeBonusPoint, type PlayerTimeBonusPoint
 } from "@yasq/shared";
 import MersenneTwister from 'mersenne-twister';
 import { hash } from "./helper.js";
@@ -103,7 +105,7 @@ export class GameInstance {
   public submitResults(corrections: Record<string, number>): void {
     const roundGuesses = this.guesses[this.currentRound] || {};
 
-    // 1. Update the guesses with host corrections
+    // Assign a score value to each guess with respect to the host's corrections
     Object.entries(corrections).forEach(([userId, scoreValue]) => {
       const userGuess = roundGuesses[userId];
       if (userGuess) {
@@ -111,7 +113,7 @@ export class GameInstance {
       }
     });
 
-    // 2. Identify the fastest correct guess for this round
+    // Identify the fastest correct guess for this round
     let fastestFullyCorrectUserId = "";
     let firstFullyCorrectTime = Infinity;
     let firstPartiallyCorrectTime = Infinity;
@@ -125,12 +127,47 @@ export class GameInstance {
       }
     });
 
-    // 3. Calculate lost streaks
+    // Calculate lost streaks
     this.currentRoundLostStreaks = this.calculateLostStreaks();
     const totalLostStreaks = Object.values(this.currentRoundLostStreaks).reduce((sum, streak) => sum + streak, 0);
     const streakBreakerMultiplier = totalLostStreaks * this.settings.streakBonusMultiplier;
 
-    // 4. Calculate and add RoundResult for every registered user
+    let timeBonusSummary: TimeBonusSummary | null = null;
+    if (this.settings.timeBonus !== null) {
+      // Precompute a fixed number of points of the time bonus function
+      const samples = 200;  // number of evenly spaced samples to calculate to draw the time bonus curve
+      const curvePoints: TimeBonusPoint[] = [];
+      for (let i = 0; i <= samples; i++) {
+        const time = (i / samples) * this.settings.trackDuration;
+        const multiplier = this.calculateTimeMultiplier(time, firstPartiallyCorrectTime);
+        curvePoints.push({ time: time, multiplier: multiplier });
+      }
+
+      const playerTimePoints: PlayerTimeBonusPoint[] = [...this.registeredUsers.values()]
+          .filter(userId => !this.isHost(userId))
+          .map(userId => {
+            let scoreValue = roundGuesses[userId]?.scoreValue || 0.0;
+            const timeTaken = roundGuesses[userId]?.timeTaken || this.settings.trackDuration;
+            const timeBonusMultiplier = scoreValue > 0
+              ? this.calculateTimeMultiplier(timeTaken, firstPartiallyCorrectTime)
+              : null;
+
+            return {
+              playerId: userId,
+              time: timeTaken,
+              multiplier: timeBonusMultiplier,
+              fullyCorrect: scoreValue === 1.0
+            } as PlayerTimeBonusPoint;
+          });
+
+      timeBonusSummary = {
+        totalTime: this.settings.trackDuration,
+        curvePoints: curvePoints,
+        playerGuessTimes: playerTimePoints
+      };
+    }
+
+    // Calculate bonus points and add a RoundResult for every registered user
     this.registeredUsers.forEach(userId => {
       if (this.isHost(userId)) return; // Skip host
 
@@ -143,11 +180,15 @@ export class GameInstance {
       let pointsEarned = Math.round(playerBasePoints);
       let awardedBonuses: PointsBonus[] = [];
 
-      if (scoreMultiplier > 0) {
-        const timeTaken = data?.timeTaken || this.settings.trackDuration; // Fallback to max duration if missing
-        const timeMultiplier = this.calculateTimeMultiplier(timeTaken, firstPartiallyCorrectTime);
-        if (timeMultiplier > 0) {
-          awardedBonuses.push(new PointsBonus(BonusType.TIME_BONUS, timeMultiplier));
+        if (scoreMultiplier > 0) {
+        if (timeBonusSummary !== null) {
+          const timeBonusMultiplier = timeBonusSummary.playerGuessTimes
+            .find(bonus => bonus.playerId === userId)
+            ?.multiplier ?? 0.0;
+
+          if (timeBonusMultiplier > 0) {
+            awardedBonuses.push(new PointsBonus(BonusType.TIME_BONUS, timeBonusMultiplier));
+          }
         }
 
         if (isFirst && this.settings.firstBonusMultiplier > 0) {
@@ -166,7 +207,7 @@ export class GameInstance {
 
         // Apply collected bonuses
         for (const bonus of awardedBonuses) {
-          pointsEarned += Math.round(playerBasePoints * bonus.multiplier);
+          pointsEarned += bonus.toAbsolute(playerBasePoints)
         }
       }
 
@@ -179,6 +220,7 @@ export class GameInstance {
         data?.scoreValue || 0.0,
         isFirst,
         data ? (data.timeTaken / 1000).toFixed(1) : (this.settings.trackDuration / 1000).toFixed(1),
+        timeBonusSummary,
         awardedBonuses
       ));
     });
@@ -541,7 +583,8 @@ export class RoundResult {
     public scoreValue: number,
     public isFirst: boolean,
     public time: string,
-    public awardedBonuses: PointsBonus[] = []
+    public timeBonusSummary: TimeBonusSummary | null,
+    public awardedBonuses: PointsBonus[] = [],
   ) {}
 }
 
@@ -566,7 +609,7 @@ export class LeaderboardEntry {
     const entry = new LeaderboardEntry(data.userId);
     entry.totalScore = data.totalScore || 0;
     entry.roundHistory = (data.roundHistory || []).map((r: any) =>
-      new RoundResult(r.round, r.guess, r.points, r.scoreValue, r.isFirst, r.time, r.awardedBonuses)
+      new RoundResult(r.round, r.guess, r.points, r.scoreValue, r.isFirst, r.time, r.timeBonusSummary, r.awardedBonuses)
     );
     return entry;
   }
@@ -636,6 +679,7 @@ export class Leaderboard {
         scoreValue: r?.scoreValue ?? 0.0,
         isFirst: r?.isFirst ?? false,
         time: r?.time ?? null,
+        timeBonusSummary: r?.timeBonusSummary,
         awardedBonuses: r?.awardedBonuses ?? [],
       };
     })

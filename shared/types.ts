@@ -30,6 +30,24 @@ export class GameSettings<T = Joker[]> {
   ) {}
 }
 
+export interface TimeBonusPoint {
+  time: number;
+  multiplier: number;
+}
+
+export interface PlayerTimeBonusPoint {
+  playerId: string;
+  time: number;
+  multiplier: number | null;
+  fullyCorrect: boolean;
+}
+
+export interface TimeBonusSummary {
+  totalTime: number;
+  curvePoints: TimeBonusPoint[];
+  playerGuessTimes: PlayerTimeBonusPoint[]
+}
+
 export class PointsBonus {
   public type: BonusType;
   public multiplier: number;
@@ -41,5 +59,12 @@ export class PointsBonus {
     this.type = type;
     // Truncate number to four decimal places to clip-off potential floating point noise
     this.multiplier = Math.round(multiplier * 10_000) / 10_000;
+  }
+
+  public toAbsolute(awardedBasePoints: number) {
+    const fractionalBonus = awardedBasePoints * this.multiplier;
+    return fractionalBonus > 0 && fractionalBonus < 1
+      ? 1   // pity point so the bonus does not disappear entirely from the total points calculation
+      : Math.round(fractionalBonus);
   }
 }

@@ -32,7 +32,7 @@ export const PointsCalculationTable = ({ baseMultiplier, awardedBonuses }: Bonus
   const calculationEntries: PointsCalculationEntry[] = [
     new PointsCalculationEntry("Base points", awardedBasePoints),
     ...awardedBonuses.map((bonus) =>
-      new PointsCalculationEntry(BONUS_LABELS[bonus.type], awardedBasePoints * bonus.multiplier))
+      new PointsCalculationEntry(BONUS_LABELS[bonus.type], bonus.toAbsolute(awardedBasePoints)))
   ];
 
   const totalPoints = calculationEntries.reduce((sum, item) => sum + item.points, 0);

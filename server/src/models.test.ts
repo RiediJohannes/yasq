@@ -12,6 +12,7 @@ import {
   MAX_TIME_MULTIPLIER,
   MIN_TIME_MULTIPLIER,
   STATIC_FILES_DIR,
+  StreakBonusMultiplier,
   TEMP_FILES_DIR,
   TimeBonus,
 } from '@yasq/shared';
@@ -156,6 +157,10 @@ describe('GameInstance - getTimedOutPlayers', () => {
 });
 
 describe('GameInstance - submitResults', () => {
+  const GUESS_TIME_1 = 5000;
+  const GUESS_TIME_2 = 10_000;
+  const GUESS_TIME_3 = 15_000;
+  const FIRST_SUCCESS_TIME = GUESS_TIME_1;
   let game: GameInstance;
 
   beforeEach(() => {
@@ -175,9 +180,9 @@ describe('GameInstance - submitResults', () => {
 
     // Manually inject some guesses into the current round
     game.guesses[1] = {
-      [PLAYER_1]: new UserGuess(GAME_A, 5000),
-      [PLAYER_2]: new UserGuess(GAME_B, 10_000),
-      [PLAYER_3]: new UserGuess(GAME_B, 15_000)
+      [PLAYER_1]: new UserGuess(GAME_A, GUESS_TIME_1),
+      [PLAYER_2]: new UserGuess(GAME_B, GUESS_TIME_2),
+      [PLAYER_3]: new UserGuess(GAME_B, GUESS_TIME_3)
     };
   });
 
@@ -407,6 +412,100 @@ describe('GameInstance - submitResults', () => {
     expect(entry3!.roundHistory).toHaveLength(1);
     const awardedBonuses3 = entry3!.roundHistory[0]!.awardedBonuses
     expect(awardedBonuses3.length).toBe(0);
+  });
+
+  it('should round bonus points to whole numbers but award a pity point for vanishingly small bonuses', () => {
+    game.setupGame({
+      rounds: 10,
+      trackDuration: 20,
+      enabledJokers: [],
+      timeBonus: TimeBonus.EXPONENTIAL,
+      firstBonusMultiplier: 0.0,  // no first bonus
+      streakBonusMultiplier: 0.008 as StreakBonusMultiplier  // tiny streak bonus
+    });
+    game.startGame();
+    game.streaks[PLAYER_1] = 2;
+    game.streaks[PLAYER_2] = 0;
+    game.streaks[PLAYER_3] = 4;
+    game.submitResults({ [PLAYER_1]: 0.5, [PLAYER_2]: 1.0, [PLAYER_3]: 1.0 });
+
+    const entry1 = game.leaderboard.getEntry(PLAYER_1);
+    const entry2 = game.leaderboard.getEntry(PLAYER_2);
+    const entry3 = game.leaderboard.getEntry(PLAYER_3);
+
+    // ------------ Player 1 ------------
+    const BASE_POINTS_1 = BASE_POINTS * 0.5;
+    const EXPECTED_TIME_BONUS_POINTS_1 = 50;
+    const EXPECTED_STREAK_BONUS_POINTS_1 = 1;
+
+    expect(entry1).toBeDefined();
+    expect(entry1!.roundHistory).toHaveLength(1);
+    const awardedBonuses1 = entry1!.roundHistory[0]!.awardedBonuses
+    expect(awardedBonuses1.length).toBe(2);
+
+    // Check rounding of time bonus
+    const fractionalTimeMultiplier1 = game.calculateTimeMultiplier(GUESS_TIME_1, FIRST_SUCCESS_TIME);
+    const timeBonus1 = awardedBonuses1.find(bonus => bonus.type == BonusType.TIME_BONUS);
+    expect(timeBonus1).toBeDefined();
+    expect(timeBonus1?.multiplier).toBeCloseTo(fractionalTimeMultiplier1, 3);
+    expect(timeBonus1?.toAbsolute(BASE_POINTS_1)).toEqual(50);
+    // Check rounding (+ pity point) of streak bonus
+    const streakBonus1 = awardedBonuses1.find(bonus => bonus.type == BonusType.STREAK_BONUS);
+    expect(streakBonus1).toBeDefined();
+    expect(streakBonus1?.multiplier! * BASE_POINTS_1).toBeLessThan(0.5);
+    expect(streakBonus1?.toAbsolute(BASE_POINTS_1)).toEqual(1);  // pity point even though the fractional result was less than 0.5
+    // Total points math is also correct
+    expect(entry1?.totalScore).toEqual(Math.round(BASE_POINTS_1) + EXPECTED_TIME_BONUS_POINTS_1 + EXPECTED_STREAK_BONUS_POINTS_1);
+
+    // ------------ Player 2 ------------
+    const BASE_POINTS_2 = BASE_POINTS;
+    const EXPECTED_TIME_BONUS_POINTS_2 = 38;
+    const EXPECTED_STREAK_BONUS_POINTS_2 = 0;
+
+    expect(entry2).toBeDefined();
+    expect(entry2!.roundHistory).toHaveLength(1);
+    const awardedBonuses2 = entry2!.roundHistory[0]!.awardedBonuses
+    expect(awardedBonuses2.length).toBe(1);
+
+    // Check rounding of time bonus
+    const fractionalTimeMultiplier2 = game.calculateTimeMultiplier(GUESS_TIME_2, FIRST_SUCCESS_TIME);
+    const timeBonus2 = awardedBonuses2.find(bonus => bonus.type == BonusType.TIME_BONUS);
+    expect(timeBonus2).toBeDefined();
+    expect(timeBonus2?.multiplier).toBeCloseTo(fractionalTimeMultiplier2, 3);
+    expect(BASE_POINTS_2 * fractionalTimeMultiplier2).not.toEqual(EXPECTED_TIME_BONUS_POINTS_2);  // result would be fractional
+    expect(timeBonus2?.toAbsolute(BASE_POINTS_2)).toEqual(EXPECTED_TIME_BONUS_POINTS_2); // absolute points were rounded correctly
+    // Check rounding of streak bonus
+    const streakBonus2 = awardedBonuses2.find(bonus => bonus.type == BonusType.STREAK_BONUS);
+    expect(streakBonus2).toBeUndefined();  // no streak bonus awarded at all, not even a pity point, since the streak was 0
+    // Total points math is also correct
+    expect(entry2?.totalScore).toEqual(Math.round(BASE_POINTS_2) + EXPECTED_TIME_BONUS_POINTS_2 + EXPECTED_STREAK_BONUS_POINTS_2);
+
+    // ------------ Player 3 ------------
+    const BASE_POINTS_3 = BASE_POINTS;
+    const EXPECTED_TIME_BONUS_POINTS_3 = 12;
+    const EXPECTED_STREAK_BONUS_POINTS_3 = 3;
+
+    expect(entry3).toBeDefined();
+    expect(entry3!.roundHistory).toHaveLength(1);
+    const awardedBonuses3 = entry3!.roundHistory[0]!.awardedBonuses
+    expect(awardedBonuses3.length).toBe(2);
+
+    // Check rounding of time bonus
+    const fractionalTimeMultiplier3 = game.calculateTimeMultiplier(GUESS_TIME_3, FIRST_SUCCESS_TIME);
+    const timeBonus3 = awardedBonuses3.find(bonus => bonus.type == BonusType.TIME_BONUS);
+    expect(timeBonus3).toBeDefined();
+    expect(timeBonus3?.multiplier).toBeCloseTo(fractionalTimeMultiplier3, 3);
+    expect(BASE_POINTS_3 * fractionalTimeMultiplier3).not.toEqual(EXPECTED_TIME_BONUS_POINTS_3);  // result would be fractional
+    expect(timeBonus3?.toAbsolute(BASE_POINTS_3)).toEqual(EXPECTED_TIME_BONUS_POINTS_3); // absolute points were rounded correctly
+    // Check rounding (+ pity point) of streak bonus
+    const fractionalStreakBonus = 4 * 0.008 * BASE_POINTS_3;  // streak of four
+    const streakBonus3 = awardedBonuses3.find(bonus => bonus.type == BonusType.STREAK_BONUS);
+    expect(streakBonus3).toBeDefined();
+    expect(streakBonus3?.multiplier! * BASE_POINTS_3).toBeCloseTo(fractionalStreakBonus, 3);
+    expect(streakBonus3?.multiplier! * BASE_POINTS_3).not.toEqual(EXPECTED_STREAK_BONUS_POINTS_3);  // result would be fractional
+    expect(streakBonus3?.toAbsolute(BASE_POINTS_3)).toEqual(EXPECTED_STREAK_BONUS_POINTS_3);  // was rounded DOWN correctly
+    // Total points math is also correct
+    expect(entry3?.totalScore).toEqual(Math.round(BASE_POINTS_3) + EXPECTED_TIME_BONUS_POINTS_3 + EXPECTED_STREAK_BONUS_POINTS_3);
   });
 
   it('should transition to RESULTS state and reset guessedPlayers', () => {

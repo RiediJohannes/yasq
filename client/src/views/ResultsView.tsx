@@ -12,6 +12,7 @@ import { RoundBubblesGroup } from "../components/RoundBubble";
 import { PointsCalculationTable } from "../components/PointsCalculationTable";
 import { RollingNumber } from "../components/RollingNumber";
 import { DiscordAvatar, DiscordAvatarWithTooltip } from "../components/DiscordAvatar";
+import { TimeBonusPlot } from "../components/TimeBonusPlot";
 
 export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
   const roundData = useSignal<any>(null);
@@ -29,6 +30,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
   };
 
   const isFinalRound = gameState.value.currentRound >= gameState.value.gameSettings.rounds;
+  const hasTimeBonus = !!gameState.value.gameSettings.timeBonus;
 
   useKeyboardShortcut({ key: "R", altKey: !isMac, metaKey: isMac }, () => {
     if (!isHost) void handleReady();
@@ -50,6 +52,8 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
 
   // Logic for the Host's "Next Round" button
   const playersExcludingHost = participants.value.filter(p => p.id !== gameState.value.hostId);
+  const participantLookup = new Map(participants.value.map(p => [p.id, p]));
+  const currentPlayer = participantLookup.get(getUserId(auth.value)) ?? null;
   const readyCount = gameState.value.readyUsers.length;
   const allPlayersReady = playersExcludingHost.length > 0 &&
                           playersExcludingHost.every(p => gameState.value.readyUsers.includes(p.id));
@@ -127,6 +131,21 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
               </p>
             )}
           </div>
+          {hasTimeBonus && (
+            <div id="host-details">
+              <hr className="divider" />
+              <div className="host-details-panel">
+                <h3 className="section-heading">Time bonus plot:</h3>
+                <div className="center-box">
+                  <TimeBonusPlot
+                    currentPlayer={currentPlayer}
+                    participants={participantLookup}
+                    data={results[0]?.timeBonusSummary ?? null}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div id="lobby-host-ui-next-round">
@@ -176,6 +195,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
 
   const userResult = roundData.value.result[0]
   const score = userResult?.scoreValue || 0;
+  const needsScoreDetails = hasTimeBonus || userResult.points > 0;
 
   // Determine status class and message
   const { statusClass, statusMessage } = (() => {
@@ -185,7 +205,6 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
   })();
 
   const correctPlayerIds = roundData.value?.correctPlayers || [];
-  const participantLookup = new Map(participants.value.map(p => [p.id, p]));
 
   const correctParticipants: Participant[] = correctPlayerIds
     .map((id: string) => participantLookup.get(id))
@@ -253,7 +272,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
               </strong>
             </span>
           )}
-          {userResult.points > 0 && (
+          {needsScoreDetails && (
             <div id="score-details">
               <button
                 type="button"
@@ -267,10 +286,27 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
 
               {isPointsDetailsOpen.value && (
                 <div className="score-details-panel">
-                  <h3 className="points-table-heading">Points calculation:</h3>
-                  <div className="center-box">
-                    <PointsCalculationTable baseMultiplier={userResult?.scoreValue} awardedBonuses={userResult?.awardedBonuses || []} />
-                  </div>
+                  {userResult.points > 0 && (
+                    <>
+                      <h3 className="section-heading points-table-heading">Points calculation:</h3>
+                      <div className="center-box">
+                        <PointsCalculationTable baseMultiplier={userResult?.scoreValue} awardedBonuses={userResult?.awardedBonuses || []} />
+                      </div>
+                      <hr className="divider" />
+                    </>
+                  )}
+                  {hasTimeBonus && (
+                    <>
+                      <h3 className="section-heading time-bonus-heading">Time bonus calculation:</h3>
+                      <div className="center-box">
+                        <TimeBonusPlot
+                          currentPlayer={currentPlayer}
+                          participants={participantLookup}
+                          data={userResult.timeBonusSummary}
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>

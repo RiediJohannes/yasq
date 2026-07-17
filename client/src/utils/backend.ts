@@ -1,4 +1,5 @@
-import { GameSettings, Joker } from "@yasq/shared";
+import { BonusType, GameSettings, Joker, PointsBonus } from "@yasq/shared";
+import { RoundResult } from "./types";
 
 let baseUrl = '';
 
@@ -119,7 +120,17 @@ export async function getRoundResults(instanceId: string, userId: string) {
     throw error;
   }
 
-  return response.json();
+  let roundSummary = await response.json();
+
+  roundSummary.result = roundSummary.result.map((roundResult: RoundResult) => {
+    roundResult.awardedBonuses = roundResult.awardedBonuses?.map((bonus: { type: BonusType; multiplier: number }) =>
+      new PointsBonus(bonus.type, bonus.multiplier)
+    ) ?? [];
+
+    return roundResult;
+  })
+
+  return roundSummary;
 }
 
 export async function startNextRound(access_token: string, instanceId: string) {
