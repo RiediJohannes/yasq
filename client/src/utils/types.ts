@@ -1,4 +1,4 @@
-import { GameSettings, Joker, TimeBonus } from "@yasq/shared";
+import { GameSettings, Joker, PointsBonus, TimeBonus } from "@yasq/shared";
 
 /** Extension of the {@link TimeBonus} enum for selection in the UI */
 export const OptionalTimeBonus = {
@@ -55,4 +55,13 @@ export interface ReviewData {
   answer: string;
   guesses: Record<string, { text: string, joker: Joker }>;
   timedOut: string[];
+}
+
+export interface RoundResult {
+  round?: number;
+  scoreValue: number;
+  points: number;
+  guess?: string;
+  isFirst?: boolean;
+  awardedBonuses?: PointsBonus[];
 }

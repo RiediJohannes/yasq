@@ -249,10 +249,10 @@ export const setupRoutes = (server: Server, instances: Record<string, GameInstan
     const game = req.game!;
 
     if (game?.state !== GameState.RESULTS) {
-      return res.status(400).send({ error: "Results not ready yet" });
+      return res.status(400).send({ error: "Results not ready yet." });
     }
 
-    // Get the most recent round result from the user's round history
+    // Get the result for the current round of the requested user
     const roundResult = game.leaderboard.getRoundSummary(
       game.currentRound,
       game.isHost(userId) ? undefined : userId
@@ -262,9 +262,10 @@ export const setupRoutes = (server: Server, instances: Record<string, GameInstan
       return res.status(403).send({ error: "User not found in leaderboard." });
     }
 
-    const correctPlayersCount = game.leaderboard.getAll().filter(playerEntry =>
-      playerEntry.roundHistory.some(r => r.round === game.currentRound && r.scoreValue === 1)
-    ).length;
+    const correctPlayers = game.leaderboard.getAll().flatMap(playerEntry => {
+      const currentRoundResult = playerEntry.roundHistory.findLast(r => r.round === game.currentRound);
+      return currentRoundResult?.scoreValue === 1 ? [playerEntry.userId] : [];
+    });
 
     res.send({
       round: game.currentRound,
@@ -273,7 +274,7 @@ export const setupRoutes = (server: Server, instances: Record<string, GameInstan
       trackTitle: game.trackInfo?.track.title,
       tags: game.trackInfo?.track.tags || [],
       gameCover: game.trackInfo?.gameCoverUrl,
-      correctPlayers: correctPlayersCount,
+      correctPlayers: correctPlayers,
       lostStreaks: game.currentRoundLostStreaks
     });
   });
@@ -290,7 +291,7 @@ export const setupRoutes = (server: Server, instances: Record<string, GameInstan
 
     if (newState === GameState.GAME_FINISHED) {
       logger.info(instanceId, `Game ended!`, LogCategory.GAME);
-      generateResultsImage(game.instanceId, game.temporaryDirectory(true), game.leaderboard, userDataCache);
+      void generateResultsImage(game.instanceId, game.temporaryDirectory(true), game.leaderboard, userDataCache);
       logger.debug(instanceId, `Final leaderboard: ${JSON.stringify(game.leaderboard.getAll(), null, 2)}`, LogCategory.GAME);
     }
 

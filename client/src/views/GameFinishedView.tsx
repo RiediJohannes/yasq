@@ -4,11 +4,10 @@ import { useEffect, useState } from "preact/hooks";
 import * as backend from "../utils/backend";
 import { auth, discordSdk, gameState, isMac, participants } from "../main";
 import { findUser, getActionKeyLabel, getUserId } from "../utils/helper";
-import { NonDraggableImg } from "../components/NonDraggableImg";
 import { useKeyboardShortcut } from "../hooks/useKeyboardShortcut";
 import { getAvatarUrl, getDisplayName } from "@yasq/shared";
 import { RoundBubblesGroup } from "../components/RoundBubble";
-import { useExclusiveTooltip } from "../hooks/useExclusiveTooltip";
+import { DiscordAvatar } from "../components/DiscordAvatar";
 
 export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
   const leaderboard = useSignal<any[]>([]);
@@ -18,7 +17,6 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
   const [hasPosted, setHasPosted] = useState(false);
   const [channels, setChannels] = useState<{id: string, name: string, category: string}[]>([]);
   const [selectedChannel, setSelectedChannel] = useState('');
-  const { activeTooltipId, setActiveTooltipId } = useExclusiveTooltip();
 
   useEffect(() => {
     backend.getFinalResults(discordSdk.instanceId).then((data) => {
@@ -114,7 +112,7 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
                 {isWinner && <div className="shimmer-layer" />}
                 <div className="player-main-info">
                   <div className="rank">#{index + 1}</div>
-                  <NonDraggableImg src={getAvatarUrl(user)} className="avatar-small" />
+                  <DiscordAvatar src={getAvatarUrl(user)} userName={getDisplayName(user)} />
                   <div className="name">{isWinner ? '👑 ' : ''}{getDisplayName(user)}</div>
                   <div className="total-score">{player.totalScore} pts</div>
                 </div>
@@ -124,8 +122,6 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
                   <RoundBubblesGroup
                     rounds={player.roundHistory}
                     userId={player.userId}
-                    activeTooltipId={activeTooltipId}
-                    setActiveTooltipId={setActiveTooltipId}
                   />
                 </div>
               </div>

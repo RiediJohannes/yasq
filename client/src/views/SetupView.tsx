@@ -147,11 +147,12 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
           <div className="advanced-settings-section">
             <button
               type="button"
-              className="advanced-toggle-btn"
+              id="advanced-settings-btn"
+              className="toggle-btn advanced-settings-btn"
               onClick={() => (isAdvancedOpen.value = !isAdvancedOpen.value)}
             >
               <span>Advanced Settings</span>
-              <span className={`arrow-indicator ${isAdvancedOpen.value ? "open" : ""}`}>▶</span>
+              <span className={`arrow-indicator ${isAdvancedOpen.value ? "open" : ""}`} />
             </button>
 
             {isAdvancedOpen.value && (

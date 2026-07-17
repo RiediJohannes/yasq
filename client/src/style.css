@@ -137,6 +137,13 @@ img {
   margin: auto;
 }
 
+.center-box {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .card-container {
   display: flex;
   flex-flow: column;
@@ -378,7 +385,8 @@ select:disabled option {
 .card-container h2,
 .hint-container h2 {
   margin-top: 0;
-  margin-bottom: 0;
+  margin-bottom: 4px;
+  text-align: center;
 }
 
 .ready-btn.ready {
@@ -451,6 +459,7 @@ select:disabled option {
   align-items: center;
   box-sizing: border-box;
   position: relative;
+  scrollbar-gutter: stable;
 }
 
 .sidebar {
@@ -595,7 +604,8 @@ select:disabled option {
   width: 100%;
 }
 
-.advanced-toggle-btn {
+
+.toggle-btn {
   background: none;
   border: none;
   color: var(--text-muted);
@@ -609,19 +619,36 @@ select:disabled option {
   padding: 8px 4px;
 }
 
-.advanced-toggle-btn:hover {
+.toggle-btn:hover {
   color: var(--text-main);
   background-color: transparent;
 }
 
+.advanced-settings-btn {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.score-details-btn {
+  font-style: italic;
+  padding-bottom: 0;
+}
+
 .arrow-indicator {
-  font-size: 0.75rem;
-  transition: transform 0.2s ease;
+  border: solid currentColor;
+  border-width: 0 2px 2px 0;
   display: inline-block;
+  padding: 3px;
+  transform: rotate(45deg);
+  transition: all 0.2s ease;
+  margin-top: 0;
+  margin-bottom: 2px;
 }
 
 .arrow-indicator.open {
-  transform: rotate(90deg);
+  transform: rotate(-135deg);
+  margin-top: 2px;
+  margin-bottom: 0;
 }
 
 .advanced-content-panel {
@@ -728,6 +755,12 @@ input[type="radio"]:checked + .btn-radio {
 .dropdown-item span {
   text-transform: none;
   line-height: 1;
+}
+
+.avatar-small {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
 }
 
 .avatar-tiny {
@@ -1254,12 +1287,6 @@ kbd {
   100% { transform: scale(1); opacity: 1; }
 }
 
-.avatar-small {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-}
-
 #guess-list {
   max-width: 1000px;
   width: 100%;
@@ -1287,12 +1314,17 @@ kbd {
 }
 
 .guess-text {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  word-wrap: break-word;
+  word-break: break-all;
   border: 1pt solid var(--border-input-header);
   border-radius: var(--border-radius-medium);
   background-color: var(--bg-input);
+}
+
+.correction-guess {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-height: 35px;
   height: auto;
   padding-left: 10px;
@@ -1374,17 +1406,22 @@ input[value="1"]:checked + .btn-radio.correct {
 }
 
 .own-results {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 15px;
   margin-top: 10px;
   padding: 5px;
 }
 
 .own-results .result {
+  width: 100%;
   color: var(--fixed-white);
   border-radius: var(--border-radius-medium);
   font-weight: bolder;
   font-size: larger;
   height: 50px;
-  margin: auto;
+  margin: auto auto 3px auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1597,34 +1634,36 @@ input[value="1"]:checked + .btn-radio.correct {
   }
 }
 
-.round-bubble::before {
+.has-tooltip {
+  position: relative;
+}
+
+/* Tooltip Arrow */
+.has-tooltip::before {
   content: '';
   position: absolute;
-  margin-top: 23px;
+  top: 100%;
   left: 50%;
   transform: translateX(-50%);
   z-index: 1001;
-
   border-left: 10px solid transparent;
   border-right: 10px solid transparent;
   border-bottom: 12px solid var(--bg-dark);
-
   pointer-events: none;
   opacity: 0;
   filter: drop-shadow(0 -2px 2px rgba(0,0,0,0.2));
   transition: opacity 0.2s ease;
 }
 
-.round-bubble::after {
+/* Tooltip Body */
+.has-tooltip::after {
   --screen-margin: 15px;
-
   content: attr(data-tooltip);
   position: absolute;
   box-sizing: border-box;
   width: max-content;
   max-width: 200px;
   z-index: 1000;
-
   background: var(--bg-dark);
   color: var(--text-main);
   padding: 8px 12px;
@@ -1635,17 +1674,162 @@ input[value="1"]:checked + .btn-radio.correct {
   transition: opacity 0.2s ease;
   opacity: 0;
   box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-
-  /* vertical positioning: place tooltip directly below bubble */
   top: 100%;
   margin-top: 12px;
-  /* horizontal positioning: shift tooltip to the left, ideally centering at the bubble X position, but always stay within screen bounds */
+
   left: clamp(
-    calc(-1 * var(--bubble-x, 0px) + var(--screen-margin)),
+    calc(-1 * var(--trigger-x, 0px) + var(--screen-margin)),
     calc(-0.5 * var(--tooltip-width, 200px) + 50%),
-    calc(100vw + -1 * var(--bubble-x, 0px) - var(--tooltip-width, 200px) - var(--screen-margin))
+    calc(100vw + -1 * var(--trigger-x, 0px) - var(--tooltip-width, 200px) - var(--screen-margin))
   );
   transform: none;
+}
+
+/* --- Single Source of Truth Trigger --- */
+.has-tooltip.show-tooltip::before,
+.has-tooltip.show-tooltip::after {
+  opacity: 1;
+}
+
+.user-evaluation {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--gap-medium);
+  /*padding: var(--padding-medium) 0;*/
+  background: var(--bg-sidebar-card);
+  border-radius: var(--border-radius-medium);
+}
+
+.user-guess-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.guess-label {
+  white-space: nowrap;
+  margin-left: 4px;
+}
+
+.user-guess {
+  display: block;
+  padding: 0.4em 0.6em;
+}
+
+.points-bubble {
+  padding: 0.3em 0.6em;
+  color: color-mix(in srgb, var(--blurple), white 7%);
+  font-weight: bold;
+  font-size: 1.2em;
+  border-radius: var(--border-radius-medium);
+  background: var(--bg-button-group);
+  border: 3px solid color-mix(in srgb, var(--blurple), white 7%);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  filter: brightness(120%);
+}
+
+
+.score-details-panel {
+  display: block;
+  padding: var(--padding-medium);
+  padding-top: 0;
+}
+
+.points-table-heading {
+  display: block;
+  text-align: start;
+  margin-bottom: 5px;
+  font-weight: bold;
+  font-size: 0.9em;
+  margin-left: 4px;
+}
+
+.points-table {
+  border-collapse: collapse;
+  font-size: 0.9em;
+  width: 100%;
+  max-width: 400px;
+  padding: 40px 50px 90px;
+}
+
+.points-table td {
+  padding: 4px 12px;
+}
+
+.points-table .label-col {
+  text-align: left;
+}
+
+.points-table .points-col {
+  text-align: right;
+  /* Keeps numbers perfectly aligned vertically regardless of character width */
+  font-variant-numeric: tabular-nums;
+}
+
+.points-table .unit-col {
+  text-align: left;
+  padding-right: 0;
+  padding-left: 1px;
+  width: 2em;
+  color: #666;
+}
+
+.points-table .base-row td {
+  border-bottom: 1px dashed #111;
+  padding-bottom: 4px;
+}
+
+.points-table .bonus-row .label-col {
+  font-style: italic;
+}
+
+/* The single separator line above the total */
+.points-table .total-row td {
+  border-top: 1px solid #111;
+  padding-top: 8px;
+}
+
+/* The double underline at the very bottom */
+.points-table .total-row td {
+  border-bottom: 3px double #111;
+  padding-bottom: 4px;
+  font-weight: bold;
+}
+
+.empty-points-table {
+  margin-top: 0.4em;
+  font-style: italic;
+}
+
+
+.correct-players {
+  display: flex;
+  justify-content: start;
+  align-items: start;
+  gap: var(--gap-small)
+}
+
+.correct-players-label {
+  padding-top: 2px;
+  margin-left: 4px;
+  white-space: nowrap;
+}
+
+.correct-players-list {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.correct-players-empty {
+  padding-top: 2px;
+  opacity: 0.7;
+  font-style: italic;
 }
 
 .export-section {
@@ -1804,6 +1988,7 @@ input[value="1"]:checked + .btn-radio.correct {
     width: 100%;
     height: auto;
     overflow: visible;
+    scrollbar-gutter: stable;
   }
 
   .game-column {
@@ -1912,11 +2097,15 @@ input[value="1"]:checked + .btn-radio.correct {
     font-size: xx-large;
   }
 
+  .correction-guess {
+    height: auto;
+  }
+
   .tag-badge {
     max-width: 100%;
   }
 
-  .round-bubble::after {
+  .has-tooltip::after {
     max-width: calc(100vw - 2 * var(--screen-margin));
   }
 

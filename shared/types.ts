@@ -31,8 +31,15 @@ export class GameSettings<T = Joker[]> {
 }
 
 export class PointsBonus {
+  public type: BonusType;
+  public multiplier: number;
+
   constructor(
-    public type: BonusType,
-    public multiplier: number,
-  ) {}
+    type: BonusType,
+    multiplier: number,
+  ) {
+    this.type = type;
+    // Truncate number to four decimal places to clip-off potential floating point noise
+    this.multiplier = Math.round(multiplier * 10_000) / 10_000;
+  }
 }

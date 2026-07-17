@@ -24,7 +24,7 @@ export class SetupPage {
     this.transferBtn = page.locator('#btn-confirm-transfer');
     this.waitingMsg = page.locator('#waiting-setup-msg');
     this.firstJoker = page.locator('.joker-config-btn').first();
-    this.advancedToggle = page.locator('.advanced-toggle-btn');
+    this.advancedToggle = page.locator('#advanced-settings-btn');
     this.timeBonusSelect = page.locator('select');
     this.startBtn = page.locator('#btn-start');
   }

@@ -6,8 +6,8 @@ import { auth, discordSdk, participants } from "../main";
 import { findUser } from "../utils/helper";
 import { ALL_JOKER_ICONS } from "../components/JokerIcons";
 import { ReviewData } from "../utils/types";
-import { NonDraggableImg } from "../components/NonDraggableImg";
 import { getAvatarUrl, getDisplayName } from "@yasq/shared";
+import { DiscordAvatar } from "../components/DiscordAvatar";
 
 export const HostReviewView = ({ isHost }: { isHost: boolean }) => {
   const reviewData = useSignal<ReviewData | null>(null);
@@ -62,9 +62,9 @@ export const HostReviewView = ({ isHost }: { isHost: boolean }) => {
           return (
             <div key={userId} className="guess-item">
               <div className="user-info">
-                <NonDraggableImg src={avatarUrl} className="avatar-small" alt={displayName} />
+                <DiscordAvatar src={avatarUrl} userName={displayName} />
                 <span className="username">{displayName}</span>
-                <span className="guess-text">"{guess.text}"</span>
+                <span className="correction-guess guess-text">"{guess.text}"</span>
                 {guess.joker && (() => {
                   const JokerIcon = ALL_JOKER_ICONS.find(icon => icon.jokerType === guess.joker);
                   return JokerIcon ? (

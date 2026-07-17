@@ -2,8 +2,8 @@ import { useSignal } from "@preact/signals";
 
 import { auth, discordSdk, gameState, participants } from "../main";
 import * as backend from "../utils/backend";
-import { NonDraggableImg } from "./NonDraggableImg";
 import { getAvatarUrl, getDisplayName } from "@yasq/shared";
+import { DiscordAvatar } from "./DiscordAvatar";
 
 export const HostTransferDropdown = () => {
   const isOpen = useSignal(false);
@@ -52,7 +52,12 @@ export const HostTransferDropdown = () => {
             }}
           >
             {selectedPlayer.value ? (
-              <><NonDraggableImg src={selectedPlayer.value.avatar} className="avatar-tiny" /><span>{selectedPlayer.value.name}</span></>
+              <><DiscordAvatar
+                src={selectedPlayer.value.avatar}
+                userName={selectedPlayer.value.name}
+                tiny={true}
+              />
+                <span>{selectedPlayer.value.name}</span></>
             ) : "Select a player..."}
           </button>
 
@@ -65,7 +70,7 @@ export const HostTransferDropdown = () => {
             >
               {players.length === 0 ? (
                 <div className="dropdown-item dropdown-item-empty" tabIndex={0}>No other players</div>
-              ) : players.map((p, index) => {
+              ) : players.map(p => {
                 const selectThisPlayer = () => {
                   selectedPlayer.value = { id: p.id, name: getDisplayName(p), avatar: getAvatarUrl(p) };
                   isOpen.value = false;
@@ -107,7 +112,11 @@ export const HostTransferDropdown = () => {
                       }
                     }}
                   >
-                    <NonDraggableImg src={getAvatarUrl(p)} className="avatar-tiny" />
+                    <DiscordAvatar
+                      src={getAvatarUrl(p)}
+                      userName={getDisplayName(p)}
+                      tiny={true}
+                    />
                     <span>{getDisplayName(p)}</span>
                   </div>
                 );

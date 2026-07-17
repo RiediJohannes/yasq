@@ -148,10 +148,10 @@ test.describe('Player UI', () => {
     await expect(results.tagBadges.nth(1)).toHaveText('2026');
     await expect(results.tagBadges.nth(1)).toHaveAttribute('title', 'Release');
 
-  // Verify own result
+    // Verify own result
     await expect(results.getPersonalResultStatus('correct')).toContainText('Correct! 🎉');
-    await expect(results.ownResults).toContainText('Your guess: Game A');
-    await expect(results.ownResults).toContainText('You earned 100 points');
+    await expect(results.ownGuess).toContainText('Game A');
+    await expect(results.ownScoreBubble).toContainText('100 pt.');
   });
 
   test('should display partial correct status and points earned', async ({ page }) => {
@@ -165,8 +165,8 @@ test.describe('Player UI', () => {
 
     // Verify own result
     await expect(results.getPersonalResultStatus('partial')).toContainText('So close! 🧗');
-    await expect(results.ownResults).toContainText('Your guess: Game A2');
-    await expect(results.ownResults).toContainText('You earned 50 points');
+    await expect(results.ownGuess).toContainText('Game A2');
+    await expect(results.ownScoreBubble).toContainText('50 pt.');
   });
 
   test('should display incorrect status and zero points', async ({ page }) => {
@@ -180,8 +180,8 @@ test.describe('Player UI', () => {
 
     // Verify own result
     await expect(results.getPersonalResultStatus('incorrect')).toContainText('Incorrect. 😢');
-    await expect(results.ownResults).toContainText('Your guess: Game B');
-    await expect(results.ownResults).toContainText('You earned 0 points');
+    await expect(results.ownGuess).toContainText('Game B');
+    await expect(results.ownScoreBubble).toContainText('0 pt.');
   });
 
   test('should display ready button and toggle status', async ({ page }) => {
@@ -232,6 +232,6 @@ test.describe('Player UI', () => {
       }
     ]);
 
-    await expect(results.ownResults).toContainText('Number of correct players: 2');
+    await expect(results.correctPlayersContainer).toContainText('(2)');
   });
 });

@@ -146,19 +146,21 @@ export class GameInstance {
       if (scoreMultiplier > 0) {
         const timeTaken = data?.timeTaken || this.settings.trackDuration; // Fallback to max duration if missing
         const timeMultiplier = this.calculateTimeMultiplier(timeTaken, firstPartiallyCorrectTime);
-        awardedBonuses.push(new PointsBonus(BonusType.TIME_BONUS, timeMultiplier));
+        if (timeMultiplier > 0) {
+          awardedBonuses.push(new PointsBonus(BonusType.TIME_BONUS, timeMultiplier));
+        }
 
-        if (isFirst) {
+        if (isFirst && this.settings.firstBonusMultiplier > 0) {
           awardedBonuses.push(new PointsBonus(BonusType.FIRST_BONUS, this.settings.firstBonusMultiplier));
         }
 
         const currentStreak = this.streaks[userId] || 0;
-        if (currentStreak > 1) {
+        if (currentStreak > 1 && this.settings.streakBonusMultiplier > 0) {
           const streakMultiplier = (currentStreak - 1) * this.settings.streakBonusMultiplier;
           awardedBonuses.push(new PointsBonus(BonusType.STREAK_BONUS, streakMultiplier));
         }
 
-        if (scoreMultiplier === 1) {
+        if (scoreMultiplier === 1 && streakBreakerMultiplier > 0) {
           awardedBonuses.push(new PointsBonus(BonusType.STREAK_BREAKER, streakBreakerMultiplier));
         }
 
@@ -605,6 +607,10 @@ export class Leaderboard {
     return this.entries;
   }
 
+  public getWinnerId(): string | null {
+    return this.entries[0]?.userId || null;
+  }
+
   public getRoundResults(round: number): { userId: string; points: number }[] {
     return this.entries.map(entry => {
       const roundResult = entry.roundHistory.find(r => r.round === round);
@@ -622,22 +628,18 @@ export class Leaderboard {
       : this.entries;
 
     return entries.map(entry => {
-      const r = entry.roundHistory.find(rh => rh.round === round);
+      const r = entry.roundHistory.findLast(rh => rh.round === round);
       return {
         userId: entry.userId,
-        guess: r?.guess || "",
-        points: r?.points || 0,
-        scoreValue: r?.scoreValue || 0.0,
-        isFirst: r?.isFirst || false,
-        time: r?.time || null,
-        awardedBonuses: r?.awardedBonuses || [],
+        guess: r?.guess ?? null,
+        points: r?.points ?? null,
+        scoreValue: r?.scoreValue ?? 0.0,
+        isFirst: r?.isFirst ?? false,
+        time: r?.time ?? null,
+        awardedBonuses: r?.awardedBonuses ?? [],
       };
     })
     .sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
-  }
-
-  public getWinnerId(): string | null {
-    return this.entries[0]?.userId || null;
   }
 
   static fromJSON(data: any): Leaderboard {

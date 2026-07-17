@@ -2,20 +2,21 @@ import { useSignal } from "@preact/signals";
 import { useEffect, useState } from "preact/hooks";
 
 import * as backend from "../utils/backend";
-import { gameState, auth, discordSdk, participants, isMac } from "../main";
+import { auth, discordSdk, gameState, isMac, participants } from "../main";
 import { capitalize, findUser, getActionKeyLabel, getUserId } from "../utils/helper";
 import { NonDraggableImg } from "../components/NonDraggableImg";
 import { useKeyboardShortcut } from "../hooks/useKeyboardShortcut";
 import { Tag } from "../utils/types";
-import { getAvatarUrl, getDisplayName } from "@yasq/shared";
+import { getAvatarUrl, getDisplayName, Participant } from "@yasq/shared";
 import { RoundBubblesGroup } from "../components/RoundBubble";
-import { useExclusiveTooltip } from "../hooks/useExclusiveTooltip";
+import { PointsCalculationTable } from "../components/PointsCalculationTable";
+import { RollingNumber } from "../components/RollingNumber";
+import { DiscordAvatar, DiscordAvatarWithTooltip } from "../components/DiscordAvatar";
 
 export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
   const roundData = useSignal<any>(null);
-
+  const isPointsDetailsOpen = useSignal(false);
   const [hasInteracted, setHasInteracted] = useState(false);
-  const { activeTooltipId, setActiveTooltipId } = useExclusiveTooltip();
 
   const handleReady = async () => {
     setHasInteracted(true);
@@ -30,7 +31,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
   const isFinalRound = gameState.value.currentRound >= gameState.value.gameSettings.rounds;
 
   useKeyboardShortcut({ key: "R", altKey: !isMac, metaKey: isMac }, () => {
-    if (!isHost) handleReady();
+    if (!isHost) void handleReady();
   });
 
   useEffect(() => {
@@ -94,21 +95,19 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
           <hr className="divider" />
           <div>
             {results
-              .filter((res: any) => res.points !== undefined)
+              .filter((res: any) => res.points !== null)
               .map((res: any) => {
                 const user = findUser(participants.value, res.userId);
 
                 return (
                   <div key={res.userId} className="player-result">
-                    <NonDraggableImg src={getAvatarUrl(user)} className="avatar-small" />
+                    <DiscordAvatar src={getAvatarUrl(user)} userName={getDisplayName(user)} />
                     <div className="name">{getDisplayName(user)}</div>
 
                     <div className="round-result-box">
                       <RoundBubblesGroup
                         rounds={[res]}
                         userId={res.userId}
-                        activeTooltipId={activeTooltipId}
-                        setActiveTooltipId={setActiveTooltipId}
                       />
                       <span className="time-display">
                         {res.time}s
@@ -175,19 +174,22 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
     );
   }
 
-  const score = roundData.value.result[0]?.scoreValue || 0;
+  const userResult = roundData.value.result[0]
+  const score = userResult?.scoreValue || 0;
 
   // Determine status class and message
-  let statusClass = 'incorrect';
-  let statusMessage = 'Incorrect. 😢';
+  const { statusClass, statusMessage } = (() => {
+    if (score === 1) return { statusClass: 'correct', statusMessage: 'Correct! 🎉' };
+    if (score > 0) return { statusClass: 'partial', statusMessage: 'So close! 🧗' };
+    return { statusClass: 'incorrect', statusMessage: 'Incorrect. 😢' };
+  })();
 
-  if (score === 1) {
-    statusClass = 'correct';
-    statusMessage = 'Correct! 🎉';
-  } else if (score > 0) {
-    statusClass = 'partial';
-    statusMessage = 'So close! 🧗';
-  }
+  const correctPlayerIds = roundData.value?.correctPlayers || [];
+  const participantLookup = new Map(participants.value.map(p => [p.id, p]));
+
+  const correctParticipants: Participant[] = correctPlayerIds
+    .map((id: string) => participantLookup.get(id))
+    .filter((p: any): p is Participant => !!p);
 
   return (
     <div id="results" className="centered">
@@ -203,7 +205,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
           <div>
             <p><strong>{roundData.value.correctAnswer}</strong></p>
             <p><i>{roundData.value.trackTitle}</i></p>
-            <div className="tags-container left">
+            <div id="tags" className="tags-container left">
               {roundData.value.tags.map((tag: Tag) => (
                 <span key={tag.type} title={capitalize(tag.type)} className="tag-badge">
                   {tag.value}
@@ -213,23 +215,65 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
           </div>
         </div>
         <hr className="divider" />
-        <div className="own-results">
+        <div id="own-results" className="own-results">
           <p className={`result ${statusClass}`}>
             {statusMessage}
           </p>
-          <p>Your guess: <strong>{roundData.value.result[0]?.guess || 'No guess submitted'}</strong></p>
-          <p>You earned <strong>
-            <RollingNumber target={roundData.value.result[0]?.points || 0} />
-          </strong> points this round.</p>
-          <p>Number of correct players: {roundData.value.correctPlayers}</p>
+          <div className="user-evaluation">
+            <div className="user-guess-wrapper">
+              <span className="guess-label">Your guess:</span>
+              <span id="guess" className="user-guess guess-text">{userResult?.guess || 'No guess submitted'}</span>
+            </div>
+            <div id="score" className="points-bubble">
+              <RollingNumber target={userResult?.points || 0} /> pt.
+            </div>
+          </div>
+          <div id="correct-players" className="correct-players">
+            <span className="correct-players-label">Correct players ({correctParticipants.length}):</span>
+            <div className="correct-players-list">
+              {correctParticipants.length === 0 ? (
+                <span className="correct-players-empty">Nobody got it fully correct!</span>
+              ) : (
+                correctParticipants.map((p: Participant) => (
+                  <DiscordAvatarWithTooltip
+                    userId={p.id}
+                    src={getAvatarUrl(p)}
+                    userName={getDisplayName(p)}
+                  />
+                ))
+              )}
+            </div>
+          </div>
           {roundData.value.lostStreaks && Object.keys(roundData.value.lostStreaks).length > 0 && (
-            <p>
+            <span>
               Lost Streaks: <strong>
                 {Object.entries(roundData.value.lostStreaks)
                   .map(([userId, streak]) => `${getDisplayName(findUser(participants.value, userId))} (${streak})`)
                   .join(', ')}
               </strong>
-            </p>
+            </span>
+          )}
+          {userResult.points > 0 && (
+            <div id="score-details">
+              <button
+                type="button"
+                id="score-details-btn"
+                className="toggle-btn score-details-btn"
+                onClick={() => (isPointsDetailsOpen.value = !isPointsDetailsOpen.value)}
+              >
+                <span>{isPointsDetailsOpen.value ? "Hide score details" : "See score details"}</span>
+                <span className={`arrow-indicator ${isPointsDetailsOpen.value ? "open" : ""}`} />
+              </button>
+
+              {isPointsDetailsOpen.value && (
+                <div className="score-details-panel">
+                  <h3 className="points-table-heading">Points calculation:</h3>
+                  <div className="center-box">
+                    <PointsCalculationTable baseMultiplier={userResult?.scoreValue} awardedBonuses={userResult?.awardedBonuses || []} />
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -251,32 +295,4 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
       </div>
     </div>
   );
-};
-
-export const RollingNumber = ({ target }: { target: number }) => {
-  const [displayValue, setDisplayValue] = useState(0);
-
-  useEffect(() => {
-    const duration = 2000; // 2 second animation
-    const startTime = performance.now();
-
-    const animate = (currentTime: number) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-
-      // Easing function (makes it slow down at the end)
-      const easeOutQuad = (t: number) => t * (2 - t);
-      const currentCount = Math.floor(easeOutQuad(progress) * target);
-
-      setDisplayValue(currentCount);
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
-    };
-
-    requestAnimationFrame(animate);
-  }, [target]);
-
-  return <span>{displayValue}</span>;
 };

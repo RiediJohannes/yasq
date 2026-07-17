@@ -9,6 +9,7 @@ import { capitalize, findUser, getActionKeyLabel } from "../utils/helper";
 import { NonDraggableImg } from "../components/NonDraggableImg";
 import { useKeyboardShortcut } from "../hooks/useKeyboardShortcut";
 import { Tag } from "../utils/types";
+import { DiscordAvatar } from "../components/DiscordAvatar";
 
 type JokerHint =
   | { type: Joker.OBFUSCATION;      data: string }
@@ -74,11 +75,7 @@ const renderJokerHint = (activeHint: JokerHint, submit: SubmitFunction) => {
       return (
         <div className="spy-hint-display">
           <div className="spy-target-info">
-            <NonDraggableImg
-              src={getAvatarUrl(targetUser)}
-              className="avatar-small"
-            />
-
+            <DiscordAvatar src={getAvatarUrl(targetUser)} userName={getDisplayName(targetUser)} />
             <span>
               <strong>{getDisplayName(targetUser)}</strong>
             </span>
@@ -307,7 +304,7 @@ export const ArenaView = ({ isHost }: { isHost: boolean }) => {
                         className="spy-select-button"
                         onClick={() => handleJokerUsage(Joker.SPY, targetId)}
                       >
-                        <NonDraggableImg src={getAvatarUrl(user)} className="avatar-small" />
+                        <DiscordAvatar src={getAvatarUrl(user)} userName={getDisplayName(user)} />
                         <span>{getDisplayName(user)}</span>
                       </button>
                     );

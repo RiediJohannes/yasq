@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GameInstance, LeaderboardEntry, Tag, Track, TrackInfo, UserGuess } from './models.js';
 import {
+  BASE_POINTS,
+  BonusType,
   COUNTDOWN_DURATION,
   DEFAULT_FIRST_BONUS_MULTIPLIER,
   DEFAULT_STREAK_BONUS_MULTIPLIER,
@@ -26,6 +28,13 @@ const PLAYER_3 = "player_789"
 const GAME_A = "Game A"
 const GAME_B = "Game B"
 const GAME_LONG = "The Game: A Somewhat Long Subtitle"
+
+const matchesBonus = (type: BonusType, multiplier: number) =>
+  expect.objectContaining({
+    type,
+    multiplier: expect.closeTo(multiplier, 3)
+  });
+
 
 describe('GameInstance - startGame', () => {
   let game: GameInstance;
@@ -191,6 +200,10 @@ describe('GameInstance - submitResults', () => {
     expect(entry1!.roundHistory).toHaveLength(1);
     expect(entry1!.roundHistory[0]?.isFirst).toBe(true);
     expect(entry1!.roundHistory[0]?.scoreValue).toBe(1);
+    const awardedBonuses1 = entry1!.roundHistory[0]?.awardedBonuses!
+    expect(awardedBonuses1.length).toBe(2);
+    expect(awardedBonuses1).toContainEqual(matchesBonus(BonusType.TIME_BONUS, 1.0));
+    expect(awardedBonuses1).toContainEqual(matchesBonus(BonusType.FIRST_BONUS, 0.2));
 
     // Math for Player 2:
     // Recall: FirstCorrect = 5000
@@ -204,6 +217,9 @@ describe('GameInstance - submitResults', () => {
     expect(entry2!.roundHistory).toHaveLength(1);
     expect(entry2!.roundHistory[0]?.isFirst).toBe(false);
     expect(entry2!.roundHistory[0]?.scoreValue).toBe(1);
+    const awardedBonuses2 = entry2!.roundHistory[0]?.awardedBonuses!
+    expect(awardedBonuses2.length).toBe(1);
+    expect(awardedBonuses2).toContainEqual(matchesBonus(BonusType.TIME_BONUS, 0.6666));
 
     // Math for Player 3:
     // Recall: FirstCorrect = 5000
@@ -217,6 +233,9 @@ describe('GameInstance - submitResults', () => {
     expect(entry3!.roundHistory).toHaveLength(1);
     expect(entry3!.roundHistory[0]?.isFirst).toBe(false);
     expect(entry3!.roundHistory[0]?.scoreValue).toBe(1);
+    const awardedBonuses3 = entry3!.roundHistory[0]?.awardedBonuses!
+    expect(awardedBonuses3.length).toBe(1);
+    expect(awardedBonuses3).toContainEqual(matchesBonus(BonusType.TIME_BONUS, 0.3333));
   });
 
   it('should handle incorrect guesses correctly and assign first bonus to first correct player', () => {
@@ -233,6 +252,8 @@ describe('GameInstance - submitResults', () => {
     expect(entry1!.roundHistory).toHaveLength(1);
     expect(entry1!.roundHistory[0]?.isFirst).toBe(false);
     expect(entry1!.roundHistory[0]?.scoreValue).toBe(0);
+    const awardedBonuses1 = entry1!.roundHistory[0]?.awardedBonuses!
+    expect(awardedBonuses1.length).toBe(0);
 
     // Math for Player 2:
     // First partially correct guess => FirstCorrect = 10000
@@ -245,6 +266,9 @@ describe('GameInstance - submitResults', () => {
     expect(entry2!.roundHistory).toHaveLength(1);
     expect(entry2!.roundHistory[0]?.isFirst).toBe(false);
     expect(entry2!.roundHistory[0]?.scoreValue).toBe(0.5);
+    const awardedBonuses2 = entry2!.roundHistory[0]?.awardedBonuses!
+    expect(awardedBonuses2.length).toBe(1);
+    expect(awardedBonuses2).toContainEqual(matchesBonus(BonusType.TIME_BONUS, 1.0));
 
     // Math for Player 3:
     // Recall: FirstCorrect = 10000
@@ -258,6 +282,10 @@ describe('GameInstance - submitResults', () => {
     expect(entry3!.roundHistory).toHaveLength(1);
     expect(entry3!.roundHistory[0]?.isFirst).toBe(true);
     expect(entry3!.roundHistory[0]?.scoreValue).toBe(1);
+    const awardedBonuses3 = entry3!.roundHistory[0]?.awardedBonuses!
+    expect(awardedBonuses3.length).toBe(2);
+    expect(awardedBonuses3).toContainEqual(matchesBonus(BonusType.TIME_BONUS, 0.5));
+    expect(awardedBonuses3).toContainEqual(matchesBonus(BonusType.FIRST_BONUS, 0.2));
   });
 
   it('should correctly handle time multipliers and first-place bonus if there were no fully correct answers', () => {
@@ -300,6 +328,10 @@ describe('GameInstance - submitResults', () => {
     const entry2 = game.leaderboard.getEntry(PLAYER_2);
     const entry3 = game.leaderboard.getEntry(PLAYER_3);
 
+    const roundResult1 = entry1!.roundHistory[0]!
+    const roundResult2 = entry2!.roundHistory[0]!
+    const roundResult3 = entry3!.roundHistory[0]!
+
     // Math for Player 1:
     // First correct guess => FirstCorrect = 5000
     // Base = 100 * 1.0 = 100 (correct guess)
@@ -310,6 +342,12 @@ describe('GameInstance - submitResults', () => {
     // Total Score = 100 + 100 + 20 + 15 + 20 = 255
     expect(entry1!.totalScore).toBe(255);
     expect(game.streaks[PLAYER_1]).toBe(4); // Incremented to 4
+    expect(roundResult1.scoreValue).toBe(1);
+    expect(roundResult1.awardedBonuses.length).toBe(4);
+    expect(roundResult1.awardedBonuses).toContainEqual(matchesBonus(BonusType.TIME_BONUS, 1.0));
+    expect(roundResult1.awardedBonuses).toContainEqual(matchesBonus(BonusType.FIRST_BONUS, 0.2));
+    expect(roundResult1.awardedBonuses).toContainEqual(matchesBonus(BonusType.STREAK_BONUS, 0.15));
+    expect(roundResult1.awardedBonuses).toContainEqual(matchesBonus(BonusType.STREAK_BREAKER, 0.2));
 
     // Math for Player 2:
     // Time Bonus Multiplier = 1 - ((10000-5000) / (20000 - 5000)) = 0.6666
@@ -321,10 +359,54 @@ describe('GameInstance - submitResults', () => {
     // Total: 50 + 33 + 0 + 3 + 0 = 86
     expect(entry2!.totalScore).toBe(86);
     expect(game.streaks[PLAYER_2]).toBe(2); // Kept at 2
+    expect(roundResult2.scoreValue).toBe(0.5);
+    expect(roundResult2.awardedBonuses.length).toBe(2);
+    expect(roundResult2.awardedBonuses).toContainEqual(matchesBonus(BonusType.TIME_BONUS, 0.6666));
+    expect(roundResult2.awardedBonuses).toContainEqual(matchesBonus(BonusType.STREAK_BONUS, 0.05));
 
     // Player 3: No points, streak set to 0
     expect(entry3!.totalScore).toBe(0);
     expect(game.streaks[PLAYER_3]).toBe(0);
+    expect(roundResult3.scoreValue).toBe(0);
+    expect(roundResult3.awardedBonuses.length).toBe(0);
+  });
+
+  it('should not award deactivated bonuses', () => {
+    game.setupGame({
+      rounds: 10,
+      trackDuration: 20,
+      enabledJokers: [],
+      timeBonus: null,            // no time bonus
+      firstBonusMultiplier: 0.0,  // no first bonus
+      streakBonusMultiplier: 0.0  // no streak bonus
+    });
+    game.startGame();
+    game.submitResults({ [PLAYER_1]: 1.0, [PLAYER_2]: 0.5, [PLAYER_3]: 0.0 });
+
+    const entry1 = game.leaderboard.getEntry(PLAYER_1);
+    const entry2 = game.leaderboard.getEntry(PLAYER_2);
+    const entry3 = game.leaderboard.getEntry(PLAYER_3);
+
+    // Player 1: Correct guess => full points
+    expect(entry1).toBeDefined();
+    expect(entry1!.totalScore).toBe(BASE_POINTS);
+    expect(entry1!.roundHistory).toHaveLength(1);
+    const awardedBonuses1 = entry1!.roundHistory[0]!.awardedBonuses
+    expect(awardedBonuses1.length).toBe(0);
+
+    // Player 2: Partially correct guess => half-points
+    expect(entry2).toBeDefined();
+    expect(entry2!.totalScore).toBe(0.5 * BASE_POINTS);
+    expect(entry2!.roundHistory).toHaveLength(1);
+    const awardedBonuses2 = entry2!.roundHistory[0]!.awardedBonuses
+    expect(awardedBonuses2.length).toBe(0);
+
+    // Player 3: Incorrect guess => no points
+    expect(entry3).toBeDefined();
+    expect(entry3!.totalScore).toBe(0);
+    expect(entry3!.roundHistory).toHaveLength(1);
+    const awardedBonuses3 = entry3!.roundHistory[0]!.awardedBonuses
+    expect(awardedBonuses3.length).toBe(0);
   });
 
   it('should transition to RESULTS state and reset guessedPlayers', () => {

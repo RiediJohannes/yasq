@@ -2,9 +2,10 @@ import { useSignal } from "@preact/signals";
 
 import { DEFAULT_VOLUME_SLIDER_VAL, getAvatarUrl, getDisplayName, MAX_VOLUME } from "@yasq/shared";
 import { gainNode, gameState, isMac, participants, volume } from "../main";
-import { NonDraggableImg } from "./NonDraggableImg";
 import { useKeyboardShortcut } from "../hooks/useKeyboardShortcut";
 import { getActionKeyLabel } from "../utils/helper";
+import { DiscordAvatar } from "./DiscordAvatar";
+
 
 export const Sidebar = () => {
   const mutedVolume = useSignal<number | null>(null);
@@ -60,7 +61,11 @@ export const Sidebar = () => {
 
             return (
               <div key={p.id} className="player-entry">
-                <NonDraggableImg src={getAvatarUrl(p)} className="avatar-tiny" />
+                <DiscordAvatar
+                  src={getAvatarUrl(p)}
+                  userName={getDisplayName(p)}
+                  tiny={true}
+                />
                 <div className="player-info-container">
                   <span className="player-name">{getDisplayName(p)}</span>
                   <div className="badge-container">
