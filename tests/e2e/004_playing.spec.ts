@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { generatePlayers, Player } from './helper.js'
+import { generatePlayers, Player } from '../utils/helper.js'
 import { PlayingPage } from './pages/PlayingPage.js';
 import { Sidebar } from './pages/components/Sidebar.js';
-import { TestApi } from './api.js';
+import { TestApi } from '../utils/api.js';
 
 test.describe('Host UI', () => {
 
@@ -24,7 +24,7 @@ test.describe('Host UI', () => {
     }, { allPlayers: players, user: user, instanceId: currentInstanceId });
 
     // Setup current game state
-    api = new TestApi(request, currentInstanceId);
+    api = new TestApi('http://localhost:3001', currentInstanceId);
     await api.setupSession(players, 'PLAYING', {
       settings: {
         rounds: 5,
@@ -92,7 +92,7 @@ test.describe('Player UI', () => {
     }, { allPlayers: players, user: user, instanceId: currentInstanceId });
 
     // Setup current game state
-    api = new TestApi(request, currentInstanceId);
+    api = new TestApi('http://localhost:3001', currentInstanceId);
     await api.setupSession(players, 'PLAYING', {
       settings: {
         rounds: 5,

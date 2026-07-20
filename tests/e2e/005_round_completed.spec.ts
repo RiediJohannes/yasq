@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
-import { generatePlayers, Player } from './helper.js'
+import { generatePlayers, Player } from '../utils/helper.js'
 import { RoundCompletedPage } from './pages/RoundCompletedPage.js';
-import { TestApi } from './api.js';
+import { TestApi } from '../utils/api.js';
 import { Sidebar } from './pages/components/Sidebar.js';
 
 test.describe('Host UI', () => {
@@ -24,7 +24,7 @@ test.describe('Host UI', () => {
     }, { allPlayers: players, user: user, instanceId: currentInstanceId });
 
     // Setup current game state
-    api = new TestApi(request, currentInstanceId);
+    api = new TestApi('http://localhost:3001', currentInstanceId);
     await api.setupSession(players, 'ROUND_COMPLETED', {
       currentRound: 1,
       trackInfo: {

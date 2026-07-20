@@ -9,7 +9,7 @@
     "url": "git+https://github.com/yadler97/yasq.git"
   },
   "scripts": {
-    "dev": "cross-env NODE_ENV=development tsx watch server.ts",
+    "dev": "cross-env NODE_ENV=development tsx watch main.ts",
     "test": "cross-env NODE_ENV=test vitest"
   },
   "dependencies": {

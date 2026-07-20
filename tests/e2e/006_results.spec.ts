@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
-import { generatePlayers, Player } from './helper.js'
-import mockLeaderboard from '../mock_data/mockLeaderboard.json';
-import { TestApi } from './api.js';
+import { generatePlayers, Player } from '../utils/helper.js'
+import mockLeaderboard from '../../mock_data/mockLeaderboard.json';
+import { TestApi } from '../utils/api.js';
 import { ResultsPage } from './pages/ResultsPage.js';
 import { Sidebar } from './pages/components/Sidebar.js';
 
@@ -25,7 +25,7 @@ test.describe('Host UI', () => {
     }, { allPlayers: players, user: user, instanceId: currentInstanceId });
 
     // Setup current game state
-    api = new TestApi(request, currentInstanceId);
+    api = new TestApi('http://localhost:3001', currentInstanceId);
     await api.setupSession(players, 'RESULTS', {
       leaderboard: mockLeaderboard,
       currentRound: 1,
@@ -98,7 +98,7 @@ test.describe('Player UI', () => {
     }, { allPlayers: players, user: user, instanceId: currentInstanceId });
 
     // Setup current game state
-    api = new TestApi(request, currentInstanceId);
+    api = new TestApi('http://localhost:3001', currentInstanceId);
     await api.setupSession(players, 'RESULTS', {
       currentRound: 1,
       trackInfo: {

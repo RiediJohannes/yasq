@@ -13,11 +13,12 @@ import { generateResultsImage } from '../src/export_results.js';
 import { LogCategory, logger } from '../src/utils/logger.js';
 import { createGameMiddlewares } from './middleware.js';
 import type { APIChannel } from 'discord-api-types/v10';
+import { exchangeCodeForToken, getChannelsForGuild, postResultsToChannel } from '../src/utils/discord.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export const setupRoutes = (server: Server, instances: Record<string, GameInstance>, isMockMode: boolean, allTracks: any, allPlaylists: any) => {
+export const setupRoutes = (server: Server, instances: Record<string, GameInstance>, allTracks: any, allPlaylists: any) => {
   const { authenticateUser, fetchGame, isHost } = createGameMiddlewares(instances);
   const router = express.Router();
 
@@ -31,42 +32,17 @@ export const setupRoutes = (server: Server, instances: Record<string, GameInstan
   router.post("/token", async (req, res) => {
     const { code } = req.body;
 
-    if (isMockMode && code === 'mock_code') {
-      return res.send({ access_token: 'mock_token_for_dev' });
-    }
-
-    // 1. Validate that we actually have the required data
     if (!code) {
       return res.status(400).send({ error: "Missing code" });
     }
 
-    // 2. Cast or provide fallbacks for process.env
-    const params = new URLSearchParams({
-      client_id: process.env.VITE_DISCORD_CLIENT_ID || '',
-      client_secret: process.env.DISCORD_CLIENT_SECRET || '',
-      grant_type: "authorization_code",
-      code: String(code),
-    });
-
-    // 3. Exchange the code for an access_token
-    const discordResponse = await fetch(`https://discord.com/api/oauth2/token`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: params,
-    });
-
-    if (!discordResponse.ok) {
-      const errorData = await discordResponse.text();
-      logger.error("SYSTEM", `OAuth2 token exchange failed`, errorData, LogCategory.AUTH);
-      return res.status(500).send({ error: "Authentication failed" });
+    try {
+      const accessToken = await exchangeCodeForToken(code);
+      res.send({ access_token: accessToken });
+    } catch (err: any) {
+      logger.error("SYSTEM", `OAuth2 token exchange failed`, err.message, LogCategory.AUTH);
+      res.status(500).send({ error: "Authentication failed" });
     }
-
-    // 4. Return the access_token to our client as { access_token: "..."}
-    const data = (await discordResponse.json()) as { access_token: string };
-
-    res.send({ access_token: data.access_token });
   });
 
   router.post("/log", (req, res) => {
@@ -480,35 +456,16 @@ export const setupRoutes = (server: Server, instances: Record<string, GameInstan
     }
 
     const winnerMention = `<@${game.lastWinnerId}>`;
+    const messageText = `🏁 **The YASQ Game Has Ended!**\n\nCongratulations ${winnerMention}, you are the winner! 🥳\n\nHere are the final results:`;
 
     try {
-      const formData = new FormData();
-      const fileBuffer = fs.readFileSync(filePath);
-      const fileBlob = new Blob([fileBuffer], { type: 'image/png' });
-
-      formData.append('files[0]', fileBlob, `results-${instanceId}.png`);
-      formData.append('payload_json', JSON.stringify({
-        content: `🏁 **The YASQ Game Has Ended!**\n\nCongratulations ${winnerMention}, you are the winner! 🥳\n\nHere are the final results:`,
-      }));
-
-      const discordResponse = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`,
-        },
-        body: formData
-      });
-
-      if (!discordResponse.ok) {
-        const logErr = await discordResponse.text();
-        logger.error(instanceId, `Discord API rejected request`, logErr, LogCategory.DISCORD);
-        throw new Error(`Discord channel message dispatch rejected: ${logErr}`);
-      }
+      await postResultsToChannel(channelId, messageText, filePath, instanceId);
 
       logger.debug(instanceId, `Results successfully posted to Discord channel ${channelId}`, LogCategory.DISCORD);
 
       return res.status(200).json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
+      logger.error(instanceId, `Discord API rejected request`, error.message, LogCategory.DISCORD);
       return res.status(500).json({ error: 'Internal system operation processing failure.' });
     }
   });
@@ -523,21 +480,12 @@ export const setupRoutes = (server: Server, instances: Record<string, GameInstan
     }
 
     try {
-      const discordResponse = await fetch(`https://discord.com/api/v10/guilds/${guildId}/channels`, {
-        headers: { 'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}` }
-      });
-
-      if (!discordResponse.ok) {
-        const logErr = await discordResponse.text();
-        logger.error(instanceId, `Discord API rejected request`, logErr, LogCategory.DISCORD);
-        throw new Error(`Discord channel fetch rejected: ${logErr}`);
-      }
-
-      const channels = await discordResponse.json() as APIChannel[];
+      const channels = await getChannelsForGuild(guildId) as APIChannel[];
       const textChannels = filterDiscordTextChannels(channels);
 
       res.json(textChannels);
-    } catch (err) {
+    } catch (err: any) {
+      logger.error(instanceId, `Discord API rejected request`, err.message, LogCategory.DISCORD);
       res.status(500).json({ error: 'Could not fetch channels' });
     }
   });

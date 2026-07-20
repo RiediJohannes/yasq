@@ -23,7 +23,6 @@ npm install
 - Follow the Steps in the [Tutorial](https://docs.discord.com/developers/activities/building-an-activity):
   - Create a new Application.
   - Set Redirect URI in OAuth2 settings to `https://127.0.0.1`.
-  - Turn on `Enable Activities` in Activity settings.
   - Make sure to add all additional test players as `App Testers`.
 - (Optional) Turn on `iOS` and `Android` under `Supported Platforms` in Activity settings to allow users to open the activity on mobile devices
 - (Optional) If you want to be able to export your game results directly to Discord:
@@ -40,6 +39,7 @@ VITE_DISCORD_CLIENT_ID=<Copy Client ID from Discord Developer Portal>
 DISCORD_CLIENT_SECRET=<Copy Client Secret from Discord Developer Portal>
 VITE_URL_MAPPING=<Fill Later>
 DISCORD_BOT_TOKEN=<Copy Bot Token from Discord Developer Portal> (Optional)
+LOG_LEVEL=<options: debug, info, warn, error> (Optional, defaults to 'info')
 ```
 
 ### Local Development
@@ -57,7 +57,9 @@ cloudflared tunnel --url http://localhost:5173
 
 3. **Update Tunnel URL**
 - Set `VITE_URL_MAPPING` in `.env` to the tunnel URL **without** `https://`.
-- Create URL Mapping in Discord Developer Portal under the Activities tab.
+- Follow these steps in the Discord Developer Portal:
+  - Create URL Mapping under the Activities tab.
+  - Turn on `Enable Activities` in Activity settings.
 
 ### Game Setup
 
@@ -132,6 +134,12 @@ npm run test:unit
 npm run test:unit:coverage # with coverage report
 ```
 
+### Integration Tests
+
+```bash
+npm run test:integration
+```
+
 ### E2E Tests
 
 ```bash
@@ -143,7 +151,7 @@ npm run test:e2e:ui     # ui mode
 
 ### CI Pipeline
 
-In addition, the repo contains the `.yml` file for a GitHub Action CI Pipeline. For pushes on `main` and pull requests to `main` the unit tests and e2e tests are executed.
+In addition, the repo contains the `.yml` file for a GitHub Action CI Pipeline. For pushes on `main` and pull requests to `main` the unit, integration, and e2e tests are executed.
 
 ## Authors
 

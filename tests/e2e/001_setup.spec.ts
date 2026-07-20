@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
-import { generatePlayers, Player } from './helper.js'
+import { generatePlayers, Player } from '../utils/helper.js'
 import { SetupPage } from './pages/SetupPage.js';
-import { TestApi } from './api.js';
+import { TestApi } from '../utils/api.js';
 
 test.describe('Host UI', () => {
 
@@ -23,7 +23,7 @@ test.describe('Host UI', () => {
     }, { allPlayers: players, user: user, instanceId: currentInstanceId });
 
     // Setup current game state
-    api = new TestApi(request, currentInstanceId);
+    api = new TestApi('http://localhost:3001', currentInstanceId);
     await api.setupSession(players, 'SETUP');
 
     // Navigate to the app
