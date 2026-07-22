@@ -5,13 +5,14 @@ import { io } from 'socket.io-client';
 
 import * as backend from "./utils/backend";
 import { getUserId } from "./utils/helper";
-import { GameStatus, Participant } from "./utils/types";
+import { GameStatus } from "./utils/types";
 import {
   DEFAULT_VOLUME_SLIDER_VAL,
-  GameState,
   GameSettings,
+  GameState,
   Joker,
   MAX_VOLUME,
+  Participant,
   WS_GAME_STATUS_UPDATE_EVENT,
   WS_JOIN_INSTANCE_EVENT
 } from '@yasq/shared';

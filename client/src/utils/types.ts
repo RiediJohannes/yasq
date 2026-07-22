@@ -9,15 +9,6 @@ export const OptionalTimeBonus = {
 // Derive TypeScript type from the runtime object
 export type TOptionalTimeBonus = typeof OptionalTimeBonus[keyof typeof OptionalTimeBonus];
 
-
-export interface Participant {
-  id: string;
-  username: string;
-  nickname?: string;
-  global_name?: string;
-  avatar?: string;
-}
-
 export interface GameStatus {
   state: string;
   hostId: string | null;

@@ -6,7 +6,16 @@ import { fileURLToPath } from 'url';
 
 import { GameInstance, Track } from '../src/models.js';
 import type { InstanceGuildQuery, InstanceQuery, InstanceUserQuery } from '../src/types.js';
-import { COUNTDOWN_DURATION, GameState, INT32_MAX_VALUE, Joker, MAX_GUESS_LENGTH } from '@yasq/shared';
+import {
+  COUNTDOWN_DURATION,
+  GameState,
+  INT32_MAX_VALUE,
+  Joker,
+  MAX_GUESS_LENGTH,
+  type Participant,
+  TimeBonus,
+  type TimeBonusSummary
+} from '@yasq/shared';
 import { broadcastGameStatus, filterDiscordTextChannels, userDataCache } from '../src/helper.js';
 import { isAllowed } from '../src/access_control.js';
 import { generateResultsImage } from '../src/export_results.js';
@@ -14,6 +23,7 @@ import { LogCategory, logger } from '../src/utils/logger.js';
 import { createGameMiddlewares } from './middleware.js';
 import type { APIChannel } from 'discord-api-types/v10';
 import { exchangeCodeForToken, getChannelsForGuild, postResultsToChannel } from '../src/utils/discord.js';
+import { generateSampleTimeBonusSummary, SAMPLE_PARTICIPANTS } from "../src/utils/samples.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -252,6 +262,25 @@ export const setupRoutes = (server: Server, instances: Record<string, GameInstan
       gameCover: game.trackInfo?.gameCoverUrl,
       correctPlayers: correctPlayers,
       lostStreaks: game.currentRoundLostStreaks
+    });
+  });
+
+  router.get("/get-sample-time-bonus-summary", (req, res) => {
+    const bonusType = req.query.type as TimeBonus | undefined;
+
+    if (!bonusType) {
+      return res.send({
+        participants: SAMPLE_PARTICIPANTS,
+        timeBonusSummary: null,
+      });
+    }
+
+    const participants: Participant[] = SAMPLE_PARTICIPANTS;
+    const timeBonusSummary: TimeBonusSummary = generateSampleTimeBonusSummary(bonusType)
+
+    res.send({
+      participants: participants,
+      timeBonusSummary: timeBonusSummary,
     });
   });
 

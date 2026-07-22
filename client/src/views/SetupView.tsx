@@ -20,6 +20,8 @@ import { OptionalTimeBonus, TOptionalTimeBonus } from "../utils/types";
 import { PLAYER_TIME_BONUS_LABELS } from "./LobbyView";
 import { HostTransferDropdown } from "../components/HostTransferDropdown";
 import { formatBonusMultiplier } from "../utils/helper";
+import { TimeBonusPlot } from "../components/TimeBonusPlot";
+import { useTimeBonusSamples } from "../hooks/useTimeBonusSamples";
 
 
 const HOST_TIME_BONUS_LABELS: Record<TOptionalTimeBonus, string> = {
@@ -53,6 +55,16 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
 
   const selectedBonus = useSignal<TOptionalTimeBonus>(
     gameState.value.gameSettings.timeBonus ?? OptionalTimeBonus.NONE
+  );
+
+  const { timeBonusSamples, isLoading } = useTimeBonusSamples(isHost);
+
+  const activeTimeBonusSample = selectedBonus.value !== OptionalTimeBonus.NONE
+    ? timeBonusSamples.value.get(selectedBonus.value as TimeBonus)
+    : null;
+
+  const sampleParticipants = new Map(
+    (activeTimeBonusSample?.participants || []).map(p => [p.id, p])
   );
 
   const toggleJoker = (type: Joker) => {
@@ -166,6 +178,15 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
                       </option>
                     ))}
                   </select>
+                  {isLoading.value ? (
+                    <p className="time-bonus-loading">Loading sample data...</p>
+                  ) : (
+                    <TimeBonusPlot
+                      currentPlayer={null}
+                      participants={sampleParticipants}
+                      data={activeTimeBonusSample?.timeBonusSummary ?? null}
+                    />
+                  )}
                 </div>
 
                 <div className="setting-item">

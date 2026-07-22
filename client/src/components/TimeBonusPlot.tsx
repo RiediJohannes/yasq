@@ -36,13 +36,13 @@ type PlayerHoverData = BaseHoverData & {
 type HoverData = CurveHoverData | PlayerHoverData;
 
 
-interface PlotProps {
+interface TimeBonusPlotProps {
   currentPlayer: Participant | null;
   participants: Map<string, Participant>
   data: TimeBonusSummary | null;
 }
 
-export const TimeBonusPlot = ({ currentPlayer, participants, data }: PlotProps) => {
+export const TimeBonusPlot = ({ currentPlayer, participants, data }: TimeBonusPlotProps) => {
   if (data == null) {
     return;
   }

@@ -206,7 +206,7 @@ img {
   text-align: left;
 }
 
-.setting-item span {
+.setting-item > span {
   color: var(--text-muted);
   font-size: 0.8rem;
   font-weight: bold;
@@ -1902,8 +1902,16 @@ input[value="1"]:checked + .btn-radio.correct {
 }
 
 
+.time-bonus-loading {
+  font-style: italic;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 0.3em;
+}
+
 .time-bonus-plot-area {
   position: relative;
+  box-sizing: border-box;
   width: 100%;
   background-color: var(--color-plot-background);
   border: 1px solid var(--color-plot-border);
@@ -2085,12 +2093,17 @@ input[value="1"]:checked + .btn-radio.correct {
 
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
   gap: 2px;
   padding: 6px 12px 4px 12px;
   background-color: var(--color-plot-tooltip-fill);
-  color: light-dark(#000000, #ffffff);
+  color: light-dark(#000000, #f1f1f1);
   white-space: nowrap;
   font-size: 1rem;
+  text-transform: none;
+  font-weight: 400;
 }
 
 @media (prefers-color-scheme: light) {
@@ -2101,24 +2114,25 @@ input[value="1"]:checked + .btn-radio.correct {
   }
 }
 
-.tooltip-title {
+.plot-tooltip .tooltip-title {
   font-size: 0.8em;
   letter-spacing: 0.08em;
   font-weight: 800;
   margin-bottom: 2px;
 }
 
-.tooltip-time {
-  font-size: 0.8em;
-  margin-bottom: 2px;
-  font-family: monospace;
-}
-
-.tooltip-multiplier {
+.plot-tooltip .tooltip-multiplier {
   font-size: 0.9em;
   line-height: 1.2;
   font-weight: 700;
   font-family: monospace;
+}
+
+.plot-tooltip .tooltip-time {
+  font-size: 0.8em;
+  margin-bottom: 2px;
+  font-family: monospace;
+  text-transform: none;
 }
 
 
