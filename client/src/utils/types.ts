@@ -55,5 +55,4 @@ export interface RoundResult {
   guess?: string;
   isFirst?: boolean;
   awardedBonuses?: PointsBonus[];
-  timeBonusSummary?: TimeBonusSummary;
 }

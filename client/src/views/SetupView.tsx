@@ -179,7 +179,7 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
                     ))}
                   </select>
                   {isLoading.value ? (
-                    <p className="time-bonus-loading">Loading sample data...</p>
+                    <p className="info-message time-bonus-loading">Loading sample data...</p>
                   ) : (
                     <TimeBonusPlot
                       currentPlayer={null}

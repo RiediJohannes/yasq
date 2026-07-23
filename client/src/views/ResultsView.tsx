@@ -1,11 +1,10 @@
 import { useSignal } from "@preact/signals";
-import { useEffect, useState } from "preact/hooks";
+import { useEffect } from "preact/hooks";
 
 import * as backend from "../utils/backend";
-import { auth, discordSdk, gameState, isMac, participants } from "../main";
-import { capitalize, findUser, getActionKeyLabel, getUserId } from "../utils/helper";
+import { auth, discordSdk, gameState, participants } from "../main";
+import { capitalize, findUser, getUserId } from "../utils/helper";
 import { NonDraggableImg } from "../components/NonDraggableImg";
-import { useKeyboardShortcut } from "../hooks/useKeyboardShortcut";
 import { Tag } from "../utils/types";
 import { getAvatarUrl, getDisplayName, Participant } from "@yasq/shared";
 import { RoundBubblesGroup } from "../components/RoundBubble";
@@ -13,40 +12,22 @@ import { PointsCalculationTable } from "../components/PointsCalculationTable";
 import { RollingNumber } from "../components/RollingNumber";
 import { DiscordAvatar, DiscordAvatarWithTooltip } from "../components/DiscordAvatar";
 import { TimeBonusPlot } from "../components/TimeBonusPlot";
+import { ReadyButton } from "../components/ReadyButton";
 
 export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
   const roundData = useSignal<any>(null);
   const isPointsDetailsOpen = useSignal(false);
-  const [hasInteracted, setHasInteracted] = useState(false);
-
-  const handleReady = async () => {
-    setHasInteracted(true);
-
-    await backend.updateReadyStatus(
-      auth.value.access_token,
-      discordSdk.instanceId,
-      !gameState.value.readyUsers.includes(getUserId(auth.value))
-    )
-  };
 
   const isFinalRound = gameState.value.currentRound >= gameState.value.gameSettings.rounds;
   const hasTimeBonus = !!gameState.value.gameSettings.timeBonus;
-
-  useKeyboardShortcut({ key: "R", altKey: !isMac, metaKey: isMac }, () => {
-    if (!isHost) void handleReady();
-  });
 
   useEffect(() => {
     backend.getRoundResults(discordSdk.instanceId, getUserId(auth.value))
       .then(data => {
         roundData.value = data;
       })
-      .catch(err => {
-        if (err.status === 403) {
-          roundData.value = { error: "NOT_FOUND" };
-        } else {
-          roundData.value = { error: "SERVER_ERROR" };
-        }
+      .catch(_ => {
+        roundData.value = { error: "SERVER_ERROR" };
       });
   }, [isHost]);
 
@@ -140,7 +121,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
                   <TimeBonusPlot
                     currentPlayer={currentPlayer}
                     participants={participantLookup}
-                    data={results[0]?.timeBonusSummary ?? null}
+                    data={roundData.value.summary?.timeBonusSummary ?? null}
                   />
                 </div>
               </div>
@@ -169,33 +150,19 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
       <div id="results" className="centered">
         <h2>Results Unavailable</h2>
         <p className="error-text">
-          {roundData.value.error === "NOT_FOUND"
-            ? "You weren't in the leaderboard for this round."
-            : "A server error occurred."}
+          {roundData.value.error === "SERVER_ERROR"
+            ? "A server error occurred."
+            : "An unexpected error occurred."}
         </p>
 
-        <div className='shortcut-badge-btn-wrapper'>
-          <button
-            className={`ready-btn ${gameState.value.readyUsers.includes(getUserId(auth.value)) ? 'ready' : ''} ${hasInteracted ? 'interacted' : ''}`}
-            id="btn-ready"
-            onClick={handleReady}
-          >
-            {gameState.value.readyUsers.includes(getUserId(auth.value))
-              ? "I'm Ready! ✅" :
-              (isFinalRound ? "Ready for Final Results" : "Ready for Next Round")
-            }
-          </button>
-          <span className="shortcut-badge">
-            <kbd>{getActionKeyLabel(isMac)}</kbd>+<kbd>R</kbd>
-          </span>
-        </div>
+        <ReadyButton/>
       </div>
     );
   }
 
-  const userResult = roundData.value.result[0]
+  const userResult = roundData.value.result?.[0];
   const score = userResult?.scoreValue || 0;
-  const needsScoreDetails = hasTimeBonus || userResult.points > 0;
+  const needsScoreDetails = userResult && (hasTimeBonus || userResult.points > 0);
 
   // Determine status class and message
   const { statusClass, statusMessage } = (() => {
@@ -235,18 +202,24 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
         </div>
         <hr className="divider" />
         <div id="own-results" className="own-results">
-          <p className={`result ${statusClass}`}>
-            {statusMessage}
-          </p>
-          <div className="user-evaluation">
-            <div className="user-guess-wrapper">
-              <span className="guess-label">Your guess:</span>
-              <span id="guess" className="user-guess guess-text">{userResult?.guess || 'No guess submitted'}</span>
-            </div>
-            <div id="score" className="points-bubble">
-              <RollingNumber target={userResult?.points || 0} /> pt.
-            </div>
-          </div>
+          {userResult ? (
+            <>
+              <p className={`user-guess-result ${statusClass}`}>
+                {statusMessage}
+              </p>
+              <div className="user-evaluation">
+                <div className="user-guess-wrapper">
+                  <span className="guess-label">Your guess:</span>
+                  <span id="guess" className="user-guess guess-text">{userResult?.guess || 'No guess submitted'}</span>
+                </div>
+                <div id="score" className="points-bubble">
+                  <RollingNumber target={userResult?.points || 0} /> pt.
+                </div>
+              </div>
+            </>
+          ) : (
+            <p className="info-message leaderboard-absent-message">You were not in the leaderboard for this round.</p>
+          )}
           <div id="correct-players" className="correct-players">
             <span className="correct-players-label">Correct players ({correctParticipants.length}):</span>
             <div className="correct-players-list">
@@ -271,6 +244,21 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
                   .join(', ')}
               </strong>
             </span>
+          )}
+          {hasTimeBonus && !userResult && (
+            <div id="host-details">
+              <hr className="divider" />
+              <div className="host-details-panel">
+                <h3 className="section-heading">Time bonus plot:</h3>
+                <div className="center-box">
+                  <TimeBonusPlot
+                    currentPlayer={currentPlayer}
+                    participants={participantLookup}
+                    data={roundData.value.summary?.timeBonusSummary ?? null}
+                  />
+                </div>
+              </div>
+            </div>
           )}
           {needsScoreDetails && (
             <div id="score-details">
@@ -302,7 +290,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
                         <TimeBonusPlot
                           currentPlayer={currentPlayer}
                           participants={participantLookup}
-                          data={userResult.timeBonusSummary}
+                          data={roundData.value.summary?.timeBonusSummary ?? null}
                         />
                       </div>
                     </>
@@ -314,21 +302,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
         </div>
       </div>
 
-      <div className='shortcut-badge-btn-wrapper'>
-        <button
-          className={`ready-btn ${gameState.value.readyUsers.includes(getUserId(auth.value)) ? 'ready' : ''} ${hasInteracted ? 'interacted' : ''}`}
-          id="btn-ready"
-          onClick={handleReady}
-        >
-          {gameState.value.readyUsers.includes(getUserId(auth.value))
-            ? "I'm Ready! ✅" :
-            (isFinalRound ? "Ready for Final Results" : "Ready for Next Round")
-          }
-        </button>
-        <span className="shortcut-badge">
-          <kbd>{getActionKeyLabel(isMac)}</kbd>+<kbd>R</kbd>
-        </span>
-      </div>
+      <ReadyButton/>
     </div>
   );
 };

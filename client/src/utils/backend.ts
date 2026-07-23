@@ -120,9 +120,9 @@ export async function getRoundResults(instanceId: string, userId: string) {
     throw error;
   }
 
-  let roundSummary = await response.json();
+  let roundData = await response.json();
 
-  roundSummary.result = roundSummary.result.map((roundResult: RoundResult) => {
+  roundData.result = roundData.result.map((roundResult: RoundResult) => {
     roundResult.awardedBonuses = roundResult.awardedBonuses?.map((bonus: { type: BonusType; multiplier: number }) =>
       new PointsBonus(bonus.type, bonus.multiplier)
     ) ?? [];
@@ -130,7 +130,7 @@ export async function getRoundResults(instanceId: string, userId: string) {
     return roundResult;
   })
 
-  return roundSummary;
+  return roundData;
 }
 
 export interface TimeBonusPlotPayload {
