@@ -1,12 +1,12 @@
-import { useState, useEffect } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 
 import * as backend from "../utils/backend";
-import { auth, discordSdk, gameState, isMac, participants } from "../main";
-import { capitalize, formatBonusMultiplier, getActionKeyLabel, getUserId } from "../utils/helper";
+import { auth, discordSdk, gameState, participants } from "../main";
+import { capitalize, formatBonusMultiplier } from "../utils/helper";
 import { ALL_JOKER_ICONS } from "../components/JokerIcons";
 import { OptionalTimeBonus, TOptionalTimeBonus } from "../utils/types";
 import { TimeBonus } from "@yasq/shared";
-import { useKeyboardShortcut } from "../hooks/useKeyboardShortcut";
+import { ReadyButton } from "../components/ReadyButton";
 
 
 export const PLAYER_TIME_BONUS_LABELS: Record<TOptionalTimeBonus, string> = {
@@ -21,7 +21,6 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
   const readyUsers = playersExcludingHost.filter(p => gameState.value.readyUsers.includes(p.id)).length;
   const allPlayersReady = playersExcludingHost.length > 0 && readyUsers === playersExcludingHost.length;
 
-  const [hasInteracted, setHasInteracted] = useState(false);
   const [activeTooltipType, setActiveTooltipType] = useState<string | null>(null);
 
   useEffect(() => {
@@ -41,20 +40,6 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
   const handleStart = async () => {
     await backend.startGame(auth.value.access_token, discordSdk.instanceId);
   };
-
-  const handleReady = async () => {
-    setHasInteracted(true);
-
-    await backend.updateReadyStatus(
-      auth.value.access_token,
-      discordSdk.instanceId,
-      !gameState.value.readyUsers.includes(getUserId(auth.value))
-    )
-  };
-
-  useKeyboardShortcut({ key: "R", altKey: !isMac, metaKey: isMac }, () => {
-    if (!isHost) handleReady();
-  });
 
   const handleEditSettings = async () => {
     await backend.restartGame(auth.value.access_token, discordSdk.instanceId);
@@ -136,18 +121,7 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
             {allPlayersReady ? "Start Game" : `Waiting... (${readyUsers}/${playersExcludingHost.length})`}
           </button>
         ) : (
-          <div id="lobby-guesser-ui" className='shortcut-badge-btn-wrapper'>
-            <button
-              className={`ready-btn ${gameState.value.readyUsers.includes(getUserId(auth.value)) ? 'ready' : ''} ${hasInteracted ? 'interacted' : ''}`}
-              id="btn-ready"
-              onClick={handleReady}
-            >
-              {gameState.value.readyUsers.includes(getUserId(auth.value)) ? "I'm Ready! ✅" : "Ready Up"}
-            </button>
-            <span className="shortcut-badge">
-              <kbd>{getActionKeyLabel(isMac)}</kbd>+<kbd>R</kbd>
-            </span>
-          </div>
+          <ReadyButton promptText={"Ready Up"} />
         )}
       </div>
     </div>

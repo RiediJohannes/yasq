@@ -35,7 +35,7 @@ export class ResultsPage {
   }
 
   getPersonalResultStatus(status: 'correct' | 'partial' | 'incorrect'): Locator {
-    return this.ownResults.locator(`.result.${status}`);
+    return this.ownResults.locator(`.user-guess-result.${status}`);
   }
 
   async clickReady() {

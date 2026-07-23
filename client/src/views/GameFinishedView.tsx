@@ -2,16 +2,15 @@ import { useSignal } from "@preact/signals";
 import { useEffect, useState } from "preact/hooks";
 
 import * as backend from "../utils/backend";
-import { auth, discordSdk, gameState, isMac, participants } from "../main";
-import { findUser, getActionKeyLabel, getUserId } from "../utils/helper";
-import { useKeyboardShortcut } from "../hooks/useKeyboardShortcut";
+import { auth, discordSdk, gameState, participants } from "../main";
+import { findUser } from "../utils/helper";
 import { getAvatarUrl, getDisplayName } from "@yasq/shared";
 import { RoundBubblesGroup } from "../components/RoundBubble";
 import { DiscordAvatar } from "../components/DiscordAvatar";
+import { ReadyButton } from "../components/ReadyButton";
 
 export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
   const leaderboard = useSignal<any[]>([]);
-  const [hasInteracted, setHasInteracted] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [hasPosted, setHasPosted] = useState(false);
@@ -24,19 +23,9 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
     });
   }, []);
 
-  const handleReady = async () => {
-    setHasInteracted(true);
-
-    await backend.updateReadyStatus(
-      auth.value.access_token,
-      discordSdk.instanceId,
-      !gameState.value.readyUsers.includes(getUserId(auth.value))
-    );
-  };
-
-  const handleDownload = () => {
+  const handleDownload = async () => {
     setIsDownloading(true);
-    backend.downloadResultsImage(discordSdk.instanceId, discordSdk);
+    await backend.downloadResultsImage(discordSdk.instanceId, discordSdk);
     setIsDownloading(false);
   };
 
@@ -70,10 +59,6 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
       discordSdk.guildId!
     ).then(data => setChannels(data));
   }, [isHost]);
-
-  useKeyboardShortcut({ key: "R", altKey: !isMac, metaKey: isMac }, () => {
-    if (!isHost) handleReady();
-  });
 
   const playersExcludingHost = participants.value.filter(p => p.id !== gameState.value.hostId);
   const readyCount = gameState.value.readyUsers.length;
@@ -183,18 +168,7 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
           </button>
         </div>
       ) : (
-        <div className='shortcut-badge-btn-wrapper'>
-          <button
-            className={`ready-btn ${gameState.value.readyUsers.includes(getUserId(auth.value)) ? 'ready' : ''} ${hasInteracted ? 'interacted' : ''}`}
-            id="btn-ready"
-            onClick={handleReady}
-          >
-            {gameState.value.readyUsers.includes(getUserId(auth.value)) ? "I'm Ready! ✅" : "Ready for New Game"}
-          </button>
-          <span className="shortcut-badge">
-            <kbd>{getActionKeyLabel(isMac)}</kbd>+<kbd>R</kbd>
-          </span>
-        </div>
+        <ReadyButton promptText={"Ready for New Game"}/>
       )}
     </div>
   );

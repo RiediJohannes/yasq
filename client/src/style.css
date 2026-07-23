@@ -179,6 +179,12 @@ img {
   justify-content: center;
 }
 
+.info-message {
+  text-align: center;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 .card-container {
   display: flex;
   flex-flow: column;
@@ -1450,7 +1456,7 @@ input[value="1"]:checked + .btn-radio.correct {
   padding: 5px;
 }
 
-.own-results .result {
+.own-results .user-guess-result {
   width: 100%;
   color: var(--fixed-white);
   border-radius: var(--border-radius-medium);
@@ -1463,14 +1469,19 @@ input[value="1"]:checked + .btn-radio.correct {
   justify-content: center;
 }
 
-.own-results .result.correct {
+.own-results .user-guess-result.correct {
   background: var(--green);
 }
-.own-results .result.partial {
+.own-results .user-guess-result.partial {
   background: var(--yellow);
 }
-.own-results .result.incorrect {
+.own-results .user-guess-result.incorrect {
   background: var(--red);
+}
+
+.leaderboard-absent-message {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
 }
 
 .player-result {
@@ -1903,9 +1914,6 @@ input[value="1"]:checked + .btn-radio.correct {
 
 
 .time-bonus-loading {
-  font-style: italic;
-  color: var(--text-muted);
-  text-align: center;
   margin-top: 0.3em;
 }
 
