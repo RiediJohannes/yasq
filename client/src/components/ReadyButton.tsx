@@ -27,7 +27,7 @@ interface ReadyButtonProps {
   promptText?: string;
 }
 
-export const ReadyButton = ({ isHost = false, promptText }: ReadyButtonProps) => {
+export const ReadyButton = ({ promptText }: ReadyButtonProps) => {
   const { hasInteracted, handleReady } = useReadyButtonLogic();
 
   const userId = getUserId(auth.value);
@@ -35,7 +35,7 @@ export const ReadyButton = ({ isHost = false, promptText }: ReadyButtonProps) =>
   const isFinalRound = gameState.value.currentRound >= gameState.value.gameSettings.rounds;
 
   useKeyboardShortcut({ key: "R", altKey: !isMac, metaKey: isMac }, () => {
-    if (!isHost) void handleReady();
+    void handleReady();
   });
 
   return (

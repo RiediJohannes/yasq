@@ -43,9 +43,9 @@ export enum TimeBonus {
 
 export enum StreakBonusMultiplier {
   OFF = 0,
-  SMALL = 0.025,
-  MEDIUM = 0.05,
-  LARGE = 0.075
+  SMALL = 0.05,
+  MEDIUM = 0.1,
+  LARGE = 0.15,
 }
 
 export enum BonusType {

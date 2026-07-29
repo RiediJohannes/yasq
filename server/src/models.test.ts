@@ -342,32 +342,32 @@ describe('GameInstance - submitResults', () => {
     // Base = 100 * 1.0 = 100 (correct guess)
     // Time Bonus = Base * 1.0 = 100
     // First Bonus = Base * 0.2 = 20
-    // Streak Bonus = Base * (4 - 1) * 0.05 = 15
-    // Streak Breaker Bonus = Base * (4 * 0.05) = 20
-    // Total Score = 100 + 100 + 20 + 15 + 20 = 255
-    expect(entry1!.totalScore).toBe(255);
+    // Streak Bonus = Base * (4 - 1) * 0.1 = 30
+    // Streak Breaker Bonus = Base * (4 * 0.1) = 40
+    // Total Score = 100 + 100 + 20 + 30 + 40 = 290
+    expect(entry1!.totalScore).toBe(290);
     expect(game.streaks[PLAYER_1]).toBe(4); // Incremented to 4
     expect(roundResult1.scoreValue).toBe(1);
     expect(roundResult1.awardedBonuses.length).toBe(4);
     expect(roundResult1.awardedBonuses).toContainEqual(matchesBonus(BonusType.TIME_BONUS, 1.0));
     expect(roundResult1.awardedBonuses).toContainEqual(matchesBonus(BonusType.FIRST_BONUS, 0.2));
-    expect(roundResult1.awardedBonuses).toContainEqual(matchesBonus(BonusType.STREAK_BONUS, 0.15));
-    expect(roundResult1.awardedBonuses).toContainEqual(matchesBonus(BonusType.STREAK_BREAKER, 0.2));
+    expect(roundResult1.awardedBonuses).toContainEqual(matchesBonus(BonusType.STREAK_BONUS, 0.3));
+    expect(roundResult1.awardedBonuses).toContainEqual(matchesBonus(BonusType.STREAK_BREAKER, 0.4));
 
     // Math for Player 2:
     // Time Bonus Multiplier = 1 - ((10000-5000) / (20000 - 5000)) = 0.6666
     // Base = 100 * 0.5 = 50 (partially correct guess)
     // Time Bonus = Base * 0.6666 = 33.333 ~= 33
     // No First Bonus
-    // Streak Bonus = Base * (2 - 1) * 0.05 = 2.5 ~= 3
+    // Streak Bonus = Base * (2 - 1) * 0.1 = 5
     // No Streak Breaker Bonus
-    // Total: 50 + 33 + 0 + 3 + 0 = 86
-    expect(entry2!.totalScore).toBe(86);
+    // Total: 50 + 33 + 0 + 5 + 0 = 88
+    expect(entry2!.totalScore).toBe(88);
     expect(game.streaks[PLAYER_2]).toBe(2); // Kept at 2
     expect(roundResult2.scoreValue).toBe(0.5);
     expect(roundResult2.awardedBonuses.length).toBe(2);
     expect(roundResult2.awardedBonuses).toContainEqual(matchesBonus(BonusType.TIME_BONUS, 0.6666));
-    expect(roundResult2.awardedBonuses).toContainEqual(matchesBonus(BonusType.STREAK_BONUS, 0.05));
+    expect(roundResult2.awardedBonuses).toContainEqual(matchesBonus(BonusType.STREAK_BONUS, 0.1));
 
     // Player 3: No points, streak set to 0
     expect(entry3!.totalScore).toBe(0);

@@ -124,7 +124,7 @@ export const setupRoutes = (server: Server, instances: Record<string, GameInstan
     const game = req.game!;
 
     game.startGame();
-    logger.info(instanceId, `started!`, LogCategory.GAME);
+    logger.info(instanceId, `Game started!`, LogCategory.GAME);
 
     triggerUpdate(instanceId);
 
