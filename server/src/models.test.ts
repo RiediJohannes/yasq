@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { GameInstance, LeaderboardEntry, Tag, Track, TrackInfo, UserGuess } from './models.js';
+import { GameInstance, LeaderboardEntry, UserGuess } from './models.js';
 import {
   BASE_POINTS,
   COUNTDOWN_DURATION,
@@ -15,6 +15,9 @@ import {
   FirstBonusMultiplier,
   StreakBonusMultiplier,
   TimeBonus,
+  type Track,
+  type Tag,
+  type TrackInfo,
 } from '@yasq/shared';
 import path from "path";
 import { setupTempDir } from "./helper.js";
@@ -105,8 +108,20 @@ describe('GameInstance - submitGuess', () => {
 
     // Simulate game already started and in selection state
     game.currentRound = 1;
-    const track = new Track("Game A", "Track A", "", "", [])
-    game.trackInfo = new TrackInfo("url", Date.now(), Date.now() + 10_000, track, "cover")
+    const track = {
+      game: GAME_A,
+      title: "Track A",
+      audio: "",
+      cover: "",
+      tags: []
+    } as Track;
+    game.trackInfo = {
+      url: "url",
+      startTime: Date.now(),
+      endTime: Date.now() + 10_000,
+      track: track,
+      gameCoverUrl: "cover"
+    } as TrackInfo;
   });
 
   afterEach(() => {
@@ -744,7 +759,13 @@ describe('GameInstance - playTrack', () => {
   });
 
   it('should set correct TrackInfo and transition to PLAYING', async () => {
-    const track = new Track(GAME_A, "Track A", "file123", "", []);
+    const track = {
+      game: GAME_A,
+      title: "Track A",
+      audio: "file123",
+      cover: "",
+      tags: []
+    } as Track;
 
     await game.playTrack(track, mockCallback);
 
@@ -758,7 +779,13 @@ describe('GameInstance - playTrack', () => {
   });
 
   it('should transition to ROUND_COMPLETED automatically after time expires', async () => {
-    const track = new Track(GAME_A, "Track A", "file123", "", []);
+    const track = {
+      game: GAME_A,
+      title: "Track A",
+      audio: "file123",
+      cover: "",
+      tags: []
+    } as Track;
     await game.playTrack(track, mockCallback);
 
     // Verify we are still playing initially
@@ -776,7 +803,13 @@ describe('GameInstance - playTrack', () => {
   });
 
   it('should not transition if the round has already changed (Race Condition Check)', async () => {
-    const track = new Track(GAME_A, "Track A", "file123", "", []);
+    const track = {
+      game: GAME_A,
+      title: "Track A",
+      audio: "file123",
+      cover: "",
+      tags: []
+    } as Track;
     await game.playTrack(track, mockCallback);
 
     // Manually bump the round (simulating all players submitted guess before countdown ends)
@@ -819,7 +852,13 @@ describe('GameInstance - getPartialHint', () => {
   });
 
   it('should return a string of underscores and special characters matching the title length', async () => {
-    const track = new Track(GAME_LONG, "", "", "", []);
+    const track = {
+      game: GAME_LONG,
+      title: "",
+      audio: "",
+      cover: "",
+      tags: []
+    } as Track;
     await game.playTrack(track, mockCallback);
     const hint = game.getPartialHint(0.5);
 
@@ -831,7 +870,13 @@ describe('GameInstance - getPartialHint', () => {
   });
 
   it('should return a consistent hint for the same instance_id + solution combination', async () => {
-    const track = new Track(GAME_LONG, "", "", "", []);
+    const track = {
+      game: GAME_LONG,
+      title: "",
+      audio: "",
+      cover: "",
+      tags: []
+    } as Track;
 
     await game.playTrack(track, mockCallback);
 
@@ -848,7 +893,13 @@ describe('GameInstance - getPartialHint', () => {
   });
 
   it('should return a different hint for another game', async () => {
-    const track = new Track(GAME_LONG, "", "", "", []);
+    const track = {
+      game: GAME_LONG,
+      title: "",
+      audio: "",
+      cover: "",
+      tags: []
+    } as Track;
     const newGame = new GameInstance("NEW_" + INSTANCE_ID, HOST);
 
     await game.playTrack(track, mockCallback)
@@ -872,13 +923,34 @@ describe('GameInstance - getTagHint', () => {
   });
 
   it('should return the corresponding tags', async () => {
-    const track = new Track(GAME_A, "", "", "", [new Tag("platform", "Platform A"), new Tag("release", "2026")])
+    const track = {
+      game: GAME_A,
+      title: "",
+      audio: "",
+      cover: "",
+      tags: [
+        {
+          type: "platform",
+          value: "Platform A"
+        },
+        {
+          type: "release",
+          value: "2026"
+        }
+      ] as Tag[]
+    } as Track;
     await game.playTrack(track, mockCallback);
     const hint = game.getTagHint();
 
     expect(hint.length).toBe(2);
-    expect(hint[0]).toStrictEqual(new Tag("platform", "Platform A"));
-    expect(hint[1]).toStrictEqual(new Tag("release", "2026"));
+    expect(hint[0]).toStrictEqual({
+      type: "platform",
+      value: "Platform A"
+    });
+    expect(hint[1]).toStrictEqual({
+      type: "release",
+      value: "2026"
+    });
   });
 });
 
@@ -886,13 +958,43 @@ describe('GameInstance - getAnswersHint', () => {
   let game: GameInstance, gameSameId: GameInstance;
 
   const mockCallback = vi.fn();
-  const correctTrack = new Track(GAME_A, "Track A", "1", "", [])
+  const correctTrack = {
+    game: GAME_A,
+    title: "Track A",
+    audio: "1",
+    cover: "",
+    tags: []
+  } as Track;
   const wrongTracks = [
-    new Track("Game B", "Track B", "2", "", []),
-    new Track("Game C", "Track C", "3", "", []),
-    new Track("Game D", "Track D", "4", "", []),
-    new Track("Game E", "Track E", "5", "", [])
-  ];
+    {
+      game: "Game B",
+      title: "Track B",
+      audio: "2",
+      cover: "",
+      tags: []
+    },
+    {
+      game: "Game C",
+      title: "Track C",
+      audio: "3",
+      cover: "",
+      tags: []
+    },
+    {
+      game: "Game D",
+      title: "Track D",
+      audio: "4",
+      cover: "",
+      tags: []
+    },
+    {
+      game: "Game E",
+      title: "Track E",
+      audio: "5",
+      cover: "",
+      tags: []
+    }
+  ] as Track[];
   const allTracks = [correctTrack, ...wrongTracks];
 
   beforeEach(() => {
@@ -943,7 +1045,13 @@ describe('GameInstance - getGlimpseHint', () => {
 
   const mockCallback = vi.fn();
   const testCover = "test.png";
-  const track = new Track(GAME_A, "Track A", "test.mp3", testCover, [])
+  const track = {
+    game: GAME_A,
+    title: "Track A",
+    audio: "test.mp3",
+    cover: testCover,
+    tags: []
+  } as Track;
 
   beforeEach(() => {
     game = new GameInstance(INSTANCE_ID, HOST);

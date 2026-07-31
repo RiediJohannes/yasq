@@ -673,7 +673,6 @@ select:disabled option {
 
 .score-details-btn {
   font-style: italic;
-  padding-bottom: 0;
 }
 
 .arrow-indicator {
@@ -1802,17 +1801,7 @@ input[value="1"]:checked + .btn-radio.correct {
   padding: 0 6px;
 }
 
-.host-details-panel .section-heading {
-  display: block;
-  font-weight: bold;
-  font-size: 1.1em;
-  text-align: start;
-  margin-left: 4px;
-  margin-bottom: 8px;
-  /*text-align: center;*/
-}
-
-.score-details-panel .section-heading {
+.section-heading {
   display: block;
   text-align: start;
   font-weight: bold;
@@ -1821,7 +1810,8 @@ input[value="1"]:checked + .btn-radio.correct {
 }
 
 .points-table-heading {
-  margin-bottom: 3px;
+  margin-top: 5px;
+  margin-bottom: 5px;
 }
 
 .time-bonus-heading {
@@ -1855,11 +1845,11 @@ input[value="1"]:checked + .btn-radio.correct {
   padding-right: 0;
   padding-left: 1px;
   width: 2em;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .points-table .base-row td {
-  border-bottom: 1px dashed #111;
+  border-bottom: 1px dashed var(--border-muted);
   padding-bottom: 4px;
 }
 
@@ -1869,13 +1859,13 @@ input[value="1"]:checked + .btn-radio.correct {
 
 /* The single separator line above the total */
 .points-table .total-row td {
-  border-top: 1px solid #111;
+  border-top: 1px solid var(--border-muted);
   padding-top: 8px;
 }
 
 /* The double underline at the very bottom */
 .points-table .total-row td {
-  border-bottom: 3px double #111;
+  border-bottom: 3px double var(--border-muted);
   padding-bottom: 4px;
   font-weight: bold;
 }

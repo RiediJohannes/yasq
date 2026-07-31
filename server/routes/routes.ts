@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 
-import { GameInstance, Track } from '../src/models.js';
+import { GameInstance } from '../src/models.js';
 import type { InstanceGuildQuery, InstanceQuery, InstanceUserQuery } from '../src/types.js';
 import {
   COUNTDOWN_DURATION,
@@ -14,7 +14,9 @@ import {
   Joker,
   TimeBonus,
   type Participant,
-  type TimeBonusSummary
+  type TimeBonusSummary,
+  type Playlist,
+  type Track
 } from '@yasq/shared';
 import { broadcastGameStatus, filterDiscordTextChannels, userDataCache } from '../src/helper.js';
 import { isAllowed } from '../src/access_control.js';
@@ -28,7 +30,7 @@ import { generateSampleTimeBonusSummary, SAMPLE_PARTICIPANTS } from "../src/util
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export const setupRoutes = (server: Server, instances: Record<string, GameInstance>, allTracks: any, allPlaylists: any) => {
+export const setupRoutes = (server: Server, instances: Record<string, GameInstance>, getTracks: () => Track[], getPlaylists: () => Playlist[]) => {
   const { authenticateUser, fetchGame, isHost } = createGameMiddlewares(instances);
   const router = express.Router();
 
@@ -135,11 +137,11 @@ export const setupRoutes = (server: Server, instances: Record<string, GameInstan
     const userId = req.userId!;
     const game = req.game!;
 
-    if (allTracks.length === game.trackHistory.length) {
+    if (getTracks().length === game.trackHistory.length) {
       game.trackHistory = []; // Reset history if all tracks have been played
     }
 
-    const tracks = allTracks
+    const tracks = getTracks()
       .filter((t: any) => isAllowed(userId, t.audio))
       .map((t: Track, index: number) => ({
         id: index,
@@ -153,7 +155,7 @@ export const setupRoutes = (server: Server, instances: Record<string, GameInstan
 
     res.json({
       tracks: tracks,
-      playlists: allPlaylists
+      playlists: getPlaylists()
     });
   });
 
@@ -318,7 +320,7 @@ export const setupRoutes = (server: Server, instances: Record<string, GameInstan
       return res.status(403).send({ error: "You do not have permission to play this track." });
     }
 
-    const track = allTracks.find((t: Track) => t.audio === fileName);
+    const track = getTracks().find((t: Track) => t.audio === fileName);
 
     if (!track) {
       return res.status(400).send({ error: "Track not found." });
@@ -422,7 +424,7 @@ export const setupRoutes = (server: Server, instances: Record<string, GameInstan
         hint = game.getTagHint();
         break;
       case Joker.MULTIPLE_CHOICE:
-        hint = game.getMultipleChoiceHint(allTracks);
+        hint = game.getMultipleChoiceHint(getTracks());
         break;
       case Joker.SPY:
         if (!targetId) {

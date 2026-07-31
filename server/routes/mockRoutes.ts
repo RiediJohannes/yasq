@@ -1,5 +1,5 @@
 import express from 'express';
-import { GameInstance, Leaderboard, TrackInfo } from '../src/models.js';
+import { GameInstance, Leaderboard } from '../src/models.js';
 import { GameSettings, Joker } from '@yasq/shared';
 import type { Server } from "socket.io";
 import { broadcastGameStatus } from "../src/helper.js";
@@ -98,13 +98,13 @@ export const setupMockRoutes = (server: Server, instances: Record<string, GameIn
       };
     }
     if (updates.trackInfo) {
-      game.trackInfo = new TrackInfo(
-        updates.trackInfo.url,
-        updates.trackInfo.startTime,
-        updates.trackInfo.endTime,
-        updates.trackInfo.track,
-        updates.trackInfo.gameCoverUrl
-      );
+      game.trackInfo = {
+        url: updates.trackInfo.url,
+        startTime: updates.trackInfo.startTime,
+        endTime:updates.trackInfo.endTime,
+        track: updates.trackInfo.track,
+        gameCoverUrl: updates.trackInfo.gameCoverUrl
+      };
     }
     if (updates.guesses) {
       game.guesses = updates.guesses;

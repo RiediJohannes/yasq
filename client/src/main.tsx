@@ -1,7 +1,7 @@
 import { render } from 'preact';
 import { signal } from '@preact/signals';
 import { DiscordSDK } from "@discord/embedded-app-sdk";
-import { io } from 'socket.io-client';
+import { io, Socket } from 'socket.io-client';
 
 import * as backend from "./utils/backend";
 import { getUserId } from "./utils/helper";
@@ -58,6 +58,7 @@ gainNode.connect(audioContext.destination);
 gainNode.gain.value = DEFAULT_VOLUME_SLIDER_VAL * MAX_VOLUME;
 
 export const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+export let socket: Socket;
 
 const App = () => {
   if (!auth.value) return <div className="centered">Authenticating...</div>;
@@ -133,7 +134,7 @@ render(<App />, document.getElementById('app')!);
   }
 
   // Establish a websocket communication for continuous game state updates
-  const socket = io({ auth: { token: auth.value.access_token } });
+  socket = io({ auth: { token: auth.value.access_token } });
   // Register this client-socket with the current quiz instance
   socket.emit(WS_JOIN_INSTANCE_EVENT, { instanceId: discordSdk.instanceId });
 

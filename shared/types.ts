@@ -19,6 +19,32 @@ export interface Participant {
   avatar?: string;
 }
 
+export interface Tag {
+  type: string;
+  value: string;
+}
+
+export interface Track {
+  game: string;
+  title: string;
+  audio: string;
+  cover: string;
+  tags: Tag[];
+}
+
+export interface TrackInfo {
+  url: string;
+  startTime: number;
+  endTime: number;
+  track: Track;
+  gameCoverUrl: string;
+}
+
+export interface Playlist {
+  name: string;
+  tracks: string[];
+}
+
 export class GameSettings<T = Joker[]> {
   constructor(
     public rounds: number = DEFAULT_ROUNDS,

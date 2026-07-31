@@ -14,7 +14,10 @@ import {
   TEMP_FILES_DIR,
   TimeBonus,
   type TimeBonusSummary,
-  type TimeBonusPoint, type PlayerTimeBonusPoint
+  type TimeBonusPoint, type PlayerTimeBonusPoint,
+  type Tag,
+  type Track,
+  type TrackInfo
 } from "@yasq/shared";
 import MersenneTwister from 'mersenne-twister';
 import { hash } from "./helper.js";
@@ -310,7 +313,13 @@ export class GameInstance {
     const startTime = Date.now() + COUNTDOWN_DURATION;
     const endTime = startTime + this.settings.trackDuration;
 
-    this.trackInfo = new TrackInfo(`/music/${track.audio}`, startTime, endTime, track, `/game_covers/${track.cover}`);
+    this.trackInfo = {
+      url: `/music/${track.audio}`,
+      startTime,
+      endTime,
+      track,
+      gameCoverUrl: `/game_covers/${track.cover}`
+    };
     this.state = GameState.PLAYING;
     this.trackHistory.push(track.audio);
     const roundAtStart = this.currentRound;
@@ -546,33 +555,6 @@ const TIME_MULTIPLIERS: Record<TimeBonus, TimeMultiplierFunction> = {
     return 1.005 - (height / (1 + Math.exp(-k * x)));
   },
 };
-
-export class Track {
-  constructor(
-    public game: string,
-    public title: string,
-    public audio: string,
-    public cover: string,
-    public tags: Tag[]
-  ) {}
-}
-
-export class Tag {
-  constructor(
-    public type: string,
-    public value: string
-  ) {}
-}
-
-export class TrackInfo {
-  constructor(
-    public url: string,
-    public startTime: number,
-    public endTime: number,
-    public track: Track,
-    public gameCoverUrl: string
-  ) {}
-}
 
 export class UserGuess {
   constructor(

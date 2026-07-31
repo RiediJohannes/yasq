@@ -1,4 +1,4 @@
-import { Participant } from "./types";
+import { Participant } from "@yasq/shared";
 
 const userCache = new Map<string, Participant>();
 

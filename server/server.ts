@@ -11,13 +11,70 @@ import { GameInstance } from './src/models.js';
 import { setupRoutes } from "./routes/routes.js";
 import { setupMockRoutes } from "./routes/mockRoutes.js";
 import { getGameStatusPayload, invalidateToken, setupTempDir, validateToken } from "./src/helper.js";
-import { STATIC_FILES_DIR, TEMP_FILES_DIR, WS_GAME_STATUS_UPDATE_EVENT, WS_JOIN_INSTANCE_EVENT } from "@yasq/shared";
+import { STATIC_FILES_DIR, TEMP_FILES_DIR, WS_GAME_STATUS_UPDATE_EVENT, WS_JOIN_INSTANCE_EVENT, type Playlist, type Track } from "@yasq/shared";
 import { LogCategory, logger } from "./src/utils/logger.js";
 
 dotenv.config({ path: "../.env" });
 
+function loadTracks(tracksPath: string): Track[] {
+  if (!fs.existsSync(tracksPath)) {
+    console.error(`Tracks file not found at ${tracksPath}.`);
+    process.exit(1);
+  }
+
+  try {
+    const tracksRaw = fs.readFileSync(tracksPath, 'utf-8');
+    return JSON.parse(tracksRaw) as Track[];
+  } catch (err) {
+    console.error(`Error parsing JSON from ${tracksPath}:`, err);
+    process.exit(1);
+  }
+}
+
+function loadPlaylists(playlistsPath: string): Playlist[] {
+  if (!fs.existsSync(playlistsPath)) {
+    console.log(
+      `Playlists file not found at ${playlistsPath}. Starting with no playlists.`
+    );
+    return [];
+  }
+
+  try {
+    const playlistsRaw = fs.readFileSync(playlistsPath, 'utf-8');
+    return JSON.parse(playlistsRaw) as Playlist[];
+  } catch (err) {
+    console.error(`Error parsing JSON from ${playlistsPath}:`, err);
+    return [];
+  }
+}
+
+function setupFileWatcher(
+  filePath: string,
+  onFileChange: () => void,
+  fileName: string
+) {
+  if (!fs.existsSync(filePath)) {
+    return;
+  }
+
+  let changeTimeout: NodeJS.Timeout | null = null;
+
+  fs.watch(filePath, (_eventType, _filename) => {
+    // Debounce to avoid multiple triggers from the same change
+    if (changeTimeout) clearTimeout(changeTimeout);
+    changeTimeout = setTimeout(() => {
+      try {
+        onFileChange();
+        console.log(`✓ ${fileName} reloaded`);
+      } catch (err) {
+        console.error(`Error reloading ${fileName}:`, err);
+      }
+    }, 100);
+  });
+}
+
 export function setupServer() {
-  const isMockMode = process.env.VITE_MOCK_MODE === 'true'
+  const isMockMode = process.env.VITE_MOCK_MODE === 'true';
   const instances: Record<string, GameInstance> = {};
 
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -25,38 +82,32 @@ export function setupServer() {
     ? path.join(__dirname, '..', 'mock_data', 'mockTracks.json')
     : path.join(__dirname, STATIC_FILES_DIR, 'tracks.json');
 
-  let allTracks = [];
-
-  if (fs.existsSync(tracksPath)) {
-    try {
-      const tracksRaw = fs.readFileSync(tracksPath, 'utf-8');
-      allTracks = JSON.parse(tracksRaw);
-    } catch (err) {
-      console.error(`Error parsing JSON from ${tracksPath}:`, err);
-      process.exit(1);
-    }
-  } else {
-    console.error(`Tracks file not found at ${tracksPath}.`);
-    process.exit(1);
-  }
-
   const playlistsPath = isMockMode
     ? path.join(__dirname, '..', 'mock_data', 'mockPlaylists.json')
     : path.join(__dirname, STATIC_FILES_DIR, 'playlists.json');
 
-  let allPlaylists = [];
+  // Cache the data in memory
+  let cachedTracks = loadTracks(tracksPath);
+  let cachedPlaylists = loadPlaylists(playlistsPath);
 
-  if (fs.existsSync(playlistsPath)) {
-    try {
-      const playlistsRaw = fs.readFileSync(playlistsPath, 'utf-8');
-      allPlaylists = JSON.parse(playlistsRaw);
-    } catch (err) {
-      console.error(`Error parsing JSON from ${playlistsPath}:`, err);
-    }
-  } else {
-    console.log(`Playlists file not found at ${playlistsPath}. Starting with no playlists.`);
-  }
+  // Watch for file changes and update cache
+  setupFileWatcher(
+    tracksPath,
+    () => {
+      cachedTracks = loadTracks(tracksPath);
+      server.emit('tracks-updated');
+    },
+    'Tracks'
+  );
 
+  setupFileWatcher(
+    playlistsPath,
+    () => {
+      cachedPlaylists = loadPlaylists(playlistsPath);
+      server.emit('playlists-updated');
+    },
+    'Playlists'
+  );
 
   const app = express();
 
@@ -135,7 +186,16 @@ export function setupServer() {
   app.use(`/${TEMP_FILES_DIR}`, express.static(tempDir));
 
   // Register routes for REST communication between clients and server
-  app.use('/api', setupRoutes(server, instances, allTracks, allPlaylists));
+  // Pass getter functions that return cached data
+  app.use(
+    '/api',
+    setupRoutes(
+      server,
+      instances,
+      () => cachedTracks,
+      () => cachedPlaylists
+    )
+  );
 
   // Add a simple endpoint for health checks
   app.get("/health", (req, res) => {
@@ -144,7 +204,7 @@ export function setupServer() {
 
   // Only register mock routes when server is started in mock mode
   if (isMockMode) {
-    console.log('[MODE] Server is running in mock mode')
+    console.log('[MODE] Server is running in mock mode');
     app.use('/api/test', setupMockRoutes(server, instances));
   }
 

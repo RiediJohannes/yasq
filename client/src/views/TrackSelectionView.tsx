@@ -1,7 +1,7 @@
 import { useSignal, computed, signal } from "@preact/signals";
 import { useEffect } from "preact/hooks";
 
-import { auth } from "../main";
+import { auth, socket } from "../main";
 import { discordSdk } from "../main";
 import * as backend from "../utils/backend";
 import { Track, Playlist } from "../utils/types";
@@ -20,13 +20,28 @@ export const SelectionView = ({ isHost }: { isHost: boolean }) => {
   const tracks = useSignal<Track[] | null>(null);
   const playlists = useSignal<Playlist[]>([]);
 
-  useEffect(() => {
-    if (!isHost) return;
-
+  const fetchTracksAndPlaylists = () => {
     backend.getTrackList(auth.value.access_token, discordSdk.instanceId).then((data) => {
       tracks.value = data.tracks.map((t: Track, i: number) => ({ ...t, originalIndex: i }));
       playlists.value = data.playlists;
     });
+  };
+
+  useEffect(() => {
+    if (!isHost) return;
+
+    // Initial fetch
+    fetchTracksAndPlaylists();
+
+    // Setup socket listeners
+    socket.on('tracks-updated', fetchTracksAndPlaylists);
+    socket.on('playlists-updated', fetchTracksAndPlaylists);
+
+    // Cleanup
+    return () => {
+      socket.off('tracks-updated', fetchTracksAndPlaylists);
+      socket.off('playlists-updated', fetchTracksAndPlaylists);
+    };
   }, [isHost]);
 
   // Computed signal: This automatically re-filters whenever tracks,
