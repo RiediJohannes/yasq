@@ -8,6 +8,7 @@ import { ALL_JOKER_ICONS } from "../components/JokerIcons";
 import { ReviewData } from "../utils/types";
 import { getAvatarUrl, getDisplayName } from "@yasq/shared";
 import { DiscordAvatar } from "../components/DiscordAvatar";
+import { TooltipDiv } from "../components/Tooltip";
 
 export const HostReviewView = ({ isHost }: { isHost: boolean }) => {
   const reviewData = useSignal<ReviewData | null>(null);
@@ -68,9 +69,9 @@ export const HostReviewView = ({ isHost }: { isHost: boolean }) => {
                 {guess.joker && (() => {
                   const JokerIcon = ALL_JOKER_ICONS.find(icon => icon.jokerType === guess.joker);
                   return JokerIcon ? (
-                    <div className="joker-indicator" data-tooltip={JokerIcon?.description}>
-                      {JokerIcon && <JokerIcon />}
-                    </div>
+                    <TooltipDiv text={JokerIcon?.description} className="joker-indicator">
+                      <JokerIcon />
+                    </TooltipDiv>
                   ) : null;
                 })()}
               </div>

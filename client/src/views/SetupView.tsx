@@ -22,6 +22,7 @@ import { HostTransferDropdown } from "../components/HostTransferDropdown";
 import { formatBonusMultiplier } from "../utils/helper";
 import { TimeBonusPlot } from "../components/TimeBonusPlot";
 import { useTimeBonusSamples } from "../hooks/useTimeBonusSamples";
+import { WithTooltip } from "../components/Tooltip";
 
 
 const HOST_TIME_BONUS_LABELS: Record<TOptionalTimeBonus, string> = {
@@ -141,16 +142,17 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
                   .join(' ');
 
                 return (
-                  <button
-                    key={Icon.jokerType}
-                    type="button"
-                    id={`config-${Icon.jokerType.toLowerCase().replace(/_/g, '-')}`}
-                    className={`joker-config-btn ${isActive ? 'active' : 'inactive'}`}
-                    onClick={() => toggleJoker(Icon.jokerType)}
-                    title={jokerName}
-                  >
-                    <Icon />
-                  </button>
+                  <WithTooltip text={jokerName}>
+                    <button
+                      key={Icon.jokerType}
+                      type="button"
+                      id={`config-${Icon.jokerType.toLowerCase().replace(/_/g, '-')}`}
+                      className={`joker-config-btn ${isActive ? 'active' : 'inactive'}`}
+                      onClick={() => toggleJoker(Icon.jokerType)}
+                    >
+                      <Icon />
+                    </button>
+                  </WithTooltip>
                 );
               })}
             </div>

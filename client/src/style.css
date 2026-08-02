@@ -379,44 +379,13 @@ select:disabled option {
   background-color: var(--bg-input);
   aspect-ratio: 1 / 1;
   height: 35px;
+  cursor: help;
 }
 
 .joker-indicator:hover {
   background-color: var(--bg-sidebar-card);
   border: 1pt solid var(--blurple);
   box-shadow: 0 0 12px rgba(88, 101, 242, 0.3);
-  cursor: help;
-}
-
-.joker-indicator::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  margin-top: 10px;
-  width: max-content;
-  max-width: 200px;
-  transform: translateX(-50%);
-  background: var(--bg-dark);
-  color: var(--text-main);
-  padding: 8px 12px;
-  border-radius: var(--border-radius-medium);
-  font-size: 12px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease;
-  z-index: 100;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-}
-
-@media (hover: hover) {
-  .joker-indicator:hover::after, .round-bubble:hover::after, .round-bubble:hover::before  {
-    opacity: 1;
-  }
-}
-
-.joker-indicator.show-tooltip::after, .round-bubble.show-tooltip::after, .round-bubble.show-tooltip::before {
-  opacity: 1;
 }
 
 .joker-text-name {
@@ -799,12 +768,14 @@ input[type="radio"]:checked + .btn-radio {
 }
 
 .avatar-small {
+  display: block;
   width: 32px;
   height: 32px;
   border-radius: 50%;
 }
 
 .avatar-tiny {
+  display: block;
   width: 24px;
   height: 24px;
   border-radius: 50%;

@@ -142,11 +142,11 @@ test.describe('Player UI', () => {
 
     // Verify first tag (Platform)
     await expect(results.tagBadges.first()).toHaveText('Platform A');
-    await expect(results.tagBadges.first()).toHaveAttribute('title', 'Platform');
+    await expect(results.tagBadges.first()).toHaveAttribute('data-tooltip', 'Platform');
 
     // Verify second tag (Release)
     await expect(results.tagBadges.nth(1)).toHaveText('2026');
-    await expect(results.tagBadges.nth(1)).toHaveAttribute('title', 'Release');
+    await expect(results.tagBadges.nth(1)).toHaveAttribute('data-tooltip', 'Release');
 
     // Verify own result
     await expect(results.getPersonalResultStatus('correct')).toContainText('Correct! 🎉');

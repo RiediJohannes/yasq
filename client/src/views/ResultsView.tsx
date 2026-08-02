@@ -10,9 +10,10 @@ import { getAvatarUrl, getDisplayName, Participant } from "@yasq/shared";
 import { RoundBubblesGroup } from "../components/RoundBubble";
 import { PointsCalculationTable } from "../components/PointsCalculationTable";
 import { RollingNumber } from "../components/RollingNumber";
-import { DiscordAvatar, DiscordAvatarWithTooltip } from "../components/DiscordAvatar";
+import { DiscordAvatar } from "../components/DiscordAvatar";
 import { TimeBonusPlot } from "../components/TimeBonusPlot";
 import { ReadyButton } from "../components/ReadyButton";
+import { TooltipDiv } from "../components/Tooltip";
 
 export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
   const roundData = useSignal<any>(null);
@@ -70,9 +71,11 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
               <p><i>{roundData.value.trackTitle}</i></p>
               <div className="tags-container left">
                 {roundData.value.tags.map((tag: Tag) => (
-                  <span key={tag.type} title={capitalize(tag.type)} className="tag-badge">
-                    {tag.value}
-                  </span>
+                  <TooltipDiv text={capitalize(tag.type)} className="tag-badge">
+                    <span key={tag.type}>
+                      {tag.value}
+                    </span>
+                  </TooltipDiv>
                 ))}
               </div>
             </div>
@@ -193,9 +196,11 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
             <p><i>{roundData.value.trackTitle}</i></p>
             <div id="tags" className="tags-container left">
               {roundData.value.tags.map((tag: Tag) => (
-                <span key={tag.type} title={capitalize(tag.type)} className="tag-badge">
-                  {tag.value}
-                </span>
+                <TooltipDiv text={capitalize(tag.type)} className="tag-badge">
+                  <span key={tag.type}>
+                    {tag.value}
+                  </span>
+                </TooltipDiv>
               ))}
             </div>
           </div>
@@ -227,10 +232,10 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
                 <span className="correct-players-empty">Nobody got it fully correct!</span>
               ) : (
                 correctParticipants.map((p: Participant) => (
-                  <DiscordAvatarWithTooltip
-                    userId={p.id}
+                  <DiscordAvatar
                     src={getAvatarUrl(p)}
                     userName={getDisplayName(p)}
+                    hasTooltip={true}
                   />
                 ))
               )}

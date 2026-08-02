@@ -1,4 +1,4 @@
-import { GameSettings, Joker, PointsBonus, TimeBonus, TimeBonusSummary } from "@yasq/shared";
+import { GameSettings, Joker, PointsBonus, TimeBonus } from "@yasq/shared";
 
 /** Extension of the {@link TimeBonus} enum for selection in the UI */
 export const OptionalTimeBonus = {
