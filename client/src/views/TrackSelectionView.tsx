@@ -8,12 +8,12 @@ import { Track, Playlist } from "../utils/types";
 import { NonDraggableImg } from "../components/NonDraggableImg";
 import { TagFilterDropdown } from "../components/TagFilterComponent";
 import { SimpleDropdown } from "../components/SimpleDropdown";
+import { getAvailableTagsByType, getBaseFilteredTracks, getFilteredAndSortedTracks, getRandomEligibleTrack, getReachableTags, SortOption } from "../utils/trackFiltering";
 
 const selectedPlaylistName = signal<string>("All playlists");
 const selectedTags = signal<Record<string, string[]>>({});
 const searchTerm = signal("");
 const hidePlayed = signal(false);
-type SortOption = "Default Order" | "A-Z" | "Z-A";
 const sortOrder = signal<SortOption>("Default Order");
 
 export const SelectionView = ({ isHost }: { isHost: boolean }) => {
@@ -46,114 +46,47 @@ export const SelectionView = ({ isHost }: { isHost: boolean }) => {
 
   // Computed signal: This automatically re-filters whenever tracks,
   // selectedPlaylistName, searchTerm, or hidePlayed changes.
-  const baseFilteredTracks = computed(() => {
-    if (!tracks.value) return [];
+  const baseFilteredTracks = computed(() =>
+    getBaseFilteredTracks(
+      tracks.value,
+      playlists.value,
+      selectedPlaylistName.value,
+      searchTerm.value,
+      hidePlayed.value
+    )
+  );
 
-    return tracks.value.filter(track => {
-      // Filter playlist
-      let matchesPlaylist = true;
-      if (selectedPlaylistName.value !== "All playlists") {
-        const activePlaylist = playlists.value.find(p => p.name === selectedPlaylistName.value);
-        matchesPlaylist = activePlaylist ? activePlaylist.tracks.includes(track.audio) : false;
-      }
-
-      // Filter search
-      const matchesSearch =
-        track.game.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-        track.title.toLowerCase().includes(searchTerm.value.toLowerCase());
-
-      // Filter played status
-      const matchesPlayed = hidePlayed.value ? !track.played : true;
-
-      return matchesPlaylist && matchesSearch && matchesPlayed;
-    });
-  });
-
-  const filteredTracks = computed(() => {
-    const activeCategories = Object.entries(selectedTags.value)
-      .filter(([_, vals]) => vals.length > 0);
-
-    let results = [...baseFilteredTracks.value];
-
-    if (activeCategories.length > 0) {
-      results = results.filter(track =>
-        activeCategories.every(([type, selectedVals]) =>
-          track.tags?.some(t => t.type === type && selectedVals.includes(t.value))
-        )
-      );
-    }
-
-    // Apply Sorting (Default Order, A-Z, or Z-A)
-    return results.sort((a, b) => {
-      if (sortOrder.value === "Default Order") {
-        // Maintain playlist order if playlist is selected
-        const activePlaylist = playlists.value.find(p => p.name === selectedPlaylistName.value);
-        if (activePlaylist) {
-          return activePlaylist.tracks.indexOf(a.audio) - activePlaylist.tracks.indexOf(b.audio);
-        }
-        // Otherwise use standard order
-        return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
-      }
-
-      // Sort by Game Name
-      const gameComp = a.game.localeCompare(b.game);
-
-      // Secondary Sort: If games are the same, sort by Track Title
-      if (gameComp === 0) {
-        const titleComp = a.title.localeCompare(b.title);
-        return sortOrder.value === "A-Z" ? titleComp : -titleComp;
-      }
-
-      return sortOrder.value === "A-Z" ? gameComp : -gameComp;
-    });
-  });
+  const filteredTracks = computed(() =>
+    getFilteredAndSortedTracks(
+      baseFilteredTracks.value,
+      playlists.value,
+      selectedPlaylistName.value,
+      sortOrder.value,
+      selectedTags.value
+    )
+  );
 
   const selectRandom = async () => {
-    // Only pick from tracks that are currently visible and NOT played
-    const eligibleTracks = filteredTracks.value.filter(t => !t.played);
-    if (eligibleTracks.length === 0) return;
+    const randomTrack = getRandomEligibleTrack(filteredTracks.value);
+    if (!randomTrack) return;
 
-    const randomTrack = eligibleTracks[Math.floor(Math.random() * eligibleTracks.length)];
     await backend.playTrack(auth.value.access_token, randomTrack.audio, discordSdk.instanceId);
   };
 
-  const availableTagsByType = computed(() => {
-    const groups: Record<string, string[]> = {};
-    tracks.value?.forEach(track => {
-      track.tags?.forEach(tag => {
-        if (!groups[tag.type]) groups[tag.type] = [];
-        if (!groups[tag.type].includes(tag.value)) groups[tag.type].push(tag.value);
-      });
-    });
-    return groups;
-  });
+  const availableTagsByType = computed(() =>
+    getAvailableTagsByType(tracks.value)
+  );
 
-  const reachableTags = computed(() => {
-    const currentFilters = selectedTags.value;
-    const categories = Object.keys(availableTagsByType.value);
-    const validTags = new Map<string, number>();
-
-    categories.forEach(catToSkip => {
-      const otherFilters = Object.entries(currentFilters)
-        .filter(([type, vals]) => type !== catToSkip && vals.length > 0);
-
-      const reachableInCat = baseFilteredTracks.value.filter(track =>
-        otherFilters.every(([type, selectedVals]) =>
-          track.tags.some(t => t.type === type && selectedVals.includes(t.value))
-        )
-      );
-
-      reachableInCat.forEach(track => {
-        track.tags?.forEach(tag => {
-          if (tag.type === catToSkip) {
-            validTags.set(tag.value, (validTags.get(tag.value) || 0) + 1);
-          }
-        });
-      });
-    });
-
-    return validTags;
-  });
+  const reachableTags = computed(() =>
+    getReachableTags(
+      tracks.value,
+      playlists.value,
+      selectedPlaylistName.value,
+      searchTerm.value,
+      hidePlayed.value,
+      selectedTags.value
+    )
+  );
 
   if (!isHost) {
     return (

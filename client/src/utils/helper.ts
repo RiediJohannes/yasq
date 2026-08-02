@@ -32,7 +32,7 @@ export function capitalize(str: string) {
 export function formatBonusMultiplier(rate: number): string {
   if (rate === 0) return "Off";
   const percent = (Math.round(rate * 100 * 10) / 10).toFixed(1);
-  return `+${parseFloat(percent)}%`;
+  return `+${percent}%`;
 }
 
 export const getActionKeyLabel = (isMac: boolean) => {

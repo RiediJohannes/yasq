@@ -125,13 +125,16 @@ cloudflared tunnel --url http://localhost:5173
 
 ## Testing
 
-The project contains various unit tests for the server component using vitest, as well as end-to-end (E2E) tests to verify correct integration between client and server using Playwright. To run the tests, execute the respective `npm` script in the project root:
+The project contains various unit tests for the client and the server using vitest, integration tests to verify client-server communication, as well as end-to-end (E2E) tests using Playwright to test the full app including the client UI. To run the tests, execute the respective `npm` script in the project root:
 
 ### Unit Tests
 
 ```bash
 npm run test:unit
 npm run test:unit:coverage # with coverage report
+
+npm run test:unit:client   # only client tests
+npm run test:unit:server   # only server tests
 ```
 
 ### Integration Tests
