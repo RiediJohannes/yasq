@@ -1,55 +1,57 @@
 import { test, expect } from '@playwright/test';
-import { generatePlayers, Player } from '../utils/helper.js'
+import { generatePlayers, Player } from '../utils/helper.js';
 import { RoundCompletedPage } from './pages/RoundCompletedPage.js';
 import { TestApi } from '../utils/api.js';
 import { Sidebar } from './pages/components/Sidebar.js';
 
 test.describe('Host UI', () => {
-
   let players: Player[] = [];
   let currentInstanceId: string;
   let api: TestApi;
 
-  test.beforeEach(async ({ page, request }, testInfo) => {
+  test.beforeEach(async ({ page }, testInfo) => {
     currentInstanceId = `test-instance-${testInfo.testId}`;
     const playerCount = 4;
     players = generatePlayers(playerCount);
     const user = players[0];
 
-    await page.addInitScript(({ allPlayers, user, instanceId }) => {
-      window.__MOCK_PARTICIPANTS__ = allPlayers;
-      window.__MOCK_USER_ID__ = user.id;
-      window.__MOCK_USER_NAME__ = user.username;
-      window.__MOCK_INSTANCE_ID__ = instanceId;
-    }, { allPlayers: players, user: user, instanceId: currentInstanceId });
+    await page.addInitScript(
+      ({ allPlayers, user, instanceId }) => {
+        window.__MOCK_PARTICIPANTS__ = allPlayers;
+        window.__MOCK_USER_ID__ = user.id;
+        window.__MOCK_USER_NAME__ = user.username;
+        window.__MOCK_INSTANCE_ID__ = instanceId;
+      },
+      { allPlayers: players, user: user, instanceId: currentInstanceId }
+    );
 
     // Setup current game state
     api = new TestApi('http://localhost:3001', currentInstanceId);
     await api.setupSession(players, 'ROUND_COMPLETED', {
       currentRound: 1,
       trackInfo: {
-        url: "some url",
+        url: 'some url',
         track: {
           game: 'Game A',
           title: 'Track A',
-        }
+        },
       },
       guesses: {
         1: {
-          [players[1].id]: { text: "Game A" },
-          [players[2].id]: { text: "Game A2" }
-        }
+          [players[1].id]: { text: 'Game A' },
+          [players[2].id]: { text: 'Game A2' },
+        },
       },
       usedJokers: {
         [players[1].id]: {
-          "TRIVIA": 1
-        }
+          TRIVIA: 1,
+        },
       },
       streaks: {
         [players[1].id]: 3,
         [players[2].id]: 5,
-        [players[3].id]: 1
-      }
+        [players[3].id]: 1,
+      },
     });
 
     // Navigate to the app
@@ -77,7 +79,9 @@ test.describe('Host UI', () => {
     await expect(roundCompleted.getCorrectionRadio(players[2].id, 'wrong')).toBeChecked();
 
     // Verify text that Player 4 has not submitted a guess is displayed correctly
-    await expect(roundCompleted.timedOutSection).toContainText(new RegExp(`No Guess submitted:.*${players[3].username}`, 'i'));
+    await expect(roundCompleted.timedOutSection).toContainText(
+      new RegExp(`No Guess submitted:.*${players[3].username}`, 'i')
+    );
 
     // Select "Correct" for Player 2
     await roundCompleted.setGuessResult(players[1].id, 'correct');
@@ -95,7 +99,7 @@ test.describe('Host UI', () => {
 
   test('should display joker icon if used by player', async ({ page }) => {
     const roundCompleted = new RoundCompletedPage(page);
-    const triviaDescription = "Reveals metadata about the game";
+    const triviaDescription = 'Reveals metadata about the game';
 
     // Verify player 1 has joker icon with correct tooltip
     const joker = roundCompleted.getJokerIndicator(players[1].username, triviaDescription);

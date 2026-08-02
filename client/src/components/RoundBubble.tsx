@@ -1,5 +1,5 @@
-import { RoundResult } from "../utils/types";
-import { TooltipDiv } from "./Tooltip";
+import { RoundResult } from '../utils/types';
+import { TooltipDiv } from './Tooltip';
 
 interface RoundBubblesGroupProps {
   rounds: RoundResult[];
@@ -9,13 +9,16 @@ interface RoundBubblesGroupProps {
 export const RoundBubblesGroup = ({ rounds, userId }: RoundBubblesGroupProps) => {
   return (
     <div className="round-bubbles">
-      {rounds.map((r) => (
-        <RoundBubble key={r.round} roundResult={r} userId={userId} />
+      {rounds.map(r => (
+        <RoundBubble
+          key={r.round}
+          roundResult={r}
+          userId={userId}
+        />
       ))}
     </div>
   );
 };
-
 
 interface RoundBubbleProps {
   roundResult: RoundResult;

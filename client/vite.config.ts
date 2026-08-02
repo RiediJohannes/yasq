@@ -14,9 +14,7 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.VERSION': JSON.stringify(pkg.version),
     },
     server: {
-      allowedHosts: [
-        env.VITE_URL_MAPPING
-      ],
+      allowedHosts: [env.VITE_URL_MAPPING],
       proxy: {
         '/api': {
           target: 'http://localhost:3001',

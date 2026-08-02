@@ -34,7 +34,7 @@ export class SetupPage {
   }
 
   async tabUntilFocused(locator: Locator) {
-    while (!(await locator.evaluate((el) => el === document.activeElement))) {
+    while (!(await locator.evaluate(el => el === document.activeElement))) {
       await this.page.keyboard.press('Tab');
     }
   }

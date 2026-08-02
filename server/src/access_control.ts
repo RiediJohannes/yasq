@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { STATIC_FILES_DIR } from "@yasq/shared";
+import { STATIC_FILES_DIR } from '@yasq/shared';
 
-const isMockMode = process.env.VITE_MOCK_MODE === 'true'
+const isMockMode = process.env.VITE_MOCK_MODE === 'true';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const permissionsPath = isMockMode

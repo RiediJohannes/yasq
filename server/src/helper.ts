@@ -1,13 +1,19 @@
-import type { Server } from "socket.io";
-import fs from "fs";
-import path from "path";
-import { ChannelType, type APIChannel, type APITextChannel } from "discord-api-types/v10";
+import type { Server } from 'socket.io';
+import fs from 'fs';
+import path from 'path';
+import { ChannelType, type APIChannel, type APITextChannel } from 'discord-api-types/v10';
 
-import type { GameInstance } from "./models.js";
-import { STATIC_FILES_DIR, TEMP_FILES_DIR, UI_UPDATES_DELAY_IN_E2E, WS_GAME_STATUS_UPDATE_EVENT, type Participant } from "@yasq/shared";
-import { getDiscordUser } from "./utils/discord.js";
+import type { GameInstance } from './models.js';
+import {
+  STATIC_FILES_DIR,
+  TEMP_FILES_DIR,
+  UI_UPDATES_DELAY_IN_E2E,
+  WS_GAME_STATUS_UPDATE_EVENT,
+  type Participant,
+} from '@yasq/shared';
+import { getDiscordUser } from './utils/discord.js';
 
-const tokenCache = new Map<string, { userId: string, expires: number }>();
+const tokenCache = new Map<string, { userId: string; expires: number }>();
 const TTL = 10 * 60 * 1000; // Cache for 10 minutes
 
 export const userDataCache = new Map<string, Participant>();
@@ -23,7 +29,7 @@ export async function validateToken(token: string) {
 
   // 2. Actual Discord Call
   try {
-    const discordUser = await getDiscordUser(token) as Participant;
+    const discordUser = (await getDiscordUser(token)) as Participant;
     if (!discordUser || !discordUser.id) return null;
 
     const userId = discordUser.id;
@@ -40,7 +46,7 @@ export async function validateToken(token: string) {
     userDataCache.set(userId, profile);
     return userId;
   } catch (error) {
-    console.error("Discord Auth Error:", error);
+    console.error('Discord Auth Error:', error);
     return null;
   }
 }
@@ -53,9 +59,9 @@ export function hash(str: string): number {
   let h: number = 0;
   for (let i = 0; i < str.length; i++) {
     h = 13 * h + 7 * str.charCodeAt(i);
-    h &= 0xFFFFFFFF   // only keep lower 32 bits
+    h &= 0xffffffff; // only keep lower 32 bits
   }
-  return h & 0xFFFFFFFF
+  return h & 0xffffffff;
 }
 
 export function getGameStatusPayload(game: GameInstance) {
@@ -72,7 +78,7 @@ export function getGameStatusPayload(game: GameInstance) {
     gameSettings: {
       ...game.settings,
       enabledJokers: [...game.settings.enabledJokers],
-    }
+    },
   };
 }
 
@@ -102,7 +108,7 @@ export function setupTempDir(projectRootDir: string): string {
     fs.mkdirSync(tempDir, { recursive: true });
   }
 
-  return tempDir
+  return tempDir;
 }
 
 export function filterDiscordTextChannels(channels: APIChannel[]) {
@@ -116,7 +122,7 @@ export function filterDiscordTextChannels(channels: APIChannel[]) {
     .map((c: APITextChannel) => ({
       id: c.id,
       name: c.name,
-      category: c.parent_id ? categoryMap.get(c.parent_id) : ""
+      category: c.parent_id ? categoryMap.get(c.parent_id) : '',
     }))
     .sort((a, b) => {
       // Compare categories first

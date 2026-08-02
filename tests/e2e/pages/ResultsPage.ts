@@ -30,7 +30,7 @@ export class ResultsPage {
     return {
       name: root.locator('.name'),
       bubble: root.locator('.round-bubble'),
-      time: root.locator('.time-display')
+      time: root.locator('.time-display'),
     };
   }
 

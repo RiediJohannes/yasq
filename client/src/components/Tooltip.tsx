@@ -1,7 +1,7 @@
-import { useEffect, useId, useRef } from "preact/hooks";
-import { cloneElement, HTMLAttributes, isValidElement, VNode } from "preact";
-import { activeTooltipId, measureBounds } from "../utils/exclusiveTooltip";
-import { ReactNode } from "preact/compat";
+import { useEffect, useId, useRef } from 'preact/hooks';
+import { cloneElement, HTMLAttributes, isValidElement, VNode } from 'preact';
+import { activeTooltipId, measureBounds } from '../utils/exclusiveTooltip';
+import { ReactNode } from 'preact/compat';
 
 interface WithTooltipProps extends HTMLAttributes<HTMLDivElement> {
   /** The text content to display in the tooltip */
@@ -14,12 +14,7 @@ interface WithTooltipProps extends HTMLAttributes<HTMLDivElement> {
   disabled?: boolean;
 }
 
-export const WithTooltip = ({
-  text,
-  children,
-  id,
-  disabled = false,
-}: WithTooltipProps) => {
+export const WithTooltip = ({ text, children, id, disabled = false }: WithTooltipProps) => {
   // Fall back gracefully if disabled or if children is not a valid VNode
   if (disabled || !text || !isValidElement(children)) {
     return children;
@@ -67,8 +62,8 @@ export const WithTooltip = ({
   const childHasOnClick = !!childProps.onClick;
 
   return cloneElement(children, {
-    "data-tooltip": text,
-    className: `has-tooltip ${isTooltipOpen ? "show-tooltip" : ""} ${childProps.className || ""}`.trim(),
+    'data-tooltip': text,
+    className: `has-tooltip ${isTooltipOpen ? 'show-tooltip' : ''} ${childProps.className || ''}`.trim(),
     // Attach a bunch of event handlers that open/close the added tooltip as expected
     onMouseEnter: (e: MouseEvent) => {
       childProps.onMouseEnter?.(e);
@@ -91,7 +86,7 @@ export const WithTooltip = ({
           handleToggle(target);
         }, LONG_PRESS_MILLIS);
       } else {
-        handleToggle(target);  // otherwise instantly toggle tooltip
+        handleToggle(target); // otherwise instantly toggle tooltip
       }
     },
     onTouchEnd: (e: TouchEvent) => {
@@ -124,7 +119,6 @@ export const WithTooltip = ({
   });
 };
 
-
 interface TooltipDivProps {
   /** The text content to display in the tooltip */
   text: string;
@@ -137,18 +131,14 @@ interface TooltipDivProps {
   className?: string;
 }
 
-export const TooltipDiv = ({
-  text,
-  children,
-  id,
-  disabled = false,
-  className = "",
-}: TooltipDivProps) => {
+export const TooltipDiv = ({ text, children, id, disabled = false, className = '' }: TooltipDivProps) => {
   return (
-    <WithTooltip text={text} id={id} disabled={disabled}>
-      <div className={`${className}`}>
-        {children}
-      </div>
+    <WithTooltip
+      text={text}
+      id={id}
+      disabled={disabled}
+    >
+      <div className={`${className}`}>{children}</div>
     </WithTooltip>
   );
-}
+};

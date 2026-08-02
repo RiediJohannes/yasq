@@ -1,28 +1,30 @@
 import { test, expect } from '@playwright/test';
-import { generatePlayers, Player } from '../utils/helper.js'
+import { generatePlayers, Player } from '../utils/helper.js';
 import mockLeaderboard from '../../mock_data/mockLeaderboard.json';
 import { TestApi } from '../utils/api.js';
 import { ResultsPage } from './pages/ResultsPage.js';
 import { Sidebar } from './pages/components/Sidebar.js';
 
 test.describe('Host UI', () => {
-
   let players: Player[] = [];
   let currentInstanceId: string;
   let api: TestApi;
 
-  test.beforeEach(async ({ page, request }, testInfo) => {
+  test.beforeEach(async ({ page }, testInfo) => {
     currentInstanceId = `test-instance-${testInfo.testId}`;
     const playerCount = 5;
     players = generatePlayers(playerCount);
     const user = players[0];
 
-    await page.addInitScript(({ allPlayers, user, instanceId }) => {
-      window.__MOCK_PARTICIPANTS__ = allPlayers;
-      window.__MOCK_USER_ID__ = user.id;
-      window.__MOCK_USER_NAME__ = user.username;
-      window.__MOCK_INSTANCE_ID__ = instanceId;
-    }, { allPlayers: players, user: user, instanceId: currentInstanceId });
+    await page.addInitScript(
+      ({ allPlayers, user, instanceId }) => {
+        window.__MOCK_PARTICIPANTS__ = allPlayers;
+        window.__MOCK_USER_ID__ = user.id;
+        window.__MOCK_USER_NAME__ = user.username;
+        window.__MOCK_INSTANCE_ID__ = instanceId;
+      },
+      { allPlayers: players, user: user, instanceId: currentInstanceId }
+    );
 
     // Setup current game state
     api = new TestApi('http://localhost:3001', currentInstanceId);
@@ -34,11 +36,11 @@ test.describe('Host UI', () => {
           game: 'Game A',
           title: 'Track A',
           tags: [
-            { type: "platform", value: "Platform A" },
-            { type: "release", value: "2026" }
-          ]
-        }
-      }
+            { type: 'platform', value: 'Platform A' },
+            { type: 'release', value: '2026' },
+          ],
+        },
+      },
     });
 
     // Navigate to the app
@@ -79,23 +81,25 @@ test.describe('Host UI', () => {
 });
 
 test.describe('Player UI', () => {
-
   let players: Player[] = [];
   let currentInstanceId: string;
   let api: TestApi;
 
-  test.beforeEach(async ({ page, request }, testInfo) => {
+  test.beforeEach(async ({ page }, testInfo) => {
     currentInstanceId = `test-instance-${testInfo.testId}`;
     const playerCount = 5;
     players = generatePlayers(playerCount);
     const user = players[1];
 
-    await page.addInitScript(({ allPlayers, user, instanceId }) => {
-      window.__MOCK_PARTICIPANTS__ = allPlayers;
-      window.__MOCK_USER_ID__ = user.id;
-      window.__MOCK_USER_NAME__ = user.username;
-      window.__MOCK_INSTANCE_ID__ = instanceId;
-    }, { allPlayers: players, user: user, instanceId: currentInstanceId });
+    await page.addInitScript(
+      ({ allPlayers, user, instanceId }) => {
+        window.__MOCK_PARTICIPANTS__ = allPlayers;
+        window.__MOCK_USER_ID__ = user.id;
+        window.__MOCK_USER_NAME__ = user.username;
+        window.__MOCK_INSTANCE_ID__ = instanceId;
+      },
+      { allPlayers: players, user: user, instanceId: currentInstanceId }
+    );
 
     // Setup current game state
     api = new TestApi('http://localhost:3001', currentInstanceId);
@@ -106,11 +110,11 @@ test.describe('Player UI', () => {
           game: 'Game A',
           title: 'Track A',
           tags: [
-            { type: "platform", value: "Platform A" },
-            { type: "release", value: "2026" }
-          ]
-        }
-      }
+            { type: 'platform', value: 'Platform A' },
+            { type: 'release', value: '2026' },
+          ],
+        },
+      },
     });
 
     // Navigate to the app
@@ -125,10 +129,12 @@ test.describe('Player UI', () => {
     const results = new ResultsPage(page);
 
     // User submitted correct guess
-    await api.patchLeaderboard([{
-      userId: players[1].id,
-      roundHistory: [{ round: 1, scoreValue: 1, points: 100, guess: "Game A" }]
-    }]);
+    await api.patchLeaderboard([
+      {
+        userId: players[1].id,
+        roundHistory: [{ round: 1, scoreValue: 1, points: 100, guess: 'Game A' }],
+      },
+    ]);
 
     // Verify the Round Summary display
     await expect(results.resultsContainer.locator('h2')).toContainText('Results');
@@ -158,10 +164,12 @@ test.describe('Player UI', () => {
     const results = new ResultsPage(page);
 
     // User submitted partially correct guess
-    await api.patchLeaderboard([{
-      userId: players[1].id,
-      roundHistory: [{ round: 1, scoreValue: 0.5, points: 50, guess: "Game A2" }]
-    }]);
+    await api.patchLeaderboard([
+      {
+        userId: players[1].id,
+        roundHistory: [{ round: 1, scoreValue: 0.5, points: 50, guess: 'Game A2' }],
+      },
+    ]);
 
     // Verify own result
     await expect(results.getPersonalResultStatus('partial')).toContainText('So close! 🧗');
@@ -173,10 +181,12 @@ test.describe('Player UI', () => {
     const results = new ResultsPage(page);
 
     // User submitted incorrect guess
-    await api.patchLeaderboard([{
-      userId: players[1].id,
-      roundHistory: [{ round: 1, scoreValue: 0, points: 0, guess: "Game B" }]
-    }]);
+    await api.patchLeaderboard([
+      {
+        userId: players[1].id,
+        roundHistory: [{ round: 1, scoreValue: 0, points: 0, guess: 'Game B' }],
+      },
+    ]);
 
     // Verify own result
     await expect(results.getPersonalResultStatus('incorrect')).toContainText('Incorrect. 😢');
@@ -189,10 +199,12 @@ test.describe('Player UI', () => {
     const sidebar = new Sidebar(page);
 
     // User submitted correct guess
-    await api.patchLeaderboard([{
-      userId: players[1].id,
-      roundHistory: [{ round: 1, scoreValue: 1, points: 100, guess: "Game A" }]
-    }]);
+    await api.patchLeaderboard([
+      {
+        userId: players[1].id,
+        roundHistory: [{ round: 1, scoreValue: 1, points: 100, guess: 'Game A' }],
+      },
+    ]);
 
     // Ready Up Interaction
     await expect(results.readyBtn).toHaveText('Ready for Next Round');
@@ -213,23 +225,23 @@ test.describe('Player UI', () => {
       // Player 1: Correct (scoreValue 1)
       {
         userId: players[1].id,
-        roundHistory: [{ round: 1, scoreValue: 1, points: 100, guess: "Game A" }]
+        roundHistory: [{ round: 1, scoreValue: 1, points: 100, guess: 'Game A' }],
       },
       // Player 2: Partial (scoreValue 0.5)
       {
         userId: players[2].id,
-        roundHistory: [{ round: 1, scoreValue: 0.5, points: 50, guess: "Game A2" }]
+        roundHistory: [{ round: 1, scoreValue: 0.5, points: 50, guess: 'Game A2' }],
       },
       // Player 3: Wrong (scoreValue 0)
       {
         userId: players[3].id,
-        roundHistory: [{ round: 1, scoreValue: 0, points: 0, guess: "Game B" }]
+        roundHistory: [{ round: 1, scoreValue: 0, points: 0, guess: 'Game B' }],
       },
       // Player 4: Correct (scoreValue 1)
       {
         userId: players[4].id,
-        roundHistory: [{ round: 1, scoreValue: 1, points: 100, guess: "Game A" }]
-      }
+        roundHistory: [{ round: 1, scoreValue: 1, points: 100, guess: 'Game A' }],
+      },
     ]);
 
     await expect(results.correctPlayersContainer).toContainText('(2)');

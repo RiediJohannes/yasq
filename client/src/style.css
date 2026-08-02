@@ -57,7 +57,7 @@
   --color-marker-correct: #10b981;
   --color-marker-partial: #f59e0b;
   --color-marker-incorrect: #64748b;
-  --marker-color: grey;  /* fallback; real color will be injected at runtime */
+  --marker-color: grey; /* fallback; real color will be injected at runtime */
   /* Plot hover effects */
   --color-plot-tooltip-fill: #020617;
   --color-plot-tooltip-border: #334155;
@@ -264,7 +264,9 @@ img {
   background-color: rgba(0, 0, 0, 0.2);
 }
 
-input[type="text"], input[type="number"], select {
+input[type='text'],
+input[type='number'],
+select {
   border-radius: var(--border-radius-medium);
   border: 1px solid transparent;
   padding: 0.6em 1.2em;
@@ -274,10 +276,13 @@ input[type="text"], input[type="number"], select {
   background-color: var(--bg-input);
   transition: border-color 0.25s;
 }
-input:hover, select:hover {
+input:hover,
+select:hover {
   border-color: var(--blurple);
 }
-input:focus-visible, select:focus-visible, button:focus-visible {
+input:focus-visible,
+select:focus-visible,
+button:focus-visible {
   outline: 3px solid var(--blurple);
   outline-offset: 2px;
 }
@@ -292,7 +297,9 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   border-radius: var(--border-radius-small);
   background-color: transparent;
   cursor: pointer;
-  transition: border-color 0.2s ease, background-color 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
   display: inline-grid;
   place-content: center;
   vertical-align: middle;
@@ -305,7 +312,7 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   border-color: var(--blurple);
 }
 .hide-played-checkbox:checked::after {
-  content: "";
+  content: '';
   width: 10px;
   height: 10px;
   background-color: var(--fixed-white);
@@ -327,7 +334,8 @@ button {
 button:not(:disabled):hover {
   border-color: var(--blurple);
 }
-button:disabled, select:disabled {
+button:disabled,
+select:disabled {
   color: graytext;
   cursor: not-allowed;
   opacity: 0.7;
@@ -411,9 +419,15 @@ select:disabled option {
 }
 
 @keyframes pulse-glow {
-  0% { box-shadow: 0 0 0 0 rgba(88, 101, 242, 0.4); }
-  50% { box-shadow: 0 0 0 15px rgba(88, 101, 242, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(88, 101, 242, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(88, 101, 242, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 15px rgba(88, 101, 242, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(88, 101, 242, 0);
+  }
 }
 
 .ready-btn:not(.ready) {
@@ -615,7 +629,6 @@ select:disabled option {
   width: 100%;
 }
 
-
 .toggle-btn {
   background: none;
   border: none;
@@ -671,7 +684,7 @@ select:disabled option {
   gap: var(--gap-medium);
 }
 
-input[type="radio"]:checked + .btn-radio {
+input[type='radio']:checked + .btn-radio {
   background-color: var(--blurple);
   color: var(--fixed-white);
 }
@@ -735,7 +748,7 @@ input[type="radio"]:checked + .btn-radio {
   z-index: 1000;
   max-height: 200px;
   overflow-y: auto;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
 }
 
 .dropdown-item {
@@ -782,7 +795,8 @@ input[type="radio"]:checked + .btn-radio {
   flex-shrink: 0;
 }
 
-.controls, .game-guesser-form {
+.controls,
+.game-guesser-form {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -817,7 +831,8 @@ input[type="radio"]:checked + .btn-radio {
   gap: var(--gap-tiny);
 }
 
-.search-wrapper, .dropdown-trigger-wrapper {
+.search-wrapper,
+.dropdown-trigger-wrapper {
   display: flex;
   gap: var(--gap-tiny);
 }
@@ -865,11 +880,13 @@ input[type="radio"]:checked + .btn-radio {
   transform: rotate(180deg);
 }
 
-.dropdown-trigger.active, .track-search.active {
+.dropdown-trigger.active,
+.track-search.active {
   border-color: var(--blurple);
   background: rgba(88, 101, 242, 0.1);
 }
-.dropdown-trigger.active:hover, .track-search.active:hover {
+.dropdown-trigger.active:hover,
+.track-search.active:hover {
   background: rgba(88, 101, 242, 0.2);
 }
 
@@ -883,7 +900,7 @@ input[type="radio"]:checked + .btn-radio {
   overflow: hidden;
   width: 300px;
   padding-right: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 .scrollbar-container {
@@ -910,7 +927,10 @@ input[type="radio"]:checked + .btn-radio {
 
 .dropdown-overlay {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 999;
 }
 
@@ -1002,7 +1022,7 @@ input[type="radio"]:checked + .btn-radio {
 
 .track-card:hover:not(.played) {
   transform: translateY(-4px);
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
 .cover-wrapper {
@@ -1018,8 +1038,11 @@ input[type="radio"]:checked + .btn-radio {
 
 .played-overlay {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.7);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
   color: var(--fixed-white);
   display: flex;
   align-items: center;
@@ -1032,8 +1055,17 @@ input[type="radio"]:checked + .btn-radio {
   flex-grow: 1;
 }
 
-.game-name { display: block; font-weight: bold; font-size: 0.9em; color: var(--text-main); }
-.track-title { display: block; font-size: 0.8em; color: var(--text-muted); }
+.game-name {
+  display: block;
+  font-weight: bold;
+  font-size: 0.9em;
+  color: var(--text-main);
+}
+.track-title {
+  display: block;
+  font-size: 0.8em;
+  color: var(--text-muted);
+}
 
 .track-select-btn {
   background: var(--blurple);
@@ -1276,7 +1308,10 @@ kbd {
 
 #countdown-overlay {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   margin: 10px;
   border-radius: var(--border-radius-medium);
   background: var(--countdown-overlay);
@@ -1294,9 +1329,18 @@ kbd {
 }
 
 @keyframes pulse {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.2); opacity: 0.5; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 #guess-list {
@@ -1354,14 +1398,14 @@ kbd {
   gap: var(--gap-tiny);
 }
 
-.button-group input[type="radio"] {
+.button-group input[type='radio'] {
   position: absolute;
   opacity: 0;
   width: 0;
   height: 0;
 }
 
-.button-group input[type="radio"]:focus-visible + .btn-radio {
+.button-group input[type='radio']:focus-visible + .btn-radio {
   outline: 3px solid var(--accent-color, #5865f2);
   outline-offset: 2px;
   border-radius: var(--border-radius-small);
@@ -1388,17 +1432,17 @@ kbd {
   color: var(--text-main);
 }
 
-input[value="0"]:checked + .btn-radio.wrong {
+input[value='0']:checked + .btn-radio.wrong {
   background: var(--red);
   color: var(--fixed-white);
 }
 
-input[value="0.5"]:checked + .btn-radio.partial {
+input[value='0.5']:checked + .btn-radio.partial {
   background: var(--yellow);
   color: var(--fixed-white);
 }
 
-input[value="1"]:checked + .btn-radio.correct {
+input[value='1']:checked + .btn-radio.correct {
   background: var(--green);
   color: var(--fixed-white);
 }
@@ -1556,7 +1600,7 @@ input[value="1"]:checked + .btn-radio.correct {
 }
 
 .shimmer-layer::after {
-  content: "";
+  content: '';
   position: absolute;
   top: -50%;
   left: -50%;
@@ -1576,9 +1620,15 @@ input[value="1"]:checked + .btn-radio.correct {
 }
 
 @keyframes shimmer {
-  0% { transform: translateX(-150%) rotate(45deg); }
-  40% { transform: translateX(150%) rotate(45deg); }
-  100% { transform: translateX(150%) rotate(45deg); }
+  0% {
+    transform: translateX(-150%) rotate(45deg);
+  }
+  40% {
+    transform: translateX(150%) rotate(45deg);
+  }
+  100% {
+    transform: translateX(150%) rotate(45deg);
+  }
 }
 
 .player-main-info {
@@ -1589,8 +1639,14 @@ input[value="1"]:checked + .btn-radio.correct {
   font-weight: bold;
 }
 
-.rank { color: var(--text-muted); width: 30px; }
-.total-score { margin-left: auto; color: #43b581; }
+.rank {
+  color: var(--text-muted);
+  width: 30px;
+}
+.total-score {
+  margin-left: auto;
+  color: #43b581;
+}
 
 .history-grid {
   margin-top: 10px;
@@ -1620,13 +1676,20 @@ input[value="1"]:checked + .btn-radio.correct {
   cursor: default;
 }
 
-.round-bubble.correct { border: 1px solid var(--green); color: var(--green); }
+.round-bubble.correct {
+  border: 1px solid var(--green);
+  color: var(--green);
+}
 .round-bubble.incorrect {
   border: 1px solid color-mix(in srgb, var(--red) 60%, transparent);
   color: color-mix(in srgb, var(--red) 60%, transparent);
   background: color-mix(in srgb, var(--bg-button-group) 60%, transparent);
 }
-.round-bubble.correct.first { border: 1px solid var(--gold); color: var(--gold); font-weight: bold; }
+.round-bubble.correct.first {
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  font-weight: bold;
+}
 
 @media (hover: hover) and (min-width: 768px) {
   .round-bubble.correct:hover {
@@ -1668,7 +1731,7 @@ input[value="1"]:checked + .btn-radio.correct {
   border-bottom: 12px solid var(--bg-dark);
   pointer-events: none;
   opacity: 0;
-  filter: drop-shadow(0 -2px 2px rgba(0,0,0,0.2));
+  filter: drop-shadow(0 -2px 2px rgba(0, 0, 0, 0.2));
   transition: opacity 0.2s ease;
 }
 
@@ -1690,7 +1753,7 @@ input[value="1"]:checked + .btn-radio.correct {
   pointer-events: none;
   transition: opacity 0.2s ease;
   opacity: 0;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
   top: 100%;
   margin-top: 12px;
 
@@ -1755,7 +1818,6 @@ input[value="1"]:checked + .btn-radio.correct {
     border-color: var(--blurple);
   }
 }
-
 
 .score-details-panel {
   display: block;
@@ -1846,12 +1908,11 @@ input[value="1"]:checked + .btn-radio.correct {
   font-style: italic;
 }
 
-
 .correct-players {
   display: flex;
   justify-content: start;
   align-items: start;
-  gap: var(--gap-small)
+  gap: var(--gap-small);
 }
 
 .correct-players-label {
@@ -1872,7 +1933,6 @@ input[value="1"]:checked + .btn-radio.correct {
   opacity: 0.7;
   font-style: italic;
 }
-
 
 .time-bonus-loading {
   margin-top: 0.3em;
@@ -1940,7 +2000,9 @@ input[value="1"]:checked + .btn-radio.correct {
   stroke-width: 1.5;
   stroke-dasharray: 4 4;
   opacity: 0.8;
-  transition: stroke-width 0.15s ease, opacity 0.15s ease-out;
+  transition:
+    stroke-width 0.15s ease,
+    opacity 0.15s ease-out;
 }
 
 .player-node {
@@ -1965,7 +2027,9 @@ input[value="1"]:checked + .btn-radio.correct {
   fill: none;
   stroke-width: 2;
   opacity: 0.6;
-  transition: stroke-width 0.15s ease, opacity 0.15s ease;
+  transition:
+    stroke-width 0.15s ease,
+    opacity 0.15s ease;
 }
 
 @media (prefers-color-scheme: light) {
@@ -2040,7 +2104,7 @@ input[value="1"]:checked + .btn-radio.correct {
 }
 
 .player-marker.is-hovered .player-avatar-bundle {
-  /*transform: scale(1.2);*/  /* decided not to use this because it slightly shifts the whole layout of the SVG -> visually annoying */
+  /*transform: scale(1.2);*/ /* decided not to use this because it slightly shifts the whole layout of the SVG -> visually annoying */
   filter: drop-shadow(0 0 8px var(--marker-color));
 }
 
@@ -2057,8 +2121,9 @@ input[value="1"]:checked + .btn-radio.correct {
   border: 1px solid var(--color-plot-tooltip-border);
   border-radius: 6px;
   z-index: 10;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.6),
-              0 0 8px rgba(0, 0, 0, 0.5);
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.6),
+    0 0 8px rgba(0, 0, 0, 0.5);
 
   display: flex;
   flex-direction: column;
@@ -2078,8 +2143,9 @@ input[value="1"]:checked + .btn-radio.correct {
 @media (prefers-color-scheme: light) {
   .plot-tooltip {
     border: 2px solid var(--color-plot-tooltip-border);
-    box-shadow: 0 5px 8px -3px rgba(0, 0, 0, 0.2),
-    0 0 8px rgba(0, 0, 0, 0.5);
+    box-shadow:
+      0 5px 8px -3px rgba(0, 0, 0, 0.2),
+      0 0 8px rgba(0, 0, 0, 0.5);
   }
 }
 
@@ -2104,7 +2170,6 @@ input[value="1"]:checked + .btn-radio.correct {
   text-transform: none;
 }
 
-
 .export-section {
   margin-bottom: 20px;
   display: flex;
@@ -2125,30 +2190,37 @@ input[value="1"]:checked + .btn-radio.correct {
 .badge.host {
   background-color: var(--blurple);
 }
-.badge.ready, .badge.guessed {
+.badge.ready,
+.badge.guessed {
   background-color: var(--green);
 }
 .badge.winner {
   background-color: var(--gold);
   text-shadow:
-    1px  1px 0 #000,
+    1px 1px 0 #000,
     -1px -1px 0 #000,
     1px -1px 0 #000,
-    -1px  1px 0 #000,
-    0  0 4px rgba(0, 0, 0, 0.8);
+    -1px 1px 0 #000,
+    0 0 4px rgba(0, 0, 0, 0.8);
 }
 .badge.streak {
   transition: all 0.3s ease;
   text-shadow:
-    1px  1px 0 #000,
+    1px 1px 0 #000,
     -1px -1px 0 #000,
     1px -1px 0 #000,
-    -1px  1px 0 #000,
-    0  0 4px rgba(0, 0, 0, 0.8);
+    -1px 1px 0 #000,
+    0 0 4px rgba(0, 0, 0, 0.8);
 }
-.streak-tier-1 { background-color: #ffaa00; }
-.streak-tier-2 { background-color: #ff6a00; }
-.streak-tier-3 { background-color: #ff2a00; }
+.streak-tier-1 {
+  background-color: #ffaa00;
+}
+.streak-tier-2 {
+  background-color: #ff6a00;
+}
+.streak-tier-3 {
+  background-color: #ff2a00;
+}
 .streak-tier-4 {
   background-color: #cc0000;
   box-shadow: 0 0 8px #ff2a00 !important;
@@ -2170,7 +2242,7 @@ input[value="1"]:checked + .btn-radio.correct {
 }
 .badge.streak.broken::before,
 .badge.streak.broken::after {
-  content: "🔥 " attr(data-streak);
+  content: '🔥 ' attr(data-streak);
   position: absolute;
   top: 0;
   left: 0;
@@ -2197,15 +2269,33 @@ input[value="1"]:checked + .btn-radio.correct {
 }
 
 @keyframes breakLeft {
-  0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
-  20% { transform: translate(-2px, -2px) rotate(-4deg); }
-  100% { transform: translate(-25px, 40px) rotate(-45deg); opacity: 0; filter: blur(1px); }
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  20% {
+    transform: translate(-2px, -2px) rotate(-4deg);
+  }
+  100% {
+    transform: translate(-25px, 40px) rotate(-45deg);
+    opacity: 0;
+    filter: blur(1px);
+  }
 }
 
 @keyframes breakRight {
-  0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
-  20% { transform: translate(2px, 3px) rotate(6deg); }
-  100% { transform: translate(30px, 50px) rotate(35deg); opacity: 0; filter: blur(1px); }
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  20% {
+    transform: translate(2px, 3px) rotate(6deg);
+  }
+  100% {
+    transform: translate(30px, 50px) rotate(35deg);
+    opacity: 0;
+    filter: blur(1px);
+  }
 }
 
 @keyframes popInAndPulse {
@@ -2234,18 +2324,22 @@ input[value="1"]:checked + .btn-radio.correct {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 768px) {
-  html, body {
+  html,
+  body {
     height: auto;
     min-height: 100%;
     margin: 0;
     padding: 0;
   }
 
-  #app, body {
+  #app,
+  body {
     overflow: auto;
     overflow-x: hidden;
     position: relative;
@@ -2289,7 +2383,8 @@ input[value="1"]:checked + .btn-radio.correct {
     box-sizing: border-box;
   }
 
-  .grid-container, .controls {
+  .grid-container,
+  .controls {
     margin-left: 0;
     margin-right: 0;
   }
@@ -2345,7 +2440,8 @@ input[value="1"]:checked + .btn-radio.correct {
     display: none !important;
   }
 
-  .card-container, .track-picker-container {
+  .card-container,
+  .track-picker-container {
     width: 100%;
     box-sizing: border-box;
     max-width: none;

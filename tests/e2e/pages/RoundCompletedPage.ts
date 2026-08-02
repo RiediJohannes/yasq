@@ -1,6 +1,6 @@
 import { Page, Locator } from '@playwright/test';
 
-type ResultType = "correct" | "partial" | "wrong";
+type ResultType = 'correct' | 'partial' | 'wrong';
 
 export class RoundCompletedPage {
   readonly page: Page;

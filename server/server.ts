@@ -1,20 +1,27 @@
-import express from "express";
-import dotenv from "dotenv";
-import path from "path";
+import express from 'express';
+import dotenv from 'dotenv';
+import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { createServer } from "http";
-import { Server } from "socket.io";
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 
 import { GameInstance } from './src/models.js';
 
-import { setupRoutes } from "./routes/routes.js";
-import { setupMockRoutes } from "./routes/mockRoutes.js";
-import { getGameStatusPayload, invalidateToken, setupTempDir, validateToken } from "./src/helper.js";
-import { STATIC_FILES_DIR, TEMP_FILES_DIR, WS_GAME_STATUS_UPDATE_EVENT, WS_JOIN_INSTANCE_EVENT, type Playlist, type Track } from "@yasq/shared";
-import { LogCategory, logger } from "./src/utils/logger.js";
+import { setupRoutes } from './routes/routes.js';
+import { setupMockRoutes } from './routes/mockRoutes.js';
+import { getGameStatusPayload, invalidateToken, setupTempDir, validateToken } from './src/helper.js';
+import {
+  STATIC_FILES_DIR,
+  TEMP_FILES_DIR,
+  WS_GAME_STATUS_UPDATE_EVENT,
+  WS_JOIN_INSTANCE_EVENT,
+  type Playlist,
+  type Track,
+} from '@yasq/shared';
+import { LogCategory, logger } from './src/utils/logger.js';
 
-dotenv.config({ path: "../.env" });
+dotenv.config({ path: '../.env' });
 
 function loadTracks(tracksPath: string): Track[] {
   if (!fs.existsSync(tracksPath)) {
@@ -33,9 +40,7 @@ function loadTracks(tracksPath: string): Track[] {
 
 function loadPlaylists(playlistsPath: string): Playlist[] {
   if (!fs.existsSync(playlistsPath)) {
-    console.log(
-      `Playlists file not found at ${playlistsPath}. Starting with no playlists.`
-    );
+    console.log(`Playlists file not found at ${playlistsPath}. Starting with no playlists.`);
     return [];
   }
 
@@ -48,11 +53,7 @@ function loadPlaylists(playlistsPath: string): Playlist[] {
   }
 }
 
-function setupFileWatcher(
-  filePath: string,
-  onFileChange: () => void,
-  fileName: string
-) {
+function setupFileWatcher(filePath: string, onFileChange: () => void, fileName: string) {
   if (!fs.existsSync(filePath)) {
     return;
   }
@@ -112,11 +113,11 @@ export function setupServer() {
   const app = express();
 
   const httpServer = createServer(app);
-  const server = new Server(httpServer, { cors: { origin: "*" } });
+  const server = new Server(httpServer, { cors: { origin: '*' } });
 
   server.use(async (socket, next) => {
     const token = socket.handshake.auth.token;
-    if (!token) return next(new Error("Missing token"));
+    if (!token) return next(new Error('Missing token'));
 
     try {
       const userId = await validateToken(token);
@@ -125,11 +126,11 @@ export function setupServer() {
       socket.data.userId = userId;
       next();
     } catch (err) {
-      next(new Error("Invalid token"));
+      next(new Error(`Invalid token: ${err}`));
     }
   });
 
-  server.on('connection', (socket) => {
+  server.on('connection', socket => {
     socket.on(WS_JOIN_INSTANCE_EVENT, ({ instanceId }) => {
       socket.join(instanceId);
       socket.data.instanceId = instanceId;
@@ -198,7 +199,7 @@ export function setupServer() {
   );
 
   // Add a simple endpoint for health checks
-  app.get("/health", (req, res) => {
+  app.get('/health', (req, res) => {
     res.status(200).json({ ok: true });
   });
 

@@ -1,4 +1,4 @@
-import { setupServer } from "./server.js";
+import { setupServer } from './server.js';
 
 const port = 3001;
 

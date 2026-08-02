@@ -1,26 +1,28 @@
 import { test, expect } from '@playwright/test';
-import { generatePlayers, Player } from '../utils/helper.js'
+import { generatePlayers, Player } from '../utils/helper.js';
 import { SetupPage } from './pages/SetupPage.js';
 import { TestApi } from '../utils/api.js';
 
 test.describe('Host UI', () => {
-
   let players: Player[] = [];
   let currentInstanceId: string;
   let api: TestApi;
 
-  test.beforeEach(async ({ page, request }, testInfo) => {
+  test.beforeEach(async ({ page }, testInfo) => {
     currentInstanceId = `test-instance-${testInfo.testId}`;
     const playerCount = 3;
     players = generatePlayers(playerCount);
     const user = players[0];
 
-    await page.addInitScript(({ allPlayers, user, instanceId }) => {
-      window.__MOCK_PARTICIPANTS__ = allPlayers;
-      window.__MOCK_USER_ID__ = user.id;
-      window.__MOCK_USER_NAME__ = user.username;
-      window.__MOCK_INSTANCE_ID__ = instanceId;
-    }, { allPlayers: players, user: user, instanceId: currentInstanceId });
+    await page.addInitScript(
+      ({ allPlayers, user, instanceId }) => {
+        window.__MOCK_PARTICIPANTS__ = allPlayers;
+        window.__MOCK_USER_ID__ = user.id;
+        window.__MOCK_USER_NAME__ = user.username;
+        window.__MOCK_INSTANCE_ID__ = instanceId;
+      },
+      { allPlayers: players, user: user, instanceId: currentInstanceId }
+    );
 
     // Setup current game state
     api = new TestApi('http://localhost:3001', currentInstanceId);

@@ -1,6 +1,6 @@
 import { Track, Playlist } from './types';
 
-export type SortOption = "Default Order" | "A-Z" | "Z-A";
+export type SortOption = 'Default Order' | 'A-Z' | 'Z-A';
 
 /**
  * Filters tracks based on playlist, search keyword, and played status.
@@ -17,7 +17,7 @@ export function getBaseFilteredTracks(
   return tracks.filter(track => {
     // Filter playlist
     let matchesPlaylist = true;
-    if (selectedPlaylistName !== "All playlists") {
+    if (selectedPlaylistName !== 'All playlists') {
       const activePlaylist = playlists.find(p => p.name === selectedPlaylistName);
       matchesPlaylist = activePlaylist ? activePlaylist.tracks.includes(track.audio) : false;
     }
@@ -44,8 +44,7 @@ export function getFilteredAndSortedTracks(
   sortOrder: SortOption,
   selectedTags: Record<string, string[]>
 ): Track[] {
-  const activeCategories = Object.entries(selectedTags)
-    .filter(([_, vals]) => vals.length > 0);
+  const activeCategories = Object.entries(selectedTags).filter(([_, vals]) => vals.length > 0);
 
   let results = [...baseTracks];
 
@@ -59,7 +58,7 @@ export function getFilteredAndSortedTracks(
 
   // Apply Sorting (Default Order, A-Z, or Z-A)
   return results.sort((a, b) => {
-    if (sortOrder === "Default Order") {
+    if (sortOrder === 'Default Order') {
       // Maintain playlist order if playlist is selected
       const activePlaylist = playlists.find(p => p.name === selectedPlaylistName);
       if (activePlaylist) {
@@ -75,10 +74,10 @@ export function getFilteredAndSortedTracks(
     // Secondary Sort: If games are the same, sort by Track Title
     if (gameComp === 0) {
       const titleComp = a.title.localeCompare(b.title);
-      return sortOrder === "A-Z" ? titleComp : -titleComp;
+      return sortOrder === 'A-Z' ? titleComp : -titleComp;
     }
 
-    return sortOrder === "A-Z" ? gameComp : -gameComp;
+    return sortOrder === 'A-Z' ? gameComp : -gameComp;
   });
 }
 
@@ -124,8 +123,7 @@ export function getReachableTags(
   const validTags = new Map<string, number>();
 
   categories.forEach(catToSkip => {
-    const otherFilters = Object.entries(selectedTags)
-      .filter(([type, vals]) => type !== catToSkip && vals.length > 0);
+    const otherFilters = Object.entries(selectedTags).filter(([type, vals]) => type !== catToSkip && vals.length > 0);
 
     const reachableInCat = baseTracks.filter(track =>
       otherFilters.every(([type, selectedVals]) =>

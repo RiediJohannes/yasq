@@ -5,8 +5,8 @@ export const mockDiscordSdk = {
   ready: () => Promise.resolve(),
 
   // Mocking the subscribe/unsubscribe system
-  subscribe: (event, callback) => {},
-  unsubscribe: (event, callback) => {},
+  subscribe: (_event, _callback) => {},
+  unsubscribe: (_event, _callback) => {},
 
   commands: {
     // Mock Authorize
@@ -22,7 +22,7 @@ export const mockDiscordSdk = {
       },
       scopes: ['identify', 'guilds'],
       expires: 'never',
-      application: { id: 'mock_app_id' }
+      application: { id: 'mock_app_id' },
     }),
 
     // Mock Participants
@@ -32,7 +32,7 @@ export const mockDiscordSdk = {
         { id: '1', username: 'MockPlayer2' },
         { id: '2', username: 'MockPlayer2' },
         { id: '3', username: 'MockPlayer2' },
-      ]
+      ],
     }),
   },
 };

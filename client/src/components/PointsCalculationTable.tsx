@@ -1,5 +1,4 @@
-import { BASE_POINTS, BonusType, PointsBonus } from "@yasq/shared";
-import { h } from 'preact';
+import { BASE_POINTS, BonusType, PointsBonus } from '@yasq/shared';
 
 const BONUS_LABELS: Record<BonusType, string> = {
   [BonusType.TIME_BONUS]: 'Time bonus',
@@ -11,10 +10,9 @@ const BONUS_LABELS: Record<BonusType, string> = {
 class PointsCalculationEntry {
   constructor(
     public title: string,
-    public points: number,
+    public points: number
   ) {}
 }
-
 
 interface BonusTableProps {
   baseMultiplier: number;
@@ -30,9 +28,10 @@ export const PointsCalculationTable = ({ baseMultiplier, awardedBonuses }: Bonus
   }
 
   const calculationEntries: PointsCalculationEntry[] = [
-    new PointsCalculationEntry("Base points", awardedBasePoints),
-    ...awardedBonuses.map((bonus) =>
-      new PointsCalculationEntry(BONUS_LABELS[bonus.type], bonus.toAbsolute(awardedBasePoints)))
+    new PointsCalculationEntry('Base points', awardedBasePoints),
+    ...awardedBonuses.map(
+      bonus => new PointsCalculationEntry(BONUS_LABELS[bonus.type], bonus.toAbsolute(awardedBasePoints))
+    ),
   ];
 
   const totalPoints = calculationEntries.reduce((sum, item) => sum + item.points, 0);
@@ -43,7 +42,10 @@ export const PointsCalculationTable = ({ baseMultiplier, awardedBonuses }: Bonus
         {calculationEntries.map((entry, idx) => {
           const isFirst = idx === 0;
           return (
-            <tr key={entry.title} className={isFirst ? "base-row" : "bonus-row"}>
+            <tr
+              key={entry.title}
+              className={isFirst ? 'base-row' : 'bonus-row'}
+            >
               <td className="label-col">{entry.title}</td>
               <td className="points-col">
                 {isFirst ? '' : '+ '}
@@ -62,4 +64,4 @@ export const PointsCalculationTable = ({ baseMultiplier, awardedBonuses }: Bonus
       </tbody>
     </table>
   );
-}
+};

@@ -15,7 +15,7 @@ const __dirname = path.dirname(__filename);
 const mockUserData = new Map<string, Participant>([
   ['1', { id: '1', username: 'Player One' }],
   ['2', { id: '2', username: 'Player Two' }],
-  ['3', { id: '3', username: 'Player Three' }]
+  ['3', { id: '3', username: 'Player Three' }],
 ]);
 
 function getFileHash(filePath: string): string {
@@ -24,10 +24,10 @@ function getFileHash(filePath: string): string {
 }
 
 describe.skip('generateResultsImage', () => {
-  const instanceId = "1";
+  const instanceId = '1';
   const baseDir = path.join(__dirname, '..');
   const testOutputPath = path.join(setupTempDir(baseDir), instanceId, 'results.png');
-  console.log(testOutputPath)
+  console.log(testOutputPath);
   const directoryPath = path.dirname(testOutputPath);
   if (!fs.existsSync(directoryPath)) {
     fs.mkdirSync(directoryPath, { recursive: true });

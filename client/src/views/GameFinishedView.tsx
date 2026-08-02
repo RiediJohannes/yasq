@@ -1,24 +1,24 @@
-import { useSignal } from "@preact/signals";
-import { useEffect, useState } from "preact/hooks";
+import { useSignal } from '@preact/signals';
+import { useEffect, useState } from 'preact/hooks';
 
-import * as backend from "../utils/backend";
-import { auth, discordSdk, gameState, participants } from "../main";
-import { findUser } from "../utils/helper";
-import { getAvatarUrl, getDisplayName } from "@yasq/shared";
-import { RoundBubblesGroup } from "../components/RoundBubble";
-import { DiscordAvatar } from "../components/DiscordAvatar";
-import { ReadyButton } from "../components/ReadyButton";
+import * as backend from '../utils/backend';
+import { auth, discordSdk, gameState, participants } from '../main';
+import { findUser } from '../utils/helper';
+import { getAvatarUrl, getDisplayName } from '@yasq/shared';
+import { RoundBubblesGroup } from '../components/RoundBubble';
+import { DiscordAvatar } from '../components/DiscordAvatar';
+import { ReadyButton } from '../components/ReadyButton';
 
 export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
   const leaderboard = useSignal<any[]>([]);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [hasPosted, setHasPosted] = useState(false);
-  const [channels, setChannels] = useState<{id: string, name: string, category: string}[]>([]);
+  const [channels, setChannels] = useState<{ id: string; name: string; category: string }[]>([]);
   const [selectedChannel, setSelectedChannel] = useState('');
 
   useEffect(() => {
-    backend.getFinalResults(discordSdk.instanceId).then((data) => {
+    backend.getFinalResults(discordSdk.instanceId).then(data => {
       leaderboard.value = data.leaderboard;
     });
   }, []);
@@ -41,10 +41,10 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
       if (response.ok) {
         setHasPosted(true);
       } else {
-        console.error("Failed to post results package.");
+        console.error('Failed to post results package.');
       }
     } catch (error) {
-      console.error("Error running post routine:", error);
+      console.error('Error running post routine:', error);
     } finally {
       setIsPosting(false);
     }
@@ -53,17 +53,15 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
   useEffect(() => {
     if (!isHost) return;
 
-    backend.getChannels(
-      auth.value.access_token,
-      discordSdk.instanceId,
-      discordSdk.guildId!
-    ).then(data => setChannels(data));
+    backend
+      .getChannels(auth.value.access_token, discordSdk.instanceId, discordSdk.guildId!)
+      .then(data => setChannels(data));
   }, [isHost]);
 
   const playersExcludingHost = participants.value.filter(p => p.id !== gameState.value.hostId);
   const readyCount = gameState.value.readyUsers.length;
-  const allPlayersReady = playersExcludingHost.length > 0 &&
-                          playersExcludingHost.every(p => gameState.value.readyUsers.includes(p.id));
+  const allPlayersReady =
+    playersExcludingHost.length > 0 && playersExcludingHost.every(p => gameState.value.readyUsers.includes(p.id));
 
   const handleRestart = async (e: MouseEvent) => {
     const btn = e.currentTarget as HTMLButtonElement;
@@ -80,7 +78,7 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
           const user = findUser(participants.value, player.userId);
 
           const total = leaderboard.value.length;
-          const staggerIndex = (total - 1) - index;
+          const staggerIndex = total - 1 - index;
           const delay = staggerIndex * 1.5;
           const isWinner = index === 0;
 
@@ -92,13 +90,22 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
             >
               <div
                 className={`player-card ${isWinner ? 'winner' : ''}`}
-                style={{ animationDelay: `${delay + 0.4}s`, zIndex: (1000 - index) }}
+                style={{
+                  animationDelay: `${delay + 0.4}s`,
+                  zIndex: 1000 - index,
+                }}
               >
                 {isWinner && <div className="shimmer-layer" />}
                 <div className="player-main-info">
                   <div className="rank">#{index + 1}</div>
-                  <DiscordAvatar src={getAvatarUrl(user)} userName={getDisplayName(user)} />
-                  <div className="name">{isWinner ? '👑 ' : ''}{getDisplayName(user)}</div>
+                  <DiscordAvatar
+                    src={getAvatarUrl(user)}
+                    userName={getDisplayName(user)}
+                  />
+                  <div className="name">
+                    {isWinner ? '👑 ' : ''}
+                    {getDisplayName(user)}
+                  </div>
                   <div className="total-score">{player.totalScore} pts</div>
                 </div>
 
@@ -117,7 +124,7 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
 
       {isHost ? (
         <div>
-          <div className='export-section'>
+          <div className="export-section">
             <button
               onClick={handleDownload}
               disabled={isDownloading}
@@ -128,7 +135,7 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
             <select
               value={selectedChannel}
               disabled={channels.length === 0 || isPosting || hasPosted}
-              onChange={(e) => {
+              onChange={e => {
                 const target = e.target as HTMLSelectElement;
                 setSelectedChannel(target.value);
               }}
@@ -139,8 +146,11 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
                 <>
                   <option value="">Select a channel...</option>
                   {channels.map(channel => (
-                    <option key={channel.id} value={channel.id}>
-                      {channel.category ? `${channel.category} > ` : ""}#{channel.name}
+                    <option
+                      key={channel.id}
+                      value={channel.id}
+                    >
+                      {channel.category ? `${channel.category} > ` : ''}#{channel.name}
                     </option>
                   ))}
                 </>
@@ -151,9 +161,7 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
               onClick={handlePostToChannel}
               disabled={isPosting || hasPosted || !selectedChannel}
             >
-              {hasPosted
-                ? '✅ Posted to Channel'
-                : (isPosting ? 'Posting to Discord...' : '💬 Post Directly to Channel')}
+              {hasPosted ? '✅ Posted to Channel' : isPosting ? 'Posting to Discord...' : '💬 Post Directly to Channel'}
             </button>
           </div>
 
@@ -162,13 +170,11 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
             disabled={!allPlayersReady}
             onClick={handleRestart}
           >
-            {allPlayersReady
-              ? "Play Again"
-              : `Waiting... (${readyCount}/${playersExcludingHost.length})`}
+            {allPlayersReady ? 'Play Again' : `Waiting... (${readyCount}/${playersExcludingHost.length})`}
           </button>
         </div>
       ) : (
-        <ReadyButton promptText={"Ready for New Game"}/>
+        <ReadyButton promptText={'Ready for New Game'} />
       )}
     </div>
   );

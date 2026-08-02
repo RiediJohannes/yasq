@@ -1,6 +1,6 @@
 import { Page, Locator } from '@playwright/test';
 
-type BadgeType = "host" | "ready" | "guessed" | "winner" | "streak";
+type BadgeType = 'host' | 'ready' | 'guessed' | 'winner' | 'streak';
 
 export class Sidebar {
   readonly page: Page;

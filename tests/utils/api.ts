@@ -17,7 +17,7 @@ export class TestApi {
     return fetch(`${this.baseUrl}${path}`, {
       method,
       headers: { 'Content-Type': 'application/json', ...options.headers },
-      ...(options.data && { body: JSON.stringify(options.data) })
+      ...(options.data && { body: JSON.stringify(options.data) }),
     });
   }
 
@@ -28,8 +28,8 @@ export class TestApi {
         registeredUsers: players,
         hostId: players[0].id,
         state,
-        ...extraData
-      }
+        ...extraData,
+      },
     });
   }
 
@@ -40,26 +40,26 @@ export class TestApi {
   async setReady(player: Player, isReady: boolean) {
     return this.http('POST', '/api/ready', {
       data: { instanceId: this.instanceId, ready: isReady },
-      headers: { 'Authorization': `Bearer token_${player.id}` }
+      headers: { Authorization: `Bearer token_${player.id}` },
     });
   }
 
   async submitGuess(playerId: string, guess: string) {
     return this.http('POST', '/api/submit-guess', {
       data: { instanceId: this.instanceId, guess },
-      headers: { 'Authorization': `Bearer token_${playerId}` }
+      headers: { Authorization: `Bearer token_${playerId}` },
     });
   }
 
   async patchLeaderboard(entries: { userId: string; roundHistory: any[] }[]) {
     return this.http('PATCH', `/api/test/instance/${this.instanceId}`, {
-      data: { leaderboard: { entries } }
+      data: { leaderboard: { entries } },
     });
   }
 
   async patchEnabledJokers(jokers: Joker[]) {
     return this.http('PATCH', `/api/test/instance/${this.instanceId}`, {
-      data: { settings: { enabledJokers: jokers } }
+      data: { settings: { enabledJokers: jokers } },
     });
   }
 }

@@ -21,13 +21,13 @@ export const createGameMiddlewares = (instances: Record<string, GameInstance>) =
    */
   const authenticateUser = async (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).send({ error: "No token provided" });
+    if (!authHeader) return res.status(401).send({ error: 'No token provided' });
 
-    const token = authHeader.split(' ')[1] || "";
+    const token = authHeader.split(' ')[1] || '';
     const userId = await validateToken(token);
 
     if (!userId) {
-      return res.status(401).send({ error: "Invalid Discord token" });
+      return res.status(401).send({ error: 'Invalid Discord token' });
     }
 
     req.token = token;
@@ -43,7 +43,7 @@ export const createGameMiddlewares = (instances: Record<string, GameInstance>) =
     const game = instances[instanceId];
 
     if (!game) {
-      return res.status(400).send({ error: "Instance not found" });
+      return res.status(400).send({ error: 'Instance not found' });
     }
 
     req.game = game;
@@ -58,11 +58,11 @@ export const createGameMiddlewares = (instances: Record<string, GameInstance>) =
 
     if (!req.game?.isHost(userId!)) {
       logger.warn(req.body.instanceId, `Unauthorized host attempt by user ${userId}`, LogCategory.SECURITY);
-      return res.status(403).json({ error: "Only host can perform this action" });
+      return res.status(403).json({ error: 'Only host can perform this action' });
     }
 
     next();
-  }
+  };
 
   return { authenticateUser, fetchGame, isHost };
-}
+};

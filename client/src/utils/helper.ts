@@ -1,4 +1,4 @@
-import { Participant } from "@yasq/shared";
+import { Participant } from '@yasq/shared';
 
 const userCache = new Map<string, Participant>();
 
@@ -12,7 +12,7 @@ export function findUser(participants: Participant[], userId: string): Participa
   }
 
   // Lookup cache if not present in game
-  return userCache.get(userId) || { id: "0", username: "Unknown" };
+  return userCache.get(userId) || { id: '0', username: 'Unknown' };
 }
 
 export function getUserId(auth: any) {
@@ -23,14 +23,15 @@ export function getUserId(auth: any) {
 }
 
 export function capitalize(str: string) {
-  return str.toLowerCase()
+  return str
+    .toLowerCase()
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 }
 
 export function formatBonusMultiplier(rate: number): string {
-  if (rate === 0) return "Off";
+  if (rate === 0) return 'Off';
   const percent = (Math.round(rate * 100 * 10) / 10).toFixed(1);
   return `+${percent}%`;
 }

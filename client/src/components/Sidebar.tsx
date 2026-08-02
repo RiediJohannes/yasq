@@ -1,11 +1,10 @@
-import { useSignal } from "@preact/signals";
+import { useSignal } from '@preact/signals';
 
-import { DEFAULT_VOLUME_SLIDER_VAL, getAvatarUrl, getDisplayName, MAX_VOLUME } from "@yasq/shared";
-import { gainNode, gameState, isMac, participants, volume } from "../main";
-import { useKeyboardShortcut } from "../hooks/useKeyboardShortcut";
-import { getActionKeyLabel } from "../utils/helper";
-import { DiscordAvatar } from "./DiscordAvatar";
-
+import { DEFAULT_VOLUME_SLIDER_VAL, getAvatarUrl, getDisplayName, MAX_VOLUME } from '@yasq/shared';
+import { gainNode, gameState, isMac, participants, volume } from '../main';
+import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
+import { getActionKeyLabel } from '../utils/helper';
+import { DiscordAvatar } from './DiscordAvatar';
 
 export const Sidebar = () => {
   const mutedVolume = useSignal<number | null>(null);
@@ -39,16 +38,16 @@ export const Sidebar = () => {
   });
 
   const step = 0.01;
-  useKeyboardShortcut({ key: "ArrowUp", altKey: !isMac, metaKey: isMac }, () => updateVolume(volume.value + step));
-  useKeyboardShortcut({ key: "ArrowDown", altKey: !isMac, metaKey: isMac }, () => updateVolume(volume.value - step));
-  useKeyboardShortcut({ key: "M", altKey: !isMac, metaKey: isMac }, () => toggleMute());
+  useKeyboardShortcut({ key: 'ArrowUp', altKey: !isMac, metaKey: isMac }, () => updateVolume(volume.value + step));
+  useKeyboardShortcut({ key: 'ArrowDown', altKey: !isMac, metaKey: isMac }, () => updateVolume(volume.value - step));
+  useKeyboardShortcut({ key: 'M', altKey: !isMac, metaKey: isMac }, () => toggleMute());
 
   return (
     <div className="sidebar">
       <div className="sidebar-box participants">
         <h3>Participating Players</h3>
         <div id="participant-list">
-          {sortedParticipants.map((p) => {
+          {sortedParticipants.map(p => {
             const isPlayerHost = p.id === gameState.value.hostId;
             const isPlayerReady = gameState.value.readyUsers.includes(p.id);
             const hasPlayerGuessed = gameState.value.guessedPlayers.includes(p.id);
@@ -60,7 +59,10 @@ export const Sidebar = () => {
             const isStreakBroken = brokenStreak > 0;
 
             return (
-              <div key={p.id} className="player-entry">
+              <div
+                key={p.id}
+                className="player-entry"
+              >
                 <DiscordAvatar
                   src={getAvatarUrl(p)}
                   userName={getDisplayName(p)}
@@ -73,7 +75,7 @@ export const Sidebar = () => {
                     {isLastWinner && <span className="badge winner">👑</span>}
                     {streakToDisplay > 0 && (
                       <span
-                        className={`badge streak streak-tier-${Math.min(Math.ceil(streakToDisplay / 2), 4)} ${isStreakBroken ? "broken" : ""}`}
+                        className={`badge streak streak-tier-${Math.min(Math.ceil(streakToDisplay / 2), 4)} ${isStreakBroken ? 'broken' : ''}`}
                         data-streak={streakToDisplay}
                       >
                         🔥 {streakToDisplay}
@@ -93,19 +95,30 @@ export const Sidebar = () => {
           <label htmlFor="volume-slider">Volume</label>
           <div className="volume-controls-row">
             <div className="volume-stack">
-              <input type="range" id="volume-slider" min="0" max="1" step="0.01" value={volume.value} onInput={(e) => {
-                const target = e.currentTarget as HTMLInputElement;
-                const val = parseFloat(target.value);
-                volume.value = val;
-                gainNode.gain.value = val * MAX_VOLUME;
-              }} />
+              <input
+                type="range"
+                id="volume-slider"
+                min="0"
+                max="1"
+                step="0.01"
+                value={volume.value}
+                onInput={e => {
+                  const target = e.currentTarget as HTMLInputElement;
+                  const val = parseFloat(target.value);
+                  volume.value = val;
+                  gainNode.gain.value = val * MAX_VOLUME;
+                }}
+              />
               <span className="shortcut-badge">
                 <kbd>{getActionKeyLabel(isMac)}</kbd> + <kbd>▲</kbd> / <kbd>▼</kbd>
               </span>
             </div>
             <div className="volume-stack">
-              <button className="mute-button" onClick={toggleMute}>
-                {volume.value === 0 ? "🔇" : "🔊"}
+              <button
+                className="mute-button"
+                onClick={toggleMute}
+              >
+                {volume.value === 0 ? '🔇' : '🔊'}
               </button>
               <span className="shortcut-badge">
                 <kbd>{getActionKeyLabel(isMac)}</kbd> + <kbd>M</kbd>
@@ -115,5 +128,5 @@ export const Sidebar = () => {
         </div>
       </div>
     </div>
-  )
+  );
 };

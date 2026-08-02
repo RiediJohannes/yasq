@@ -1,15 +1,15 @@
 {
   "compilerOptions": {
     /* File Layout */
-    "rootDir": "./",             // Or "./src" if your code is in a src folder
+    "rootDir": "./", // Or "./src" if your code is in a src folder
     "outDir": "./dist",
 
     /* Environment Settings */
-    "module": "NodeNext",        // Essential for modern Node.js ESM
+    "module": "NodeNext", // Essential for modern Node.js ESM
     "moduleResolution": "NodeNext",
     "target": "ESNext",
-    "lib": ["ESNext"],           // Modern JS features
-    "types": ["node"],           // Tells TS to look for @types/node
+    "lib": ["ESNext"], // Modern JS features
+    "types": ["node"], // Tells TS to look for @types/node
 
     /* Other Outputs */
     "sourceMap": true,
@@ -22,10 +22,10 @@
     "exactOptionalPropertyTypes": true,
 
     /* Recommended Options */
-    "jsx": "react-jsx",          // Keep this if you have React, otherwise remove
+    "jsx": "react-jsx", // Keep this if you have React, otherwise remove
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
-    "skipLibCheck": true,        // Speeds up build by skipping type checks of node_modules
-    "esModuleInterop": true      // Helps with importing older JS packages
+    "skipLibCheck": true, // Speeds up build by skipping type checks of node_modules
+    "esModuleInterop": true // Helps with importing older JS packages
   }
 }

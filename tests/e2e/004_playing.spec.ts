@@ -1,27 +1,29 @@
 import { test, expect } from '@playwright/test';
-import { generatePlayers, Player } from '../utils/helper.js'
+import { generatePlayers, Player } from '../utils/helper.js';
 import { PlayingPage } from './pages/PlayingPage.js';
 import { Sidebar } from './pages/components/Sidebar.js';
 import { TestApi } from '../utils/api.js';
 
 test.describe('Host UI', () => {
-
   let players: Player[] = [];
   let currentInstanceId: string;
   let api: TestApi;
 
-  test.beforeEach(async ({ page, request }, testInfo) => {
+  test.beforeEach(async ({ page }, testInfo) => {
     currentInstanceId = `test-instance-${testInfo.testId}`;
     const playerCount = 3;
     players = generatePlayers(playerCount);
     const user = players[0];
 
-    await page.addInitScript(({ allPlayers, user, instanceId }) => {
-      window.__MOCK_PARTICIPANTS__ = allPlayers;
-      window.__MOCK_USER_ID__ = user.id;
-      window.__MOCK_USER_NAME__ = user.username;
-      window.__MOCK_INSTANCE_ID__ = instanceId;
-    }, { allPlayers: players, user: user, instanceId: currentInstanceId });
+    await page.addInitScript(
+      ({ allPlayers, user, instanceId }) => {
+        window.__MOCK_PARTICIPANTS__ = allPlayers;
+        window.__MOCK_USER_ID__ = user.id;
+        window.__MOCK_USER_NAME__ = user.username;
+        window.__MOCK_INSTANCE_ID__ = instanceId;
+      },
+      { allPlayers: players, user: user, instanceId: currentInstanceId }
+    );
 
     // Setup current game state
     api = new TestApi('http://localhost:3001', currentInstanceId);
@@ -29,19 +31,19 @@ test.describe('Host UI', () => {
       settings: {
         rounds: 5,
         trackDuration: 30_000,
-        enabledJokers: ['OBFUSCATION', 'TRIVIA', 'MULTIPLE_CHOICE', 'SPY']
+        enabledJokers: ['OBFUSCATION', 'TRIVIA', 'MULTIPLE_CHOICE', 'SPY'],
       },
       trackInfo: {
-        url: "some url",
+        url: 'some url',
         track: {
           game: 'Game A',
           title: 'Track A',
           tags: [
-            { 'type': 'platform', 'value': 'Platform A'},
-            { 'type': 'release', 'value': '2026'}
-          ]
-        }
-      }
+            { type: 'platform', value: 'Platform A' },
+            { type: 'release', value: '2026' },
+          ],
+        },
+      },
     });
 
     // Navigate to the app
@@ -73,23 +75,25 @@ test.describe('Host UI', () => {
 });
 
 test.describe('Player UI', () => {
-
   let players: Player[] = [];
   let currentInstanceId: string;
   let api: TestApi;
 
-  test.beforeEach(async ({ page, request }, testInfo) => {
+  test.beforeEach(async ({ page }, testInfo) => {
     currentInstanceId = `test-instance-${testInfo.testId}`;
     const playerCount = 5;
     players = generatePlayers(playerCount);
     const user = players[1];
 
-    await page.addInitScript(({ allPlayers, user, instanceId }) => {
-      window.__MOCK_PARTICIPANTS__ = allPlayers;
-      window.__MOCK_USER_ID__ = user.id;
-      window.__MOCK_USER_NAME__ = user.username;
-      window.__MOCK_INSTANCE_ID__ = instanceId;
-    }, { allPlayers: players, user: user, instanceId: currentInstanceId });
+    await page.addInitScript(
+      ({ allPlayers, user, instanceId }) => {
+        window.__MOCK_PARTICIPANTS__ = allPlayers;
+        window.__MOCK_USER_ID__ = user.id;
+        window.__MOCK_USER_NAME__ = user.username;
+        window.__MOCK_INSTANCE_ID__ = instanceId;
+      },
+      { allPlayers: players, user: user, instanceId: currentInstanceId }
+    );
 
     // Setup current game state
     api = new TestApi('http://localhost:3001', currentInstanceId);
@@ -97,19 +101,19 @@ test.describe('Player UI', () => {
       settings: {
         rounds: 5,
         trackDuration: 30_000,
-        enabledJokers: ['OBFUSCATION', 'TRIVIA', 'MULTIPLE_CHOICE', 'SPY']
+        enabledJokers: ['OBFUSCATION', 'TRIVIA', 'MULTIPLE_CHOICE', 'SPY'],
       },
       trackInfo: {
-        url: "some url",
+        url: 'some url',
         track: {
           game: 'Game A',
           title: 'Track A',
           tags: [
-            { 'type': 'platform', 'value': 'Platform A'},
-            { 'type': 'release', 'value': '2026'}
-          ]
-        }
-      }
+            { type: 'platform', value: 'Platform A' },
+            { type: 'release', value: '2026' },
+          ],
+        },
+      },
     });
 
     // Navigate to the app
@@ -231,11 +235,7 @@ test.describe('Player UI', () => {
     // Verify order of MockPlayers in list
     await expect(playing.spyActionButtons.filter({ hasText: players[3].username })).toBeVisible();
     const buttonTexts = await playing.spyActionButtons.allTextContents();
-    const expectedOrder = [
-      players[2].username,
-      players[4].username,
-      players[3].username
-    ];
+    const expectedOrder = [players[2].username, players[4].username, players[3].username];
     expect(buttonTexts).toEqual(expectedOrder);
 
     // Select target

@@ -1,5 +1,5 @@
-import { NonDraggableImg } from "./NonDraggableImg";
-import { TooltipDiv } from "./Tooltip";
+import { NonDraggableImg } from './NonDraggableImg';
+import { TooltipDiv } from './Tooltip';
 
 interface DiscordAvatarProps {
   src: string;
@@ -10,15 +10,21 @@ interface DiscordAvatarProps {
 }
 
 // Discord avatar image with alt-text and optional custom tooltip
-export const DiscordAvatar = ({ src, userName, tiny = false, hasTooltip = false, className = "" }: DiscordAvatarProps) => {
-  const cssClass = tiny ? "avatar-tiny" : "avatar-small";
-  const discordAvatarHtml = <NonDraggableImg src={src} alt={`Avatar of ${userName}`} className={`${cssClass} ${className}`} />;
-
-  return hasTooltip ? (
-    <TooltipDiv text={userName}>
-      {discordAvatarHtml}
-    </TooltipDiv>
-  ) : (
-    discordAvatarHtml
+export const DiscordAvatar = ({
+  src,
+  userName,
+  tiny = false,
+  hasTooltip = false,
+  className = '',
+}: DiscordAvatarProps) => {
+  const cssClass = tiny ? 'avatar-tiny' : 'avatar-small';
+  const discordAvatarHtml = (
+    <NonDraggableImg
+      src={src}
+      alt={`Avatar of ${userName}`}
+      className={`${cssClass} ${className}`}
+    />
   );
+
+  return hasTooltip ? <TooltipDiv text={userName}>{discordAvatarHtml}</TooltipDiv> : discordAvatarHtml;
 };

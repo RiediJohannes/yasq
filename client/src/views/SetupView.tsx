@@ -1,10 +1,10 @@
-import { useSignal } from "@preact/signals";
-import { Fragment } from "preact/jsx-runtime";
-import { TargetedEvent } from "preact";
+import { useSignal } from '@preact/signals';
+import { Fragment } from 'preact/jsx-runtime';
+import { TargetedEvent } from 'preact';
 
-import * as backend from "../utils/backend";
-import { auth, discordSdk, gameState } from "../main";
-import { ALL_JOKER_ICONS } from "../components/JokerIcons";
+import * as backend from '../utils/backend';
+import { auth, discordSdk, gameState } from '../main';
+import { ALL_JOKER_ICONS } from '../components/JokerIcons';
 import {
   DEFAULT_ENABLED_JOKERS,
   DEFAULT_ROUNDS,
@@ -13,30 +13,31 @@ import {
   GameSettings,
   Joker,
   StreakBonusMultiplier,
-  TimeBonus
-} from "@yasq/shared";
-import { NonDraggableImg } from "../components/NonDraggableImg";
-import { OptionalTimeBonus, TOptionalTimeBonus } from "../utils/types";
-import { PLAYER_TIME_BONUS_LABELS } from "./LobbyView";
-import { HostTransferDropdown } from "../components/HostTransferDropdown";
-import { formatBonusMultiplier } from "../utils/helper";
-import { TimeBonusPlot } from "../components/TimeBonusPlot";
-import { useTimeBonusSamples } from "../hooks/useTimeBonusSamples";
-import { WithTooltip } from "../components/Tooltip";
-
+  TimeBonus,
+} from '@yasq/shared';
+import { NonDraggableImg } from '../components/NonDraggableImg';
+import { OptionalTimeBonus, TOptionalTimeBonus } from '../utils/types';
+import { PLAYER_TIME_BONUS_LABELS } from './LobbyView';
+import { HostTransferDropdown } from '../components/HostTransferDropdown';
+import { formatBonusMultiplier } from '../utils/helper';
+import { TimeBonusPlot } from '../components/TimeBonusPlot';
+import { useTimeBonusSamples } from '../hooks/useTimeBonusSamples';
+import { WithTooltip } from '../components/Tooltip';
 
 const HOST_TIME_BONUS_LABELS: Record<TOptionalTimeBonus, string> = {
   [TimeBonus.LINEAR]: PLAYER_TIME_BONUS_LABELS[TimeBonus.LINEAR] + ' (linear)',
   [TimeBonus.EXPONENTIAL]: PLAYER_TIME_BONUS_LABELS[TimeBonus.EXPONENTIAL] + ' (exponential)',
   [TimeBonus.LOGISTIC]: PLAYER_TIME_BONUS_LABELS[TimeBonus.LOGISTIC] + ' (logistic)',
-  NONE: '❌ No time bonus'
+  NONE: '❌ No time bonus',
 };
 
 export const SetupView = ({ isHost }: { isHost: boolean }) => {
   const roundCount = useSignal(gameState.value.gameSettings.rounds || DEFAULT_ROUNDS);
-  const trackDuration = useSignal(gameState.value.gameSettings.trackDuration
-    ? gameState.value.gameSettings.trackDuration / 1000
-    : DEFAULT_TRACK_DURATION);
+  const trackDuration = useSignal(
+    gameState.value.gameSettings.trackDuration
+      ? gameState.value.gameSettings.trackDuration / 1000
+      : DEFAULT_TRACK_DURATION
+  );
   const isSubmitting = useSignal(false);
   const isAdvancedOpen = useSignal(false);
   const firstBonusMultiplier = useSignal<FirstBonusMultiplier>(
@@ -54,19 +55,16 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
     )
   );
 
-  const selectedBonus = useSignal<TOptionalTimeBonus>(
-    gameState.value.gameSettings.timeBonus ?? OptionalTimeBonus.NONE
-  );
+  const selectedBonus = useSignal<TOptionalTimeBonus>(gameState.value.gameSettings.timeBonus ?? OptionalTimeBonus.NONE);
 
   const { timeBonusSamples, isLoading } = useTimeBonusSamples(isHost);
 
-  const activeTimeBonusSample = selectedBonus.value !== OptionalTimeBonus.NONE
-    ? timeBonusSamples.value.get(selectedBonus.value as TimeBonus)
-    : null;
+  const activeTimeBonusSample =
+    selectedBonus.value !== OptionalTimeBonus.NONE
+      ? timeBonusSamples.value.get(selectedBonus.value as TimeBonus)
+      : null;
 
-  const sampleParticipants = new Map(
-    (activeTimeBonusSample?.participants || []).map(p => [p.id, p])
-  );
+  const sampleParticipants = new Map((activeTimeBonusSample?.participants || []).map(p => [p.id, p]));
 
   const toggleJoker = (type: Joker) => {
     const next = new Set(activeJokers.value);
@@ -79,7 +77,7 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
   };
 
   const selectTimeBonus = (e: TargetedEvent<HTMLSelectElement, Event>) => {
-    selectedBonus.value =  (e.target as HTMLSelectElement).value as TOptionalTimeBonus;
+    selectedBonus.value = (e.target as HTMLSelectElement).value as TOptionalTimeBonus;
   };
 
   const handleConfirmSettings = async () => {
@@ -91,24 +89,24 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
       enabledJokers: [...activeJokers.value],
       firstBonusMultiplier: firstBonusMultiplier.value,
       timeBonus: selectedBonus.value === OptionalTimeBonus.NONE ? null : selectedBonus.value,
-      streakBonusMultiplier: streakBonusMultiplier.value
+      streakBonusMultiplier: streakBonusMultiplier.value,
     };
 
     try {
-      await backend.setupGame(
-        auth.value.access_token,
-        discordSdk.instanceId,
-        currentSettings
-      );
+      await backend.setupGame(auth.value.access_token, discordSdk.instanceId, currentSettings);
     } catch (e) {
-      console.error("Setup failed:", e);
+      console.error('Setup failed:', e);
       isSubmitting.value = false;
     }
   };
 
   return (
     <div className="view-container centered">
-      <NonDraggableImg src="/rocket.png" className="logo" alt="Discord" />
+      <NonDraggableImg
+        src="/rocket.png"
+        className="logo"
+        alt="Discord"
+      />
       <h1>Welcome to YASQ!</h1>
 
       {!isHost ? (
@@ -116,27 +114,45 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
           <h2>Waiting for host to setup game...</h2>
         </div>
       ) : (
-        <div className="card-container" id="host-settings">
+        <div
+          className="card-container"
+          id="host-settings"
+        >
           <h2>Game Setup</h2>
           <hr className="divider" />
           <label className="setting-item">
             <span>Number of Rounds</span>
-            <input type="number" id="rounds-input" min="1" max="20" value={roundCount.value}
-              onInput={(e) => (roundCount.value = e.currentTarget.valueAsNumber)} />
+            <input
+              type="number"
+              id="rounds-input"
+              min="1"
+              max="20"
+              value={roundCount.value}
+              onInput={e => (roundCount.value = e.currentTarget.valueAsNumber)}
+            />
           </label>
           <label className="setting-item">
             <span>Track Duration (sec)</span>
-            <input type="number" id="duration-input" min="10" max="120" value={trackDuration.value}
-              onInput={(e) => (trackDuration.value = e.currentTarget.valueAsNumber)} />
+            <input
+              type="number"
+              id="duration-input"
+              min="10"
+              max="120"
+              value={trackDuration.value}
+              onInput={e => (trackDuration.value = e.currentTarget.valueAsNumber)}
+            />
           </label>
 
           <div>
-            <label className="setting-item"><span>Active Jokers</span></label>
+            <label className="setting-item">
+              <span>Active Jokers</span>
+            </label>
             <div className="joker-config-row">
-              {ALL_JOKER_ICONS.map((Icon) => {
+              {ALL_JOKER_ICONS.map(Icon => {
                 const isActive = activeJokers.value.has(Icon.jokerType);
 
-                const jokerName = Icon.jokerType.toLowerCase()
+                const jokerName = Icon.jokerType
+                  .toLowerCase()
                   .split('_')
                   .map(word => word.charAt(0).toUpperCase() + word.slice(1))
                   .join(' ');
@@ -166,16 +182,22 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
               onClick={() => (isAdvancedOpen.value = !isAdvancedOpen.value)}
             >
               <span>Advanced Settings</span>
-              <span className={`arrow-indicator ${isAdvancedOpen.value ? "open" : ""}`} />
+              <span className={`arrow-indicator ${isAdvancedOpen.value ? 'open' : ''}`} />
             </button>
 
             {isAdvancedOpen.value && (
               <div className="advanced-content-panel">
                 <div className="setting-item">
                   <span>Time Bonus</span>
-                  <select value={selectedBonus.value} onChange={selectTimeBonus}>
-                    {Object.values(OptionalTimeBonus).map((value) => (
-                      <option key={value} value={value}>
+                  <select
+                    value={selectedBonus.value}
+                    onChange={selectTimeBonus}
+                  >
+                    {Object.values(OptionalTimeBonus).map(value => (
+                      <option
+                        key={value}
+                        value={value}
+                      >
                         {HOST_TIME_BONUS_LABELS[value]}
                       </option>
                     ))}
@@ -195,8 +217,8 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
                   <span>First Correct Answer Bonus</span>
                   <div className="button-group">
                     {Object.values(FirstBonusMultiplier)
-                      .filter((val): val is number => typeof val === "number")
-                      .map((value) => (
+                      .filter((val): val is number => typeof val === 'number')
+                      .map(value => (
                         <Fragment key={value}>
                           <input
                             type="radio"
@@ -204,19 +226,18 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
                             name="first-bonus"
                             value={value}
                             checked={firstBonusMultiplier.value === value}
-                            onChange={(_) => {
+                            onChange={_ => {
                               firstBonusMultiplier.value = value;
                             }}
                           />
                           <label
                             htmlFor={`first-bonus-${value}`}
-                            className={`btn-radio ${firstBonusMultiplier.value === value ? "active" : ""}`}
+                            className={`btn-radio ${firstBonusMultiplier.value === value ? 'active' : ''}`}
                           >
                             {formatBonusMultiplier(value)}
                           </label>
                         </Fragment>
-                      ))
-                    }
+                      ))}
                   </div>
                 </div>
 
@@ -224,8 +245,8 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
                   <span>Streak Bonus</span>
                   <div className="button-group">
                     {Object.values(StreakBonusMultiplier)
-                      .filter((val): val is number => typeof val === "number")
-                      .map((value) => (
+                      .filter((val): val is number => typeof val === 'number')
+                      .map(value => (
                         <Fragment key={value}>
                           <input
                             type="radio"
@@ -233,27 +254,30 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
                             name="streak-bonus"
                             value={value}
                             checked={streakBonusMultiplier.value === value}
-                            onChange={(_) => {
+                            onChange={_ => {
                               streakBonusMultiplier.value = value;
                             }}
                           />
                           <label
                             htmlFor={`streak-bonus-${value}`}
-                            className={`btn-radio ${streakBonusMultiplier.value === value ? "active" : ""}`}
+                            className={`btn-radio ${streakBonusMultiplier.value === value ? 'active' : ''}`}
                           >
                             {formatBonusMultiplier(value)}
                           </label>
                         </Fragment>
-                      ))
-                    }
+                      ))}
                   </div>
                 </div>
               </div>
             )}
           </div>
 
-          <button id="btn-start" disabled={isSubmitting.value} onClick={handleConfirmSettings}>
-            {isSubmitting.value ? "Saving..." : "Confirm"}
+          <button
+            id="btn-start"
+            disabled={isSubmitting.value}
+            onClick={handleConfirmSettings}
+          >
+            {isSubmitting.value ? 'Saving...' : 'Confirm'}
           </button>
 
           <hr className="divider" />

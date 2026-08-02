@@ -1,20 +1,19 @@
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useState } from 'preact/hooks';
 
-import * as backend from "../utils/backend";
-import { auth, discordSdk, gameState, participants } from "../main";
-import { capitalize, formatBonusMultiplier } from "../utils/helper";
-import { ALL_JOKER_ICONS } from "../components/JokerIcons";
-import { OptionalTimeBonus, TOptionalTimeBonus } from "../utils/types";
-import { TimeBonus } from "@yasq/shared";
-import { ReadyButton } from "../components/ReadyButton";
-import { TooltipDiv } from "../components/Tooltip";
-
+import * as backend from '../utils/backend';
+import { auth, discordSdk, gameState, participants } from '../main';
+import { capitalize, formatBonusMultiplier } from '../utils/helper';
+import { ALL_JOKER_ICONS } from '../components/JokerIcons';
+import { OptionalTimeBonus, TOptionalTimeBonus } from '../utils/types';
+import { TimeBonus } from '@yasq/shared';
+import { ReadyButton } from '../components/ReadyButton';
+import { TooltipDiv } from '../components/Tooltip';
 
 export const PLAYER_TIME_BONUS_LABELS: Record<TOptionalTimeBonus, string> = {
   [TimeBonus.LINEAR]: '⏳ Steady Pace',
   [TimeBonus.EXPONENTIAL]: '🔥 Quick Fire',
   [TimeBonus.LOGISTIC]: '⚖️ Balanced',
-  NONE: '❌ No time bonus'
+  NONE: '❌ No time bonus',
 };
 
 export const LobbyView = ({ isHost }: { isHost: boolean }) => {
@@ -29,12 +28,12 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
 
     const closeAllTooltips = () => setActiveTooltipType(null);
 
-    window.addEventListener("touchstart", closeAllTooltips);
-    window.addEventListener("click", closeAllTooltips);
+    window.addEventListener('touchstart', closeAllTooltips);
+    window.addEventListener('click', closeAllTooltips);
 
     return () => {
-      window.removeEventListener("touchstart", closeAllTooltips);
-      window.removeEventListener("click", closeAllTooltips);
+      window.removeEventListener('touchstart', closeAllTooltips);
+      window.removeEventListener('click', closeAllTooltips);
     };
   }, [activeTooltipType]);
 
@@ -47,7 +46,10 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
   };
 
   return (
-    <div id="lobby" className="centered">
+    <div
+      id="lobby"
+      className="centered"
+    >
       <div className="card-container">
         <h2>Game Settings</h2>
         <hr className="divider" />
@@ -63,14 +65,17 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
           <dd>
             <div className="joker-column">
               {gameState.value.gameSettings.enabledJokers.length ? (
-                gameState.value.gameSettings.enabledJokers.map((jokerType) => {
+                gameState.value.gameSettings.enabledJokers.map(jokerType => {
                   const JokerIcon = ALL_JOKER_ICONS.find(Icon => Icon.jokerType === jokerType);
 
                   return (
-                    <div key={jokerType} className="joker-row-item">
+                    <div
+                      key={jokerType}
+                      className="joker-row-item"
+                    >
                       {JokerIcon && (
                         <TooltipDiv
-                          text={JokerIcon?.description || "Description not "}
+                          text={JokerIcon?.description || 'Description not '}
                           className={`joker-indicator`}
                         >
                           <JokerIcon />
@@ -87,19 +92,13 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
           </dd>
 
           <dt>⏱️ Time Bonus</dt>
-          <dd>
-            {PLAYER_TIME_BONUS_LABELS[gameState.value.gameSettings.timeBonus ?? OptionalTimeBonus.NONE]}
-          </dd>
+          <dd>{PLAYER_TIME_BONUS_LABELS[gameState.value.gameSettings.timeBonus ?? OptionalTimeBonus.NONE]}</dd>
 
           <dt>🥇 First Bonus</dt>
-          <dd>
-            {formatBonusMultiplier(gameState.value.gameSettings.firstBonusMultiplier)}
-          </dd>
+          <dd>{formatBonusMultiplier(gameState.value.gameSettings.firstBonusMultiplier)}</dd>
 
           <dt>🔥 Streak Bonus</dt>
-          <dd>
-            {formatBonusMultiplier(gameState.value.gameSettings.streakBonusMultiplier)}
-          </dd>
+          <dd>{formatBonusMultiplier(gameState.value.gameSettings.streakBonusMultiplier)}</dd>
         </dl>
 
         {isHost && (
@@ -114,11 +113,15 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
 
       <div className="lobby-footer">
         {isHost ? (
-          <button id="btn-start" disabled={!allPlayersReady} onClick={handleStart}>
-            {allPlayersReady ? "Start Game" : `Waiting... (${readyUsers}/${playersExcludingHost.length})`}
+          <button
+            id="btn-start"
+            disabled={!allPlayersReady}
+            onClick={handleStart}
+          >
+            {allPlayersReady ? 'Start Game' : `Waiting... (${readyUsers}/${playersExcludingHost.length})`}
           </button>
         ) : (
-          <ReadyButton promptText={"Ready Up"} />
+          <ReadyButton promptText={'Ready Up'} />
         )}
       </div>
     </div>

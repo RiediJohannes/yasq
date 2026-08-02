@@ -1,8 +1,8 @@
-import { useState } from "preact/hooks";
-import { auth, discordSdk, gameState, isMac } from "../main";
-import * as backend from "../utils/backend";
-import { getActionKeyLabel, getUserId } from "../utils/helper";
-import { useKeyboardShortcut } from "../hooks/useKeyboardShortcut";
+import { useState } from 'preact/hooks';
+import { auth, discordSdk, gameState, isMac } from '../main';
+import * as backend from '../utils/backend';
+import { getActionKeyLabel, getUserId } from '../utils/helper';
+import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
 
 // Custom hook to inform the backend about the user's ready status
 export const useReadyButtonLogic = () => {
@@ -21,7 +21,6 @@ export const useReadyButtonLogic = () => {
   return { hasInteracted, handleReady };
 };
 
-
 interface ReadyButtonProps {
   isHost?: boolean;
   promptText?: string;
@@ -34,7 +33,7 @@ export const ReadyButton = ({ promptText }: ReadyButtonProps) => {
   const isReady = gameState.value.readyUsers.includes(userId);
   const isFinalRound = gameState.value.currentRound >= gameState.value.gameSettings.rounds;
 
-  useKeyboardShortcut({ key: "R", altKey: !isMac, metaKey: isMac }, () => {
+  useKeyboardShortcut({ key: 'R', altKey: !isMac, metaKey: isMac }, () => {
     void handleReady();
   });
 
@@ -42,7 +41,7 @@ export const ReadyButton = ({ promptText }: ReadyButtonProps) => {
     <div className="shortcut-badge-btn-wrapper">
       <button
         id="btn-ready"
-        className={`ready-btn ${isReady ? "ready" : ""} ${hasInteracted ? "interacted" : ""}`}
+        className={`ready-btn ${isReady ? 'ready' : ''} ${hasInteracted ? 'interacted' : ''}`}
         onClick={handleReady}
       >
         {isReady
@@ -50,9 +49,8 @@ export const ReadyButton = ({ promptText }: ReadyButtonProps) => {
           : promptText
             ? promptText
             : isFinalRound
-              ? "Ready for Final Results"
-              : "Ready for Next Round"
-        }
+              ? 'Ready for Final Results'
+              : 'Ready for Next Round'}
       </button>
       <span className="shortcut-badge">
         <kbd>{getActionKeyLabel(isMac)}</kbd>+<kbd>R</kbd>

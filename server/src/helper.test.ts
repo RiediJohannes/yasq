@@ -12,12 +12,12 @@ describe('validateToken', () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllEnvs();
-    invalidateToken("test_token");
+    invalidateToken('test_token');
   });
 
   it('should handle the full token lifecycle: fetch, cache, and expire', async () => {
     const mockUser = { id: 'discord_123' };
-    const token = "test_token";
+    const token = 'test_token';
 
     const mockFetch = vi.fn(() =>
       Promise.resolve({
@@ -50,20 +50,40 @@ describe('validateToken', () => {
   it('should use Mock Mode logic when VITE_MOCK_MODE is true', async () => {
     vi.stubEnv('VITE_MOCK_MODE', 'true');
 
-    const result = await validateToken("mock_999");
-    expect(result).toBe("999");
+    const result = await validateToken('mock_999');
+    expect(result).toBe('999');
   });
 });
 
 describe('filterDiscordTextChannels', () => {
   const mockChannels = [
     { id: '1', type: ChannelType.GuildCategory, name: 'category 1' },
-    { id: '2', type: ChannelType.GuildText, name: 'text channel 1', parent_id: '1' },
-    { id: '3', type: ChannelType.GuildText, name: 'text channel 2', parent_id: '1' },
+    {
+      id: '2',
+      type: ChannelType.GuildText,
+      name: 'text channel 1',
+      parent_id: '1',
+    },
+    {
+      id: '3',
+      type: ChannelType.GuildText,
+      name: 'text channel 2',
+      parent_id: '1',
+    },
     { id: '4', type: ChannelType.GuildCategory, name: 'category 2' },
-    { id: '5', type: ChannelType.GuildText, name: 'text channel 3', parent_id: '4' },
-    { id: '6', type: ChannelType.GuildText, name: 'text channel 4', parent_id: null }, // No category
-    { id: '7', type: ChannelType.GuildVoice, name: 'voice channel 1'}
+    {
+      id: '5',
+      type: ChannelType.GuildText,
+      name: 'text channel 3',
+      parent_id: '4',
+    },
+    {
+      id: '6',
+      type: ChannelType.GuildText,
+      name: 'text channel 4',
+      parent_id: null,
+    }, // No category
+    { id: '7', type: ChannelType.GuildVoice, name: 'voice channel 1' },
   ];
 
   it('should filter only type 0 channels and sort them by category then name', () => {

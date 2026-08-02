@@ -17,6 +17,10 @@
     "dev:client": "npm run dev -w client",
     "dev": "concurrently \"npm run dev:server\" \"wait-on http://localhost:3001/health && npm run dev:client\"",
     "dev:mock": "cross-env VITE_MOCK_MODE=true npm run dev",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
+    "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test:unit": "concurrently \"npm run test:unit:server\" \"npm run test:unit:client\"",
     "test:unit:server": "npm run test -w server",
     "test:unit:client": "npm run test -w client",
@@ -28,8 +32,14 @@
     "test:e2e:ui": "cross-env VITE_MOCK_MODE=true UI_TEST_MODE=true playwright test --config=tests/e2e/playwright.config.ts --ui"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.60.0",
     "concurrently": "^10.0.3",
+    "eslint": "^10.8.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.6",
+    "prettier": "^3.9.6",
+    "typescript-eslint": "^8.65.0",
     "wait-on": "^9.0.10"
   },
   "dependencies": {
