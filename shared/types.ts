@@ -1,5 +1,6 @@
 import {
   BonusType,
+  DEFAULT_ENABLED_JOKERS,
   DEFAULT_FIRST_BONUS_MULTIPLIER,
   DEFAULT_ROUNDS,
   DEFAULT_STREAK_BONUS_MULTIPLIER,
@@ -45,15 +46,45 @@ export interface Playlist {
   tracks: string[];
 }
 
-export class GameSettings<T = Joker[]> {
-  constructor(
-    public rounds: number = DEFAULT_ROUNDS,
-    public trackDuration: number = DEFAULT_TRACK_DURATION,
-    public enabledJokers: T = [] as T,
-    public firstBonusMultiplier: FirstBonusMultiplier = DEFAULT_FIRST_BONUS_MULTIPLIER,
-    public timeBonus: TimeBonus | null = DEFAULT_TIME_BONUS,
-    public streakBonusMultiplier: StreakBonusMultiplier = DEFAULT_STREAK_BONUS_MULTIPLIER
-  ) {}
+export interface GameSettingsOptions<T extends Iterable<Joker>> {
+  rounds?: number;
+  trackDuration?: number;
+  enabledJokers?: T;
+  firstBonusMultiplier?: FirstBonusMultiplier;
+  timeBonus?: TimeBonus | null;
+  streakBonusMultiplier?: StreakBonusMultiplier;
+}
+
+export class GameSettings<T extends Iterable<Joker>> {
+  public rounds: number;
+  public trackDuration: number;
+  public enabledJokers: T;
+  public firstBonusMultiplier: FirstBonusMultiplier;
+  public timeBonus: TimeBonus | null;
+  public streakBonusMultiplier: StreakBonusMultiplier;
+
+  private constructor(options: GameSettingsOptions<T> = {}) {
+    this.rounds = options.rounds ?? DEFAULT_ROUNDS;
+    this.trackDuration = options.trackDuration ?? DEFAULT_TRACK_DURATION;
+    this.enabledJokers = options.enabledJokers as T;
+    this.firstBonusMultiplier = options.firstBonusMultiplier ?? DEFAULT_FIRST_BONUS_MULTIPLIER;
+    this.timeBonus = options.timeBonus ?? DEFAULT_TIME_BONUS;
+    this.streakBonusMultiplier = options.streakBonusMultiplier ?? DEFAULT_STREAK_BONUS_MULTIPLIER;
+  }
+
+  static withJokerArray(options: GameSettingsOptions<Joker[]> = {}): GameSettings<Joker[]> {
+    return new GameSettings({
+      ...options,
+      enabledJokers: options.enabledJokers ?? DEFAULT_ENABLED_JOKERS,
+    });
+  }
+
+  static withJokerSet(options: GameSettingsOptions<Set<Joker>> = {}): GameSettings<Set<Joker>> {
+    return new GameSettings({
+      ...options,
+      enabledJokers: options.enabledJokers ?? new Set(DEFAULT_ENABLED_JOKERS),
+    });
+  }
 }
 
 export interface TimeBonusPoint {

@@ -36,7 +36,7 @@ export class GameInstance {
   public currentRound: number = 0;
   public readyUsers: Set<string> = new Set();
   public guessedPlayers: Set<string> = new Set();
-  public settings: GameSettings<Set<Joker>> = new GameSettings<Set<Joker>>();
+  public settings: GameSettings<Set<Joker>> = GameSettings.withJokerSet();
   public trackInfo: TrackInfo | null = null;
   public guesses: Record<number, Record<string, UserGuess>> = {};
   public leaderboard: Leaderboard = new Leaderboard();
@@ -56,7 +56,7 @@ export class GameInstance {
     return this.hostId === userId;
   }
 
-  public setupGame(settings: GameSettings): void {
+  public setupGame(settings: GameSettings<Set<Joker>>): void {
     this.settings = {
       ...settings,
       trackDuration: settings.trackDuration * 1000,
@@ -327,7 +327,7 @@ export class GameInstance {
     const gameAtStart = this.currentGame;
 
     // Generate the blurred cover art on the server once at the beginning of the round if needed
-    if (new Set(this.settings.enabledJokers).has(Joker.GLIMPSE)) {
+    if (track.cover && this.settings.enabledJokers.has(Joker.GLIMPSE)) {
       await this.generateBlurredImage(`/game_covers/${track.cover}`);
     }
 
@@ -458,8 +458,13 @@ export class GameInstance {
         .blur(GLIMPSE_BLUR_INTENSITY)
         .jpeg()
         .toFile(outputPath);
-    } catch (e) {
-      console.log(e);
+    } catch (err: any) {
+      logger.error(
+        this.instanceId,
+        `Failed to generate Glimpse image from source '${sourcePathRelative}'`,
+        err.message,
+        LogCategory.GAME
+      );
     }
   }
 

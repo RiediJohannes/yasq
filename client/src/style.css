@@ -1716,10 +1716,16 @@ input[value='1']:checked + .btn-radio.correct {
   position: relative;
 }
 
+.has-tooltip::before,
+.has-tooltip::after {
+  position: absolute;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
 /* Tooltip Arrow */
 .has-tooltip::before {
   content: '';
-  position: absolute;
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
@@ -1728,16 +1734,14 @@ input[value='1']:checked + .btn-radio.correct {
   border-right: 10px solid transparent;
   border-bottom: 12px solid var(--bg-dark);
   pointer-events: none;
-  opacity: 0;
   filter: drop-shadow(0 -2px 2px rgba(0, 0, 0, 0.2));
-  transition: opacity 0.2s ease;
+  clip-path: inset(-15px -15px 1px -15px);
 }
 
 /* Tooltip Body */
 .has-tooltip::after {
   --screen-margin: 15px;
   content: attr(data-tooltip);
-  position: absolute;
   box-sizing: border-box;
   width: max-content;
   max-width: 200px;
@@ -1749,12 +1753,10 @@ input[value='1']:checked + .btn-radio.correct {
   font-size: 12px;
   text-align: center;
   pointer-events: none;
-  transition: opacity 0.2s ease;
-  opacity: 0;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-  top: 100%;
-  margin-top: 12px;
 
+  top: 100%;
+  margin-top: 10px;
   left: clamp(
     calc(-1 * var(--trigger-x, 0px) + var(--screen-margin)),
     calc(-0.5 * var(--tooltip-width, 200px) + 50%),

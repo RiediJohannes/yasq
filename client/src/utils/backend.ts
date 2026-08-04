@@ -38,7 +38,7 @@ export async function assignNewHost(access_token: string, instanceId: string, ne
   });
 }
 
-export async function setupGame(access_token: string, instanceId: string, settings: GameSettings) {
+export async function setupGame(access_token: string, instanceId: string, settings: GameSettings<Joker[]>) {
   return fetch(`${baseUrl}/api/setup-game`, {
     method: 'POST',
     headers: {

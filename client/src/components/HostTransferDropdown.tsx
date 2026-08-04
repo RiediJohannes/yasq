@@ -43,7 +43,7 @@ export const HostTransferDropdown = () => {
   return (
     <div className="setting-item">
       <label
-        htmlFor="host-dropdown"
+        htmlFor="host-transfer-dropdown"
         className="setting-label"
       >
         <span>Transfer Host</span>
@@ -51,7 +51,7 @@ export const HostTransferDropdown = () => {
       <div className="transfer-controls-row">
         <div
           className="custom-dropdown"
-          id="host-dropdown"
+          id="host-transfer-dropdown"
         >
           <button
             type="button"

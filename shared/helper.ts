@@ -1,4 +1,4 @@
-import { Participant } from './types';
+import type { Participant } from './types.js';
 
 export function getAvatarUrl(participant: Participant) {
   return participant.avatar

@@ -5,7 +5,7 @@ import { auth, discordSdk, gameState, participants } from '../main';
 import { capitalize, formatBonusMultiplier } from '../utils/helper';
 import { ALL_JOKER_ICONS } from '../components/JokerIcons';
 import { OptionalTimeBonus, TOptionalTimeBonus } from '../utils/types';
-import { TimeBonus } from '@yasq/shared';
+import { Joker, TimeBonus } from '@yasq/shared';
 import { ReadyButton } from '../components/ReadyButton';
 import { TooltipDiv } from '../components/Tooltip';
 
@@ -50,28 +50,32 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
       id="lobby"
       className="centered"
     >
-      <div className="card-container">
+      <div
+        id="settings-summary"
+        className="card-container"
+      >
         <h2>Game Settings</h2>
         <hr className="divider" />
 
         <dl className="settings-grid">
           <dt>🔄 Rounds</dt>
-          <dd>{gameState.value.gameSettings.rounds}</dd>
+          <dd id="settings-rounds">{gameState.value.gameSettings.rounds}</dd>
 
           <dt>⏳ Track Duration</dt>
-          <dd>{(gameState.value.gameSettings.trackDuration ?? 0) / 1000}s</dd>
+          <dd id="settings-duration">{(gameState.value.gameSettings.trackDuration ?? 0) / 1000}s</dd>
 
           <dt>❓ Jokers</dt>
-          <dd>
+          <dd id="settings-jokers">
             <div className="joker-column">
               {gameState.value.gameSettings.enabledJokers.length ? (
-                gameState.value.gameSettings.enabledJokers.map(jokerType => {
+                gameState.value.gameSettings.enabledJokers.map((jokerType: Joker) => {
                   const JokerIcon = ALL_JOKER_ICONS.find(Icon => Icon.jokerType === jokerType);
 
                   return (
                     <div
                       key={jokerType}
                       className="joker-row-item"
+                      data-joker-type={jokerType}
                     >
                       {JokerIcon && (
                         <TooltipDiv
@@ -92,13 +96,21 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
           </dd>
 
           <dt>⏱️ Time Bonus</dt>
-          <dd>{PLAYER_TIME_BONUS_LABELS[gameState.value.gameSettings.timeBonus ?? OptionalTimeBonus.NONE]}</dd>
+          <dd id="settings-time-bonus">
+            {
+              PLAYER_TIME_BONUS_LABELS[
+                (gameState.value.gameSettings.timeBonus as TOptionalTimeBonus) ?? OptionalTimeBonus.NONE
+              ]
+            }
+          </dd>
 
           <dt>🥇 First Bonus</dt>
-          <dd>{formatBonusMultiplier(gameState.value.gameSettings.firstBonusMultiplier)}</dd>
+          <dd id="settings-first-bonus">{formatBonusMultiplier(gameState.value.gameSettings.firstBonusMultiplier)}</dd>
 
           <dt>🔥 Streak Bonus</dt>
-          <dd>{formatBonusMultiplier(gameState.value.gameSettings.streakBonusMultiplier)}</dd>
+          <dd id="settings-streak-bonus">
+            {formatBonusMultiplier(gameState.value.gameSettings.streakBonusMultiplier)}
+          </dd>
         </dl>
 
         {isHost && (
