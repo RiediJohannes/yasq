@@ -276,10 +276,6 @@ select {
   background-color: var(--bg-input);
   transition: border-color 0.25s;
 }
-input:hover,
-select:hover {
-  border-color: var(--blurple);
-}
 input:focus-visible,
 select:focus-visible,
 button:focus-visible {
@@ -331,6 +327,8 @@ button {
   cursor: pointer;
   transition: border-color 0.25s;
 }
+input:not(:disabled):hover,
+select:not(:disabled):hover,
 button:not(:disabled):hover {
   border-color: var(--blurple);
 }

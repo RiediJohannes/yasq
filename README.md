@@ -23,9 +23,9 @@ npm install
 
 - Go to the [Discord Developer Portal](https://discord.com/developers/applications).
 - Follow the Steps in the [Tutorial](https://docs.discord.com/developers/activities/building-an-activity):
-  - Create a new Application.
-  - Set Redirect URI in OAuth2 settings to `https://127.0.0.1`.
-  - Make sure to add all additional test players as `App Testers`.
+  - Create a new Application
+  - Set Redirect URI in OAuth2 settings to `https://127.0.0.1`
+  - Make sure to add all additional test players as `App Testers`
 - (Optional) Turn on `iOS` and `Android` under `Supported Platforms` in Activity settings to allow users to open the activity on mobile devices
 - (Optional) If you want to be able to export your game results directly to Discord:
   - Generate a Bot Token in the Bot settings section
@@ -64,8 +64,10 @@ cloudflared tunnel --url http://localhost:5173
 
 - Set `VITE_URL_MAPPING` in `.env` to the tunnel URL **without** `https://`.
 - Follow these steps in the Discord Developer Portal:
-  - Create URL Mapping under the Activities tab.
-  - Turn on `Enable Activities` in Activity settings.
+  - Create URL Mapping under the Activities tab
+  - Turn on `Enable Activities` in Activity settings
+
+4. (Optional) Run `npx playwright install chromium` to allow exporting of final results as image
 
 ### Game Setup
 
@@ -154,10 +156,10 @@ npm run test:integration
 ### E2E Tests
 
 ```bash
-npx playwright install  # for first execution
+npx playwright install chromium  # for first execution
 
-npm run test:e2e        # headless mode
-npm run test:e2e:ui     # ui mode
+npm run test:e2e                 # headless mode
+npm run test:e2e:ui              # ui mode
 ```
 
 ### CI Pipeline

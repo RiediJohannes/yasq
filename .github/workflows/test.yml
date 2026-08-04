@@ -79,7 +79,7 @@ jobs:
     needs: [run-unit-tests, run-integration-tests]
 
     container:
-      image: mcr.microsoft.com/playwright:v1.60.0-noble
+      image: mcr.microsoft.com/playwright:v1.62.1-noble
       options: --user 1001
 
     steps:

@@ -11,6 +11,7 @@ import { ReadyButton } from '../components/ReadyButton';
 
 export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
   const leaderboard = useSignal<any[]>([]);
+  const [canExport, setCanExport] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [hasPosted, setHasPosted] = useState(false);
@@ -20,6 +21,7 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
   useEffect(() => {
     backend.getFinalResults(discordSdk.instanceId).then(data => {
       leaderboard.value = data.leaderboard;
+      setCanExport(data.canExport);
     });
   }, []);
 
@@ -124,46 +126,52 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
 
       {isHost ? (
         <div>
-          <div className="export-section">
-            <button
-              onClick={handleDownload}
-              disabled={isDownloading}
-            >
-              {isDownloading ? 'Downloading...' : '📥 Download Results Image'}
-            </button>
+          {canExport && (
+            <div className="export-section">
+              <button
+                onClick={handleDownload}
+                disabled={isDownloading}
+              >
+                {isDownloading ? 'Downloading...' : '📥 Download Results Image'}
+              </button>
 
-            <select
-              value={selectedChannel}
-              disabled={channels.length === 0 || isPosting || hasPosted}
-              onChange={e => {
-                const target = e.target as HTMLSelectElement;
-                setSelectedChannel(target.value);
-              }}
-            >
-              {channels.length === 0 ? (
-                <option value="">No channels available</option>
-              ) : (
-                <>
-                  <option value="">Select a channel...</option>
-                  {channels.map(channel => (
-                    <option
-                      key={channel.id}
-                      value={channel.id}
-                    >
-                      {channel.category ? `${channel.category} > ` : ''}#{channel.name}
-                    </option>
-                  ))}
-                </>
-              )}
-            </select>
+              <select
+                value={selectedChannel}
+                disabled={channels.length === 0 || isPosting || hasPosted}
+                onChange={e => {
+                  const target = e.target as HTMLSelectElement;
+                  setSelectedChannel(target.value);
+                }}
+              >
+                {channels.length === 0 ? (
+                  <option value="">No channels available</option>
+                ) : (
+                  <>
+                    <option value="">Select a channel...</option>
+                    {channels.map(channel => (
+                      <option
+                        key={channel.id}
+                        value={channel.id}
+                      >
+                        {channel.category ? `${channel.category} > ` : ''}#{channel.name}
+                      </option>
+                    ))}
+                  </>
+                )}
+              </select>
 
-            <button
-              onClick={handlePostToChannel}
-              disabled={isPosting || hasPosted || !selectedChannel}
-            >
-              {hasPosted ? '✅ Posted to Channel' : isPosting ? 'Posting to Discord...' : '💬 Post Directly to Channel'}
-            </button>
-          </div>
+              <button
+                onClick={handlePostToChannel}
+                disabled={isPosting || hasPosted || !selectedChannel}
+              >
+                {hasPosted
+                  ? '✅ Posted to Channel'
+                  : isPosting
+                    ? 'Posting to Discord...'
+                    : '💬 Post Directly to Channel'}
+              </button>
+            </div>
+          )}
 
           <button
             id="btn-restart"

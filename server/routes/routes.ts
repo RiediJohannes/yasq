@@ -20,7 +20,7 @@ import {
 } from '@yasq/shared';
 import { broadcastGameStatus, filterDiscordTextChannels, userDataCache } from '../src/helper.js';
 import { isAllowed } from '../src/access_control.js';
-import { generateResultsImage } from '../src/export_results.js';
+import { generateResultsImage, isPlaywrightExecutableInstalled } from '../src/export_results.js';
 import { LogCategory, logger } from '../src/utils/logger.js';
 import { createGameMiddlewares } from './middleware.js';
 import type { APIChannel } from 'discord-api-types/v10';
@@ -157,7 +157,7 @@ export const setupRoutes = (
     }
 
     const tracks = getTracks()
-      .filter((t: any) => isAllowed(userId, t.audio))
+      .filter((t: Track) => isAllowed(userId, t.audio))
       .map((t: Track, index: number) => ({
         id: index,
         game: t.game,
@@ -402,7 +402,10 @@ export const setupRoutes = (
       return res.status(400).send({ error: 'Game has not finished yet.' });
     }
 
-    res.send({ leaderboard: game.leaderboard.getAll() || [] });
+    res.send({
+      leaderboard: game.leaderboard.getAll() || [],
+      canExport: isPlaywrightExecutableInstalled(),
+    });
   });
 
   router.post('/restart-game', authenticateUser, fetchGame, isHost, async (req, res) => {
