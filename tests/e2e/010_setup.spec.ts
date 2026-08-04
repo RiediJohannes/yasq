@@ -2,6 +2,15 @@ import { test, expect } from '@playwright/test';
 import { generatePlayers, Player } from '../utils/helper.js';
 import { SetupPage } from './pages/SetupPage.js';
 import { TestApi } from '../utils/api.js';
+import {
+  DEFAULT_ENABLED_JOKERS,
+  DEFAULT_FIRST_BONUS_MULTIPLIER,
+  DEFAULT_ROUNDS,
+  DEFAULT_STREAK_BONUS_MULTIPLIER,
+  DEFAULT_TIME_BONUS,
+  DEFAULT_TRACK_DURATION,
+  Joker,
+} from '../../shared';
 
 test.describe('Host UI', () => {
   let players: Player[] = [];
@@ -36,6 +45,51 @@ test.describe('Host UI', () => {
     await api.deleteSession();
   });
 
+  test('should contain default settings on startup', async ({ page }) => {
+    const setup = new SetupPage(page);
+
+    // Verify initial UI state
+    await expect(setup.hostSettings).toBeVisible();
+    await expect(setup.advancedSettings).toBeHidden();
+    await expect(setup.advancedSettingsToggle).toBeVisible();
+
+    const jokerButtons = await setup.getAllJokerButtons();
+    expect(jokerButtons.length).toEqual(Object.values(Joker).length); // as many buttons as joker variants
+    for (const button of jokerButtons) {
+      await expect(button).toBeEnabled();
+    }
+
+    await expect(setup.startBtn).toBeVisible();
+    await expect(setup.startBtn).toBeEnabled();
+
+    await expect(setup.hostTransferDropdownBtn).toBeVisible();
+    await expect(setup.hostTransferDropdownBtn).toBeEnabled();
+    await expect(setup.hostTransferConfirmBtn).toBeVisible();
+    await expect(setup.hostTransferConfirmBtn).toBeDisabled();
+    await expect(setup.hostTransferList).toBeHidden();
+    await expect(setup.hostTransferDropdownBtn).toContainText('Select a player...');
+
+    // Verify controls are initialized with the global default values
+    await expect(setup.roundsInput).toHaveValue(DEFAULT_ROUNDS.toString());
+    await expect(setup.trackDurationInput).toHaveValue((DEFAULT_TRACK_DURATION / 1000).toString());
+
+    // Exactly the default-enabled jokers are active
+    const enabledJokers = await setup.getEnabledJokerButtons();
+    expect(enabledJokers).toHaveLength(DEFAULT_ENABLED_JOKERS.length);
+    const enabledJokerTypes = await setup.getEnabledJokerTypes();
+    expect(enabledJokerTypes).toEqual(expect.arrayContaining(DEFAULT_ENABLED_JOKERS));
+
+    await setup.advancedSettingsToggle.click();
+    await expect(setup.advancedSettings).toBeVisible();
+
+    await expect(setup.timeBonusSelect).toBeVisible();
+    const selectedTimeBonus = await setup.timeBonusSelect.inputValue();
+    expect(selectedTimeBonus).toEqual(DEFAULT_TIME_BONUS.toString());
+
+    expect(await setup.getActiveFirstBonus()).toEqual(DEFAULT_FIRST_BONUS_MULTIPLIER.toString());
+    expect(await setup.getActiveStreakBonus()).toEqual(DEFAULT_STREAK_BONUS_MULTIPLIER.toString());
+  });
+
   test('should allow host to select another player and transfer host role', async ({ page }) => {
     const setup = new SetupPage(page);
     const targetPlayer = players[2];
@@ -44,22 +98,22 @@ test.describe('Host UI', () => {
     await expect(setup.waitingMsg).toBeHidden();
 
     // Open the dropdown
-    await setup.dropdown.click();
-    await expect(setup.listContainer).toBeVisible();
+    await setup.hostTransferDropdownBtn.click();
+    await expect(setup.hostTransferList).toBeVisible();
 
     // Select the target player from the list
     await setup.getPlayerItem(targetPlayer.id).click();
 
     // Verify selection state
-    await expect(setup.listContainer).toBeHidden();
-    await expect(setup.transferBtn).toBeEnabled();
+    await expect(setup.hostTransferList).toBeHidden();
+    await expect(setup.hostTransferConfirmBtn).toBeEnabled();
 
     // Verify the header updated with the selected player's name
-    await expect(setup.dropdown).toContainText(targetPlayer.username);
+    await expect(setup.hostTransferDropdownBtn).toContainText(targetPlayer.username);
 
     // Execute the transfer
-    await setup.transferBtn.click();
-    await expect(setup.transferBtn).toHaveText(/transferring/i);
+    await setup.hostTransferConfirmBtn.click();
+    await expect(setup.hostTransferConfirmBtn).toHaveText(/transferring/i);
 
     // Verify UI transition to the player UI
     await expect(setup.hostSettings).toBeHidden();
@@ -77,7 +131,7 @@ test.describe('Host UI', () => {
 
     // Configure track duration
     await page.keyboard.press('Tab');
-    await expect(setup.durationInput).toBeFocused();
+    await expect(setup.trackDurationInput).toBeFocused();
     await page.keyboard.press('Control+A');
     await page.keyboard.type('30');
 
@@ -91,7 +145,7 @@ test.describe('Host UI', () => {
     await expect(setup.firstJoker).not.toHaveClass(/\bactive\b/);
 
     // Continue tabbing until Advanced Settings button
-    await setup.tabUntilFocused(setup.advancedToggle);
+    await setup.tabUntilFocused(setup.advancedSettingsToggle);
 
     // Open advanced settings
     await page.keyboard.press('Enter');
@@ -105,9 +159,9 @@ test.describe('Host UI', () => {
 
     // First bonus radio buttons
     await page.keyboard.press('Tab');
-    const checkedBefore = await setup.getFirstBonusInput().inputValue();
+    const checkedBefore = await setup.getActiveFirstBonus();
     await page.keyboard.press('ArrowRight');
-    const checkedAfter = await setup.getFirstBonusInput().inputValue();
+    const checkedAfter = await setup.getActiveFirstBonus();
     expect(checkedAfter).not.toBe(checkedBefore);
 
     // Continue until Confirm button
@@ -116,12 +170,11 @@ test.describe('Host UI', () => {
 
     // Continue to host transfer dropdown
     await page.keyboard.press('Tab');
-    const dropdownButton = setup.page.locator('#host-dropdown .dropdown-header');
-    await expect(dropdownButton).toBeFocused();
+    await expect(setup.hostTransferDropdownBtn).toBeFocused();
 
     // Open dropdown
     await page.keyboard.press('Enter');
-    await expect(setup.listContainer).toBeVisible();
+    await expect(setup.hostTransferList).toBeVisible();
 
     // Wait until first element is focussed
     const firstItem = setup.getPlayerItem(players[1].id);
@@ -134,17 +187,17 @@ test.describe('Host UI', () => {
 
     // Select player
     await page.keyboard.press('Enter');
-    await expect(setup.listContainer).toBeHidden();
-    await expect(dropdownButton).toContainText(players[2].username);
+    await expect(setup.hostTransferList).toBeHidden();
+    await expect(setup.hostTransferDropdownBtn).toContainText(players[2].username);
 
     // Transfer button
     await page.keyboard.press('Tab');
-    await expect(setup.transferBtn).toBeFocused();
-    await expect(setup.transferBtn).toBeEnabled();
+    await expect(setup.hostTransferConfirmBtn).toBeFocused();
+    await expect(setup.hostTransferConfirmBtn).toBeEnabled();
 
     // Execute transfer
     await page.keyboard.press('Enter');
-    await expect(setup.transferBtn).toHaveText(/transferring/i);
+    await expect(setup.hostTransferConfirmBtn).toHaveText(/transferring/i);
 
     // Host becomes non-host
     await expect(setup.hostSettings).toBeHidden();

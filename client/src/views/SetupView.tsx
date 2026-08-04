@@ -48,11 +48,7 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
   );
 
   const activeJokers = useSignal<Set<Joker>>(
-    new Set(
-      gameState.value.gameSettings.enabledJokers?.length
-        ? gameState.value.gameSettings.enabledJokers
-        : DEFAULT_ENABLED_JOKERS
-    )
+    new Set(gameState.value.gameSettings.enabledJokers ?? DEFAULT_ENABLED_JOKERS)
   );
 
   const selectedBonus = useSignal<TOptionalTimeBonus>(gameState.value.gameSettings.timeBonus ?? OptionalTimeBonus.NONE);
@@ -83,7 +79,7 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
   const handleConfirmSettings = async () => {
     isSubmitting.value = true;
 
-    const currentSettings: GameSettings = {
+    const currentSettings: GameSettings<Joker[]> = {
       rounds: roundCount.value,
       trackDuration: trackDuration.value,
       enabledJokers: [...activeJokers.value],
@@ -186,10 +182,14 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
             </button>
 
             {isAdvancedOpen.value && (
-              <div className="advanced-content-panel">
+              <div
+                id="advanced-settings"
+                className="advanced-content-panel"
+              >
                 <div className="setting-item">
                   <span>Time Bonus</span>
                   <select
+                    id="time-bonus-select"
                     value={selectedBonus.value}
                     onChange={selectTimeBonus}
                   >
@@ -215,7 +215,10 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
 
                 <div className="setting-item">
                   <span>First Correct Answer Bonus</span>
-                  <div className="button-group">
+                  <div
+                    id="first-bonus-group"
+                    className="button-group"
+                  >
                     {Object.values(FirstBonusMultiplier)
                       .filter((val): val is number => typeof val === 'number')
                       .map(value => (
@@ -243,7 +246,10 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
 
                 <div className="setting-item">
                   <span>Streak Bonus</span>
-                  <div className="button-group">
+                  <div
+                    id="streak-bonus-group"
+                    className="button-group"
+                  >
                     {Object.values(StreakBonusMultiplier)
                       .filter((val): val is number => typeof val === 'number')
                       .map(value => (

@@ -16,7 +16,7 @@ export interface GameStatus {
   guessedPlayers: string[];
   currentRound: number;
   lastWinnerId: string | null;
-  gameSettings: GameSettings;
+  gameSettings: GameSettings<Joker[]>;
   streaks: Record<string, number>;
   lostStreaks: Record<string, number>;
 }

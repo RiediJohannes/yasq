@@ -276,6 +276,7 @@ describe('useJoker', () => {
   });
 
   it('should return 403 Forbidden when joker is not enabled', async () => {
+    await api.patchEnabledJokers([Joker.TRIVIA, Joker.MULTIPLE_CHOICE, Joker.SPY]);
     const token = 'token_1';
 
     const response = await useJoker(token, currentInstanceId, Joker.OBFUSCATION);

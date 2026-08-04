@@ -27,7 +27,7 @@ describe.skip('generateResultsImage', () => {
   const instanceId = '1';
   const baseDir = path.join(__dirname, '..');
   const testOutputPath = path.join(setupTempDir(baseDir), instanceId, 'results.png');
-  console.log(testOutputPath);
+
   const directoryPath = path.dirname(testOutputPath);
   if (!fs.existsSync(directoryPath)) {
     fs.mkdirSync(directoryPath, { recursive: true });

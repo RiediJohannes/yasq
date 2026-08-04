@@ -8,7 +8,7 @@ export const enum GameState {
   GAME_FINISHED = 'GAME_FINISHED',
 }
 
-export const enum Joker {
+export enum Joker {
   OBFUSCATION = 'OBFUSCATION',
   TRIVIA = 'TRIVIA',
   MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',

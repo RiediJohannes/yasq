@@ -10,7 +10,6 @@ import {
   DEFAULT_VOLUME_SLIDER_VAL,
   GameSettings,
   GameState,
-  Joker,
   MAX_VOLUME,
   Participant,
   WS_GAME_STATUS_UPDATE_EVENT,
@@ -42,7 +41,7 @@ export const gameState = signal<GameStatus>({
   guessedPlayers: [],
   currentRound: 0,
   lastWinnerId: null,
-  gameSettings: new GameSettings<Joker[]>(),
+  gameSettings: GameSettings.withJokerArray(),
   streaks: {},
   lostStreaks: {},
 });

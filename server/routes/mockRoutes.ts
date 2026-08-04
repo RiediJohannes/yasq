@@ -1,6 +1,6 @@
 import express from 'express';
 import { GameInstance, Leaderboard } from '../src/models.js';
-import { GameSettings, Joker } from '@yasq/shared';
+import { GameSettings } from '@yasq/shared';
 import type { Server } from 'socket.io';
 import { broadcastGameStatus } from '../src/helper.js';
 import { logger } from '../src/utils/logger.js';
@@ -23,7 +23,7 @@ export const setupMockRoutes = (server: Server, instances: Record<string, GameIn
       state = 'LOBBY',
       currentRound = 1,
       readyUserIds = [],
-      settings = new GameSettings<Set<Joker>>(),
+      settings = GameSettings.withJokerSet(),
       trackInfo = null,
       guesses = {},
       leaderboard = new Leaderboard(),
@@ -94,7 +94,7 @@ export const setupMockRoutes = (server: Server, instances: Record<string, GameIn
     if (updates.settings) {
       game.settings = {
         ...updates.settings,
-        enabledJokers: new Set(updates.settings.enabledJokers || []),
+        enabledJokers: new Set(updates.settings.enabledJokers ?? []),
       };
     }
     if (updates.trackInfo) {

@@ -3,8 +3,8 @@ import { setBaseUrl } from '../../client/src/utils/backend';
 import { Player } from './helper';
 
 export class TestApi {
-  private baseUrl: string;
-  private instanceId: string;
+  private readonly baseUrl: string;
+  private readonly instanceId: string;
 
   constructor(baseUrl: string, instanceId: string, isIntegration: boolean = false) {
     this.baseUrl = baseUrl;
@@ -59,7 +59,7 @@ export class TestApi {
 
   async patchEnabledJokers(jokers: Joker[]) {
     return this.http('PATCH', `/api/test/instance/${this.instanceId}`, {
-      data: { settings: { enabledJokers: jokers } },
+      data: { settings: { enabledJokers: [...jokers] } },
     });
   }
 }
