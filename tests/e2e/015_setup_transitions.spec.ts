@@ -100,7 +100,7 @@ test.describe('Host UI', () => {
 
     // Compare enabled jokers as sorted arrays to also catch potential duplicates in the displayed list
     const displayedJokers = await lobby.getEnabledJokerTypes();
-    expect(displayedJokers.sort()).toEqual([...ENABLED_JOKERS].sort());
+    expect(displayedJokers.sort()).toEqual(Array.from(ENABLED_JOKERS).sort());
 
     const expectedFirstBonus =
       (FIRST_BONUS as FirstBonusMultiplier) === FirstBonusMultiplier.OFF ? 'Off' : toBonusPercent(FIRST_BONUS);

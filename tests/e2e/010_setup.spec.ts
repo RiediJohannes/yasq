@@ -10,7 +10,7 @@ import {
   DEFAULT_TIME_BONUS,
   DEFAULT_TRACK_DURATION,
   Joker,
-} from '../../shared';
+} from '@yasq/shared';
 
 test.describe('Host UI', () => {
   let players: Player[] = [];

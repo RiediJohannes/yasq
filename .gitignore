@@ -7,8 +7,6 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-
 # Sensitive environment variables
 .env
 
@@ -37,5 +35,5 @@ server/data/*
 **/coverage/*
 
 # Playwright
-tests/e2e/playwright-report/*
-tests/e2e/test-results/*
+tests/**/playwright-report/*
+tests/**/test-results/*

@@ -1,5 +1,5 @@
 import { Locator, Page } from '@playwright/test';
-import { FirstBonusMultiplier, Joker, StreakBonusMultiplier, TimeBonus } from '../../../shared';
+import { FirstBonusMultiplier, Joker, StreakBonusMultiplier, TimeBonus } from '@yasq/shared';
 
 export class SetupPage {
   readonly page: Page;

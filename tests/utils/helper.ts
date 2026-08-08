@@ -1,4 +1,4 @@
-import { TimeBonus } from '../../shared';
+import { TimeBonus } from '@yasq/shared';
 
 export const generatePlayers = (count: number) => {
   return Array.from({ length: count }, (_, i) => ({

@@ -3,7 +3,7 @@ import { EXPECTED_TIME_BONUS_LABELS, generatePlayers, Player, toBonusPercent } f
 import { SetupPage } from './pages/SetupPage.js';
 import { TestApi } from '../utils/api.js';
 import { LobbyPage } from './pages/LobbyPage';
-import { FirstBonusMultiplier, Joker, StreakBonusMultiplier, TimeBonus } from '@yasq/shared';
+import { FirstBonusMultiplier, Joker, sortByEnumOrder, StreakBonusMultiplier, TimeBonus } from '@yasq/shared';
 
 test.describe('Host UI', () => {
   let players: Player[] = [];
@@ -94,5 +94,44 @@ test.describe('Host UI', () => {
     expect(await setup.getActiveTimeBonus()).toEqual(CUSTOM_SETTINGS.timeBonus.toString());
     expect(await setup.getActiveFirstBonus()).toEqual(CUSTOM_SETTINGS.firstBonusMultiplier.toString());
     expect(await setup.getActiveStreakBonus()).toEqual(CUSTOM_SETTINGS.streakBonusMultiplier.toString());
+  });
+
+  test('should keep the same order in the enabled jokers list when jokers are toggled', async ({ page }) => {
+    const setup = new SetupPage(page);
+    const lobby = new LobbyPage(page);
+    let displayedJokers;
+
+    async function editJokersAndSwitchBack(targetJokers: Joker[]) {
+      await expect(lobby.settingsSummary).toBeVisible();
+      await lobby.editBtn.click();
+      await expect(setup.hostSettings).toBeVisible();
+      await setup.setEnabledJokers(targetJokers);
+      await setup.startBtn.click();
+      await expect(lobby.settingsSummary).toBeVisible();
+    }
+
+    displayedJokers = (await lobby.getEnabledJokerTypes()) as Joker[];
+    expect(displayedJokers).toEqual([...displayedJokers].sort(sortByEnumOrder(Joker))); // sorting the array should have no effect
+
+    await editJokersAndSwitchBack([Joker.TRIVIA, Joker.GLIMPSE, Joker.MULTIPLE_CHOICE]);
+    displayedJokers = (await lobby.getEnabledJokerTypes()) as Joker[];
+    expect(displayedJokers).toEqual([...displayedJokers].sort(sortByEnumOrder(Joker)));
+
+    await editJokersAndSwitchBack([Joker.TRIVIA, Joker.MULTIPLE_CHOICE, Joker.GLIMPSE, Joker.OBFUSCATION]);
+    displayedJokers = (await lobby.getEnabledJokerTypes()) as Joker[];
+    expect(displayedJokers).toEqual([...displayedJokers].sort(sortByEnumOrder(Joker)));
+
+    await editJokersAndSwitchBack([Joker.SPY]);
+    displayedJokers = (await lobby.getEnabledJokerTypes()) as Joker[];
+    expect(displayedJokers).toEqual([...displayedJokers].sort(sortByEnumOrder(Joker)));
+
+    await editJokersAndSwitchBack([Joker.SPY, Joker.MULTIPLE_CHOICE, Joker.OBFUSCATION]);
+    displayedJokers = (await lobby.getEnabledJokerTypes()) as Joker[];
+    expect(displayedJokers).toEqual([...displayedJokers].sort(sortByEnumOrder(Joker)));
+
+    await editJokersAndSwitchBack([]);
+    await editJokersAndSwitchBack(Object.values(Joker));
+    displayedJokers = (await lobby.getEnabledJokerTypes()) as Joker[];
+    expect(displayedJokers).toEqual([...displayedJokers].sort(sortByEnumOrder(Joker)));
   });
 });
