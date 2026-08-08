@@ -14,6 +14,7 @@ import {
   Joker,
   StreakBonusMultiplier,
   TimeBonus,
+  sortByEnumOrder,
 } from '@yasq/shared';
 import { NonDraggableImg } from '../components/NonDraggableImg';
 import { OptionalTimeBonus, TOptionalTimeBonus } from '../utils/types';
@@ -63,13 +64,13 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
   const sampleParticipants = new Map((activeTimeBonusSample?.participants || []).map(p => [p.id, p]));
 
   const toggleJoker = (type: Joker) => {
-    const next = new Set(activeJokers.value);
-    if (next.has(type)) {
-      next.delete(type);
+    const updatedJokerSet = new Set(activeJokers.value);
+    if (updatedJokerSet.has(type)) {
+      updatedJokerSet.delete(type);
     } else {
-      next.add(type);
+      updatedJokerSet.add(type);
     }
-    activeJokers.value = next;
+    activeJokers.value = updatedJokerSet;
   };
 
   const selectTimeBonus = (e: TargetedEvent<HTMLSelectElement, Event>) => {
@@ -82,7 +83,7 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
     const currentSettings: GameSettings<Joker[]> = {
       rounds: roundCount.value,
       trackDuration: trackDuration.value,
-      enabledJokers: [...activeJokers.value],
+      enabledJokers: [...activeJokers.value].sort(sortByEnumOrder(Joker)),
       firstBonusMultiplier: firstBonusMultiplier.value,
       timeBonus: selectedBonus.value === OptionalTimeBonus.NONE ? null : selectedBonus.value,
       streakBonusMultiplier: streakBonusMultiplier.value,
