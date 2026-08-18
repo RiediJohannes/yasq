@@ -28,13 +28,17 @@
     "test:unit:coverage:server": "npm run test -w server -- --coverage",
     "test:unit:coverage:client": "npm run test -w client -- --coverage",
     "test:integration": "cross-env VITE_MOCK_MODE=true vitest run tests/integration",
-    "test:e2e": "cross-env VITE_MOCK_MODE=true UI_TEST_MODE=true playwright test --config=tests/e2e/playwright.config.ts",
-    "test:e2e:ui": "cross-env VITE_MOCK_MODE=true UI_TEST_MODE=true playwright test --config=tests/e2e/playwright.config.ts --ui",
+    "test:e2e": "cross-env VITE_MOCK_MODE=true UI_TEST_MODE=true playwright test --config=tests/playwright.config.ts --project=e2e",
+    "test:e2e:ui": "cross-env VITE_MOCK_MODE=true UI_TEST_MODE=true playwright test --config=tests/playwright.config.ts --project=e2e --ui",
+    "test:components": "cross-env VITE_MOCK_MODE=true UI_TEST_MODE=true playwright test --config=tests/playwright.config.ts --project=components",
+    "test:components:ui": "cross-env VITE_MOCK_MODE=true UI_TEST_MODE=true playwright test --config=tests/playwright.config.ts --project=components --ui",
+    "test:gui": "cross-env VITE_MOCK_MODE=true UI_TEST_MODE=true playwright test --config=tests/playwright.config.ts",
+    "test:gui:ui": "cross-env VITE_MOCK_MODE=true UI_TEST_MODE=true playwright test --config=tests/playwright.config.ts --ui",
     "prepare": "husky"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.62.1",
+    "@eslint/js": "^10.0.1",
     "concurrently": "^10.0.3",
     "eslint": "^10.8.0",
     "eslint-config-prettier": "^10.1.8",
@@ -49,7 +53,7 @@
     "discord-api-types": "^0.38.49"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx,json}": [
+    "*.{ts,tsx,js,jsx}": [
       "npm run lint:fix --",
       "npm run format --"
     ]

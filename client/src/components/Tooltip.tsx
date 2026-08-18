@@ -2,8 +2,9 @@ import { useEffect, useId, useRef } from 'preact/hooks';
 import { cloneElement, HTMLAttributes, isValidElement, VNode } from 'preact';
 import { activeTooltipId, measureBounds } from '../utils/exclusiveTooltip';
 import { ReactNode } from 'preact/compat';
+import { LONG_PRESS_MILLIS } from '@yasq/shared';
 
-interface WithTooltipProps extends HTMLAttributes<HTMLDivElement> {
+interface WithTooltipProps {
   /** The text content to display in the tooltip */
   text: string;
   /** Single child element extended by the dynamic tooltip */
@@ -20,7 +21,6 @@ export const WithTooltip = ({ text, children, id, disabled = false }: WithToolti
     return children;
   }
 
-  const LONG_PRESS_MILLIS = 400;
   const generatedId = useId();
   const tooltipId = id ?? generatedId;
 
@@ -63,14 +63,17 @@ export const WithTooltip = ({ text, children, id, disabled = false }: WithToolti
 
   return cloneElement(children, {
     'data-tooltip': text,
+    id: childProps.id ?? tooltipId,
     className: `has-tooltip ${isTooltipOpen ? 'show-tooltip' : ''} ${childProps.className || ''}`.trim(),
     // Attach a bunch of event handlers that open/close the added tooltip as expected
-    onMouseEnter: (e: MouseEvent) => {
-      childProps.onMouseEnter?.(e);
+    onPointerEnter: (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse') return; // ignore hover events that were merely simulated after a touch event
+      childProps.onPointerEnter?.(e);
       handleOpen(e.currentTarget as HTMLElement);
     },
-    onMouseLeave: (e: MouseEvent) => {
-      childProps.onMouseLeave?.(e);
+    onPointerLeave: (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse') return;
+      childProps.onPointerLeave?.(e);
       handleClose();
     },
     onTouchStart: (e: TouchEvent) => {
@@ -119,7 +122,7 @@ export const WithTooltip = ({ text, children, id, disabled = false }: WithToolti
   });
 };
 
-interface TooltipDivProps {
+interface TooltipDivProps extends HTMLAttributes<HTMLDivElement> {
   /** The text content to display in the tooltip */
   text: string;
   /** Single child element or inline text wrapped by div with dynamic tooltip */
@@ -131,14 +134,20 @@ interface TooltipDivProps {
   className?: string;
 }
 
-export const TooltipDiv = ({ text, children, id, disabled = false, className = '' }: TooltipDivProps) => {
+export const TooltipDiv = ({ text, children, id, disabled = false, className = '', ...restProps }: TooltipDivProps) => {
   return (
     <WithTooltip
       text={text}
       id={id}
       disabled={disabled}
     >
-      <div className={`${className}`}>{children}</div>
+      <div
+        id={id}
+        className={`${className}`}
+        {...restProps}
+      >
+        {children}
+      </div>
     </WithTooltip>
   );
 };

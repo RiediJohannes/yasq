@@ -2,21 +2,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GameInstance, LeaderboardEntry, UserGuess } from './models.js';
 import {
   BASE_POINTS,
+  BonusType,
   COUNTDOWN_DURATION,
   DEFAULT_FIRST_BONUS_MULTIPLIER,
   DEFAULT_STREAK_BONUS_MULTIPLIER,
+  FirstBonusMultiplier,
+  GameState,
+  Joker,
   MAX_TIME_MULTIPLIER,
   MIN_TIME_MULTIPLIER,
   STATIC_FILES_DIR,
-  TEMP_FILES_DIR,
-  GameState,
-  Joker,
-  BonusType,
-  FirstBonusMultiplier,
   StreakBonusMultiplier,
+  type Tag,
+  TEMP_FILES_DIR,
   TimeBonus,
   type Track,
-  type Tag,
   type TrackInfo,
 } from '@yasq/shared';
 import path from 'path';
@@ -53,7 +53,7 @@ describe('GameInstance - startGame', () => {
     game.setupGame({
       rounds: 5,
       trackDuration: 15,
-      enabledJokers: [Joker.OBFUSCATION, Joker.MULTIPLE_CHOICE],
+      enabledJokers: new Set([Joker.OBFUSCATION, Joker.MULTIPLE_CHOICE]),
       firstBonusMultiplier: DEFAULT_FIRST_BONUS_MULTIPLIER,
       timeBonus: TimeBonus.LINEAR,
       streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
@@ -76,7 +76,7 @@ describe('GameInstance - startGame', () => {
     game.setupGame({
       rounds: 5,
       trackDuration: 15,
-      enabledJokers: [],
+      enabledJokers: new Set(),
       firstBonusMultiplier: DEFAULT_FIRST_BONUS_MULTIPLIER,
       timeBonus: TimeBonus.LINEAR,
       streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
@@ -185,7 +185,7 @@ describe('GameInstance - submitResults', () => {
     game.setupGame({
       rounds: 10,
       trackDuration: 20, // 20s duration = 20000ms
-      enabledJokers: [],
+      enabledJokers: new Set(),
       firstBonusMultiplier: DEFAULT_FIRST_BONUS_MULTIPLIER,
       timeBonus: TimeBonus.LINEAR,
       streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
@@ -394,7 +394,7 @@ describe('GameInstance - submitResults', () => {
     game.setupGame({
       rounds: 10,
       trackDuration: 20,
-      enabledJokers: [],
+      enabledJokers: new Set(),
       timeBonus: null, // no time bonus
       firstBonusMultiplier: 0.0, // no first bonus
       streakBonusMultiplier: 0.0, // no streak bonus
@@ -432,7 +432,7 @@ describe('GameInstance - submitResults', () => {
     game.setupGame({
       rounds: 10,
       trackDuration: 20,
-      enabledJokers: [],
+      enabledJokers: new Set(),
       timeBonus: TimeBonus.EXPONENTIAL,
       firstBonusMultiplier: 0.0, // no first bonus
       streakBonusMultiplier: 0.008 as StreakBonusMultiplier, // tiny streak bonus
@@ -548,7 +548,7 @@ describe('GameInstance - timeMultiplierEdgeCases', () => {
     game.setupGame({
       rounds: 1,
       trackDuration: TRACK_DURATION / 1000,
-      enabledJokers: [],
+      enabledJokers: new Set(),
       firstBonusMultiplier: DEFAULT_FIRST_BONUS_MULTIPLIER,
       timeBonus: bonusType,
       streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
@@ -593,7 +593,7 @@ describe('GameInstance - timeMultiplier:LINEAR', () => {
   game.setupGame({
     rounds: 1,
     trackDuration: TRACK_DURATION / 1000,
-    enabledJokers: [],
+    enabledJokers: new Set(),
     firstBonusMultiplier: FirstBonusMultiplier.OFF,
     timeBonus: TimeBonus.LINEAR,
     streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
@@ -620,7 +620,7 @@ describe('GameInstance - timeMultiplier:EXPONENTIAL', () => {
   game.setupGame({
     rounds: 1,
     trackDuration: TRACK_DURATION / 1000,
-    enabledJokers: [],
+    enabledJokers: new Set(),
     firstBonusMultiplier: FirstBonusMultiplier.OFF,
     timeBonus: TimeBonus.EXPONENTIAL,
     streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
@@ -650,7 +650,7 @@ describe('GameInstance - timeMultiplier:LOGISTIC', () => {
   game.setupGame({
     rounds: 1,
     trackDuration: TRACK_DURATION / 1000,
-    enabledJokers: [],
+    enabledJokers: new Set(),
     firstBonusMultiplier: FirstBonusMultiplier.OFF,
     timeBonus: TimeBonus.LOGISTIC,
     streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
@@ -680,7 +680,7 @@ describe('GameInstance - timeMultiplier:CONSTANT', () => {
   game.setupGame({
     rounds: 1,
     trackDuration: TRACK_DURATION / 1000,
-    enabledJokers: [],
+    enabledJokers: new Set(),
     firstBonusMultiplier: DEFAULT_FIRST_BONUS_MULTIPLIER,
     timeBonus: null, // no time bonus
     streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
@@ -708,7 +708,7 @@ describe('GameInstance - advanceRound', () => {
     game.setupGame({
       rounds: 3,
       trackDuration: 20,
-      enabledJokers: [],
+      enabledJokers: new Set(),
       firstBonusMultiplier: DEFAULT_FIRST_BONUS_MULTIPLIER,
       timeBonus: TimeBonus.LINEAR,
       streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
@@ -1081,7 +1081,7 @@ describe('GameInstance - getGlimpseHint', () => {
     game.setupGame({
       rounds: 3,
       trackDuration: 20,
-      enabledJokers: [Joker.OBFUSCATION, Joker.MULTIPLE_CHOICE, Joker.GLIMPSE],
+      enabledJokers: new Set([Joker.OBFUSCATION, Joker.MULTIPLE_CHOICE, Joker.GLIMPSE]),
       firstBonusMultiplier: DEFAULT_FIRST_BONUS_MULTIPLIER,
       timeBonus: TimeBonus.LINEAR,
       streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
@@ -1109,7 +1109,7 @@ describe('GameInstance - getGlimpseHint', () => {
     game.setupGame({
       rounds: 3,
       trackDuration: 10,
-      enabledJokers: [Joker.OBFUSCATION, Joker.MULTIPLE_CHOICE, Joker.GLIMPSE],
+      enabledJokers: new Set([Joker.OBFUSCATION, Joker.MULTIPLE_CHOICE, Joker.GLIMPSE]),
       firstBonusMultiplier: DEFAULT_FIRST_BONUS_MULTIPLIER,
       timeBonus: TimeBonus.LINEAR,
       streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
@@ -1130,7 +1130,7 @@ describe('GameInstance - getGlimpseHint', () => {
     game.setupGame({
       rounds: 3,
       trackDuration: 10,
-      enabledJokers: [Joker.OBFUSCATION, Joker.MULTIPLE_CHOICE, Joker.GLIMPSE],
+      enabledJokers: new Set([Joker.OBFUSCATION, Joker.MULTIPLE_CHOICE, Joker.GLIMPSE]),
       firstBonusMultiplier: DEFAULT_FIRST_BONUS_MULTIPLIER,
       timeBonus: TimeBonus.LINEAR,
       streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
@@ -1157,7 +1157,7 @@ describe('GameInstance - getGlimpseHint', () => {
     game.setupGame({
       rounds: 3,
       trackDuration: 20,
-      enabledJokers: [Joker.OBFUSCATION, Joker.MULTIPLE_CHOICE],
+      enabledJokers: new Set([Joker.OBFUSCATION, Joker.MULTIPLE_CHOICE]),
       firstBonusMultiplier: DEFAULT_FIRST_BONUS_MULTIPLIER,
       timeBonus: TimeBonus.LINEAR,
       streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,

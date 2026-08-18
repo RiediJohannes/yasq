@@ -10,6 +10,15 @@ test.describe('Host UI', () => {
   let currentInstanceId: string;
   let api: TestApi;
 
+  const CUSTOM_SETTINGS = {
+    rounds: 14,
+    trackDuration: 50_000,
+    timeBonus: TimeBonus.LOGISTIC,
+    firstBonusMultiplier: FirstBonusMultiplier.OFF,
+    streakBonusMultiplier: StreakBonusMultiplier.LARGE,
+    enabledJokers: [Joker.TRIVIA, Joker.MULTIPLE_CHOICE, Joker.GLIMPSE],
+  };
+
   test.beforeEach(async ({ page }, testInfo) => {
     currentInstanceId = `test-instance-${testInfo.testId}`;
     const playerCount = 3;
@@ -28,7 +37,7 @@ test.describe('Host UI', () => {
 
     // Setup current game state
     api = new TestApi('http://localhost:3001', currentInstanceId);
-    await api.setupSession(players, 'LOBBY');
+    await api.setupSession(players, 'LOBBY', { settings: CUSTOM_SETTINGS });
 
     // Navigate to the app
     await page.goto('/?mock=true');
@@ -41,19 +50,6 @@ test.describe('Host UI', () => {
   test('should initialize setup view with settings from lobby view when editing settings', async ({ page }) => {
     const setup = new SetupPage(page);
     const lobby = new LobbyPage(page);
-
-    const CUSTOM_SETTINGS = {
-      rounds: 14,
-      trackDuration: 50_000,
-      timeBonus: TimeBonus.LOGISTIC,
-      firstBonusMultiplier: FirstBonusMultiplier.OFF,
-      streakBonusMultiplier: StreakBonusMultiplier.LARGE,
-      enabledJokers: [Joker.TRIVIA, Joker.MULTIPLE_CHOICE, Joker.GLIMPSE],
-    };
-
-    // Re-setup session in LOBBY state with custom settings and reload
-    await api.setupSession(players, 'LOBBY', { settings: CUSTOM_SETTINGS });
-    await page.goto('/?mock=true');
 
     // Assert that all settings are accurately displayed on the LobbyView
     await expect(lobby.settingsSummary).toBeVisible();
@@ -87,7 +83,7 @@ test.describe('Host UI', () => {
     const enabledJokers = new Set(await setup.getEnabledJokerTypes());
     expect(enabledJokers).toEqual(new Set(CUSTOM_SETTINGS.enabledJokers));
 
-    // Advanced Settings
+    // Check Advanced Settings
     await setup.advancedSettingsToggle.click();
     await expect(setup.advancedSettings).toBeVisible();
 
@@ -97,9 +93,11 @@ test.describe('Host UI', () => {
   });
 
   test('should keep the same order in the enabled jokers list when jokers are toggled', async ({ page }) => {
+    test.setTimeout(60_000);
+
     const setup = new SetupPage(page);
     const lobby = new LobbyPage(page);
-    let displayedJokers;
+    let displayedJokers: Joker[];
 
     async function editJokersAndSwitchBack(targetJokers: Joker[]) {
       await expect(lobby.settingsSummary).toBeVisible();

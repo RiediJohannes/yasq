@@ -135,7 +135,7 @@ cloudflared tunnel --url http://localhost:5173
 
 ## Testing
 
-The project contains various unit tests for the client and the server using vitest, integration tests to verify client-server communication, as well as end-to-end (E2E) tests using Playwright to test the full app including the client UI. To run the tests, execute the respective `npm` script in the project root:
+The project contains various unit tests for the client and the server using vitest, integration tests to verify client-server communication, as well as end-to-end (E2E) and component-specific tests using Playwright to test the full app including correct behaviour of the client UI. To run the tests, execute the respective `npm` script in the project root:
 
 ### Unit Tests
 
@@ -153,13 +153,20 @@ npm run test:unit:server   # only server tests
 npm run test:integration
 ```
 
-### E2E Tests
+### UI Tests
+
+The user interface tests consist of end-to-end (E2E) tests and more fine-grained single-component tests.
+Furthermore, all the UI tests offer `npm` scripts for both a headless execution mode as well as an interactive mode through the Playwright Test Runner (`ui` mode).
 
 ```bash
-npx playwright install chromium  # for first execution
+npx playwright install        # install test devices (required for first execution)
 
-npm run test:e2e                 # headless mode
-npm run test:e2e:ui              # ui mode
+npm run test:e2e              # E2E tests - headless mode
+npm run test:e2e:ui           # E2E tests - ui mode
+npm run test:components       # component tests - headless mode
+npm run test:components:ui    # component tests - ui mode
+npm run test:gui              # all UI tests - headless mode
+npm run test:gui:ui           # all UI tests - ui mode
 ```
 
 ### CI Pipeline

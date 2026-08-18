@@ -91,3 +91,5 @@ export const WS_GAME_STATUS_UPDATE_EVENT: string = 'game_status_update';
 export const UI_UPDATES_DELAY_IN_E2E: number = 1000;
 
 export const MAX_GUESS_LENGTH = 100;
+
+export const LONG_PRESS_MILLIS = 400;
