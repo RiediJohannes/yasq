@@ -6,8 +6,9 @@ import {
   getReachableTags,
   getRandomEligibleTrack,
 } from './trackFiltering';
-import { Playlist, Track } from './types';
+import { Track } from './types';
 import mockTracksData from '../../../mock_data/mockTracks.json';
+import { Playlist } from '@yasq/shared';
 
 // Map the raw JSON data to satisfy the `Track` interface by adding default values for optional/required runtime fields
 const mockTracks: Track[] = (mockTracksData as Omit<Track, 'played' | 'originalIndex'>[]).map((t, index) => ({

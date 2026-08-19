@@ -1,7 +1,7 @@
 import { Locator, Page } from '@playwright/test';
+import { BasePage } from './BasePage';
 
-export class ResultsPage {
-  readonly page: Page;
+export class ResultsPage extends BasePage {
   readonly playerResults: Locator;
   readonly resultsContainer: Locator;
   readonly correctPlayersContainer: Locator;
@@ -13,7 +13,8 @@ export class ResultsPage {
   readonly tagBadges: Locator;
 
   constructor(page: Page) {
-    this.page = page;
+    super(page);
+
     this.playerResults = page.locator('.player-result');
     this.resultsContainer = page.locator('#results');
     this.readyBtn = page.locator('#btn-ready');

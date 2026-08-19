@@ -22,11 +22,11 @@ import { Sidebar } from './components/Sidebar';
 
 import { SetupView } from './views/SetupView';
 import { LobbyView } from './views/LobbyView';
-import { SelectionView } from './views/TrackSelectionView';
-import { ArenaView } from './views/PlayingView';
-import { HostReviewView } from './views/RoundCompletedView';
-import { RoundResultsView } from './views/ResultsView';
-import { FinalResultsView } from './views/GameFinishedView';
+import { TrackSelectionView } from './views/TrackSelectionView';
+import { PlayingView } from './views/PlayingView';
+import { HostReviewView } from './views/HostReviewView';
+import { RoundResultsView } from './views/RoundResultsView';
+import { FinalResultsView } from './views/FinalResultsView';
 
 import './style.css';
 
@@ -73,16 +73,18 @@ const App = () => {
       <div className="container">
         <div className="game-column">
           <GameHeader />
-          <div
+          <main
             className="game-area"
             key={`view-${isHost}-${gameState.value.state}`}
           >
             {renderView(isHost)}
-          </div>
+          </main>
         </div>
         <Sidebar />
       </div>
-      <p className="version">Ver. {import.meta.env.VERSION}</p>
+      <footer>
+        <p className="version">Ver. {import.meta.env.VERSION}</p>
+      </footer>
     </>
   );
 };
@@ -94,14 +96,14 @@ const renderView = (isHost: boolean) => {
     case GameState.LOBBY:
       return <LobbyView isHost={isHost} />;
     case GameState.TRACK_SELECTION:
-      return <SelectionView isHost={isHost} />;
+      return <TrackSelectionView isHost={isHost} />;
     case GameState.PLAYING:
-      return <ArenaView isHost={isHost} />;
-    case GameState.ROUND_COMPLETED:
+      return <PlayingView isHost={isHost} />;
+    case GameState.HOST_REVIEW:
       return <HostReviewView isHost={isHost} />;
-    case GameState.RESULTS:
+    case GameState.ROUND_RESULTS:
       return <RoundResultsView isHost={isHost} />;
-    case GameState.GAME_FINISHED:
+    case GameState.FINAL_RESULTS:
       return <FinalResultsView isHost={isHost} />;
   }
 };

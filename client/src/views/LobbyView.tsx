@@ -79,8 +79,9 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
                     >
                       {JokerIcon && (
                         <TooltipDiv
-                          text={JokerIcon?.description || 'Description not '}
+                          text={JokerIcon?.description || 'Description not available'}
                           className={`joker-indicator`}
+                          role="img"
                         >
                           <JokerIcon />
                         </TooltipDiv>

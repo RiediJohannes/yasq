@@ -1,4 +1,4 @@
-import { Joker } from '@yasq/shared';
+import { GameState, Joker } from '@yasq/shared';
 import { setBaseUrl } from '../../client/src/utils/backend';
 import { Player } from './helper';
 
@@ -21,7 +21,7 @@ export class TestApi {
     });
   }
 
-  async setupSession(players: Player[], state: string, extraData = {}) {
+  async setupSession(players: Player[], state: GameState, extraData = {}) {
     return this.http('POST', '/api/test/setup-session', {
       data: {
         instanceId: this.instanceId,

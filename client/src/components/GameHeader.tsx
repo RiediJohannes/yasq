@@ -8,8 +8,8 @@ export const GameHeader = () => {
     switch (state) {
       case GameState.TRACK_SELECTION:
       case GameState.PLAYING:
-      case GameState.ROUND_COMPLETED:
-      case GameState.RESULTS:
+      case GameState.HOST_REVIEW:
+      case GameState.ROUND_RESULTS:
         return `Round ${currentRound} of ${gameSettings.rounds}`;
       default:
         return 'YASQ';
@@ -17,8 +17,8 @@ export const GameHeader = () => {
   };
 
   return (
-    <div className="game-header-stats">
+    <header className="game-header-stats">
       <p className="round-indicator">{renderHeaderContent()}</p>
-    </div>
+    </header>
   );
 };

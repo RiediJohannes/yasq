@@ -1,8 +1,7 @@
 import { Locator, Page } from '@playwright/test';
+import { BasePage } from './BasePage';
 
-export class PlayingPage {
-  readonly page: Page;
-
+export class PlayingPage extends BasePage {
   // Player UI
   readonly guessInput: Locator;
   readonly submitBtn: Locator;
@@ -27,7 +26,7 @@ export class PlayingPage {
   readonly tagBadges: Locator;
 
   constructor(page: Page) {
-    this.page = page;
+    super(page);
 
     // Player UI
     this.guessInput = page.locator('#guess-input');

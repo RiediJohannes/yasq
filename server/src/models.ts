@@ -90,7 +90,7 @@ export class GameInstance {
     const guessersCount = Object.keys(this.guesses[this.currentRound] ?? {}).length;
 
     if (guessersCount >= totalPlayers) {
-      this.state = GameState.ROUND_COMPLETED;
+      this.state = GameState.HOST_REVIEW;
       this.removeTempFiles();
     }
 
@@ -199,7 +199,7 @@ export class GameInstance {
       );
     });
 
-    this.state = GameState.RESULTS;
+    this.state = GameState.ROUND_RESULTS;
     this.guessedPlayers = new Set();
   }
 
@@ -299,7 +299,7 @@ export class GameInstance {
     this.currentRoundLostStreaks = {};
 
     if (this.currentRound >= this.settings.rounds) {
-      this.state = GameState.GAME_FINISHED;
+      this.state = GameState.FINAL_RESULTS;
       this.leaderboard.sort();
       this.lastWinnerId = this.leaderboard.getWinnerId();
     } else {
@@ -333,10 +333,10 @@ export class GameInstance {
 
     const totalWaitTime = COUNTDOWN_DURATION + this.settings.trackDuration;
 
-    // Set a timer to automatically transition to ROUND_COMPLETED after trackDuration
+    // Set a timer to automatically transition to HOST_REVIEW after trackDuration
     setTimeout(() => {
       if (this.state === GameState.PLAYING && this.currentRound === roundAtStart && this.currentGame === gameAtStart) {
-        this.state = GameState.ROUND_COMPLETED;
+        this.state = GameState.HOST_REVIEW;
         logger.debug(this.instanceId, `Timer for round ${roundAtStart} expired`, LogCategory.GAME);
 
         roundFinishedCallback();

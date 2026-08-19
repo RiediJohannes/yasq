@@ -1,13 +1,14 @@
 import { Locator, Page } from '@playwright/test';
+import { BasePage } from './BasePage';
 
-export class GameFinishedPage {
-  readonly page: Page;
+export class GameFinishedPage extends BasePage {
   readonly playerCards: Locator;
   readonly readyBtn: Locator;
   readonly restartBtn: Locator;
 
   constructor(page: Page) {
-    this.page = page;
+    super(page);
+
     this.playerCards = page.locator('.player-card');
     this.readyBtn = page.locator('#btn-ready');
     this.restartBtn = page.locator('#btn-restart');

@@ -1,9 +1,9 @@
 import { Locator, Page } from '@playwright/test';
+import { BasePage } from './BasePage';
 
 type ResultType = 'correct' | 'partial' | 'wrong';
 
-export class RoundCompletedPage {
-  readonly page: Page;
+export class RoundCompletedPage extends BasePage {
   readonly guessList: Locator;
   readonly resultsTitle: Locator;
   readonly resultsTrackName: Locator;
@@ -11,9 +11,10 @@ export class RoundCompletedPage {
   readonly submitReviewedBtn: Locator;
 
   constructor(page: Page) {
-    this.page = page;
+    super(page);
+
     this.guessList = page.locator('#guess-list');
-    this.resultsTitle = page.locator('h2');
+    this.resultsTitle = page.locator('main >> h2');
     this.resultsTrackName = page.locator('#results p >> strong');
     this.timedOutSection = page.locator('.timed-out-section');
     this.submitReviewedBtn = page.locator('#btn-submit-reviewed-results');

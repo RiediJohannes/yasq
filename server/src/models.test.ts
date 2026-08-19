@@ -138,14 +138,14 @@ describe('GameInstance - submitGuess', () => {
     expect(guess?.text).toBe(GAME_A);
   });
 
-  it('should transition to ROUND_COMPLETED when the last player guesses', () => {
+  it('should transition to HOST_REVIEW when the last player guesses', () => {
     expect(game.guessedPlayers.size).toBe(0);
 
     // First player guesses
     const progress1 = game.submitGuess(PLAYER_1, GAME_A);
     expect(progress1.current).toBe(1);
     expect(game.guessedPlayers.has(PLAYER_1)).toBe(true);
-    expect(game.state).not.toBe(GameState.ROUND_COMPLETED);
+    expect(game.state).not.toBe(GameState.HOST_REVIEW);
 
     // Second (last) player guesses
     const progress2 = game.submitGuess(PLAYER_2, GAME_B);
@@ -154,7 +154,7 @@ describe('GameInstance - submitGuess', () => {
     expect(game.guessedPlayers.has(PLAYER_2)).toBe(true);
 
     // Check state transition
-    expect(game.state).toBe(GameState.ROUND_COMPLETED);
+    expect(game.state).toBe(GameState.HOST_REVIEW);
   });
 });
 
@@ -528,12 +528,12 @@ describe('GameInstance - submitResults', () => {
     );
   });
 
-  it('should transition to RESULTS state and reset guessedPlayers', () => {
+  it('should transition to ROUND_RESULTS state and reset guessedPlayers', () => {
     game.guessedPlayers.add(PLAYER_1);
 
     game.submitResults({});
 
-    expect(game.state).toBe(GameState.RESULTS);
+    expect(game.state).toBe(GameState.ROUND_RESULTS);
     expect(game.guessedPlayers.size).toBe(0);
   });
 });
@@ -741,9 +741,9 @@ describe('GameInstance - advanceRound', () => {
 
     const nextState = game.advanceRound();
 
-    expect(nextState).toBe(GameState.GAME_FINISHED);
+    expect(nextState).toBe(GameState.FINAL_RESULTS);
     expect(game.lastWinnerId).toBe(PLAYER_2);
-    expect(game.state).toBe(GameState.GAME_FINISHED);
+    expect(game.state).toBe(GameState.FINAL_RESULTS);
   });
 });
 
@@ -783,7 +783,7 @@ describe('GameInstance - playTrack', () => {
     expect(game.trackHistory).toContain('file123');
   });
 
-  it('should transition to ROUND_COMPLETED automatically after time expires', async () => {
+  it('should transition to HOST_REVIEW automatically after time expires', async () => {
     const track = {
       game: GAME_A,
       title: 'Track A',
@@ -803,7 +803,7 @@ describe('GameInstance - playTrack', () => {
     // Jump past the finish line (14.1 seconds total)
     vi.advanceTimersByTime(200);
 
-    expect(game.state).toBe(GameState.ROUND_COMPLETED);
+    expect(game.state).toBe(GameState.HOST_REVIEW);
     expect(mockCallback).toHaveBeenCalled();
   });
 
@@ -823,8 +823,8 @@ describe('GameInstance - playTrack', () => {
     // Fast-forward through the total duration
     vi.advanceTimersByTime(15_000);
 
-    // The state should NOT be ROUND_COMPLETED because the roundAtStart check fails
-    expect(game.state).not.toBe(GameState.ROUND_COMPLETED);
+    // The state should NOT be HOST_REVIEW because the roundAtStart check fails
+    expect(game.state).not.toBe(GameState.HOST_REVIEW);
   });
 });
 

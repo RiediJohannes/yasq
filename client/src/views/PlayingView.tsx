@@ -3,12 +3,11 @@ import { useEffect, useRef } from 'preact/hooks';
 
 import * as backend from '../utils/backend';
 import { audioPlayer, auth, discordSdk, gameState, isMac, participants } from '../main';
-import { getAvatarUrl, getDisplayName, Joker, MAX_GUESS_LENGTH, POLLING_INTERVAL } from '@yasq/shared';
+import { getAvatarUrl, getDisplayName, Joker, MAX_GUESS_LENGTH, POLLING_INTERVAL, Tag } from '@yasq/shared';
 import { ALL_JOKER_ICONS } from '../components/JokerIcons';
 import { capitalize, findUser, getActionKeyLabel } from '../utils/helper';
 import { NonDraggableImg } from '../components/NonDraggableImg';
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
-import { Tag } from '../utils/types';
 import { DiscordAvatar } from '../components/DiscordAvatar';
 import { TooltipDiv, WithTooltip } from '../components/Tooltip';
 
@@ -116,7 +115,7 @@ const renderJokerHint = (activeHint: JokerHint, submit: SubmitFunction) => {
   }
 };
 
-export const ArenaView = ({ isHost }: { isHost: boolean }) => {
+export const PlayingView = ({ isHost }: { isHost: boolean }) => {
   const hasSubmitted = useSignal(false);
   const jokerError = useSignal<string | null>(null);
   const countdown = useSignal<number | null>(3);

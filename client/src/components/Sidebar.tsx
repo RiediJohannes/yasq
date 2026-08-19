@@ -43,9 +43,9 @@ export const Sidebar = () => {
   useKeyboardShortcut({ key: 'M', altKey: !isMac, metaKey: isMac }, () => toggleMute());
 
   return (
-    <div className="sidebar">
+    <aside className="sidebar">
       <div className="sidebar-box participants">
-        <h3>Participating Players</h3>
+        <h2>Participating Players</h2>
         <div id="participant-list">
           {sortedParticipants.map(p => {
             const isPlayerHost = p.id === gameState.value.hostId;
@@ -127,6 +127,6 @@ export const Sidebar = () => {
           </div>
         </div>
       </div>
-    </div>
+    </aside>
   );
 };

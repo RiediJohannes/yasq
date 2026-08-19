@@ -1,7 +1,4 @@
-import { test, expect } from '@playwright/test';
-import { generatePlayers, Player } from '../utils/helper.js';
-import { SetupPage } from './pages/SetupPage.js';
-import { TestApi } from '../utils/api.js';
+import { test, expect } from './test_setup.js';
 import {
   DEFAULT_ENABLED_JOKERS,
   DEFAULT_FIRST_BONUS_MULTIPLIER,
@@ -9,198 +6,190 @@ import {
   DEFAULT_STREAK_BONUS_MULTIPLIER,
   DEFAULT_TIME_BONUS,
   DEFAULT_TRACK_DURATION,
+  GameState,
   Joker,
 } from '@yasq/shared';
+import AxeBuilder from '@axe-core/playwright';
+
+test.use({
+  sessionConfig: {
+    state: GameState.SETUP,
+    playerCount: 3,
+  },
+});
 
 test.describe('Host UI', () => {
-  let players: Player[] = [];
-  let currentInstanceId: string;
-  let api: TestApi;
-
-  test.beforeEach(async ({ page }, testInfo) => {
-    currentInstanceId = `test-instance-${testInfo.testId}`;
-    const playerCount = 3;
-    players = generatePlayers(playerCount);
-    const user = players[0];
-
-    await page.addInitScript(
-      ({ allPlayers, user, instanceId }) => {
-        window.__MOCK_PARTICIPANTS__ = allPlayers;
-        window.__MOCK_USER_ID__ = user.id;
-        window.__MOCK_USER_NAME__ = user.username;
-        window.__MOCK_INSTANCE_ID__ = instanceId;
-      },
-      { allPlayers: players, user: user, instanceId: currentInstanceId }
-    );
-
-    // Setup current game state
-    api = new TestApi('http://localhost:3001', currentInstanceId);
-    await api.setupSession(players, 'SETUP');
-
-    // Navigate to the app
-    await page.goto('/?mock=true');
-  });
-
-  test.afterEach(async () => {
-    await api.deleteSession();
-  });
-
-  test('should contain default settings on startup', async ({ page }) => {
-    const setup = new SetupPage(page);
-
+  test('should contain default settings on startup', async ({ setupPage }) => {
     // Verify initial UI state
-    await expect(setup.hostSettings).toBeVisible();
-    await expect(setup.advancedSettings).toBeHidden();
-    await expect(setup.advancedSettingsToggle).toBeVisible();
+    await expect(setupPage.hostSettings).toBeVisible();
+    await expect(setupPage.advancedSettings).toBeHidden();
+    await expect(setupPage.advancedSettingsToggle).toBeVisible();
 
-    const jokerButtons = await setup.getAllJokerButtons();
-    expect(jokerButtons.length).toEqual(Object.values(Joker).length); // as many buttons as joker variants
+    const jokerButtons = await setupPage.getAllJokerButtons();
+    expect(jokerButtons.length).toEqual(Object.values(Joker).length);
     for (const button of jokerButtons) {
       await expect(button).toBeEnabled();
     }
 
-    await expect(setup.startBtn).toBeVisible();
-    await expect(setup.startBtn).toBeEnabled();
+    await expect(setupPage.startBtn).toBeVisible();
+    await expect(setupPage.startBtn).toBeEnabled();
 
-    await expect(setup.hostTransferDropdownBtn).toBeVisible();
-    await expect(setup.hostTransferDropdownBtn).toBeEnabled();
-    await expect(setup.hostTransferConfirmBtn).toBeVisible();
-    await expect(setup.hostTransferConfirmBtn).toBeDisabled();
-    await expect(setup.hostTransferList).toBeHidden();
-    await expect(setup.hostTransferDropdownBtn).toContainText('Select a player...');
+    await expect(setupPage.hostTransferDropdownBtn).toBeVisible();
+    await expect(setupPage.hostTransferDropdownBtn).toBeEnabled();
+    await expect(setupPage.hostTransferConfirmBtn).toBeVisible();
+    await expect(setupPage.hostTransferConfirmBtn).toBeDisabled();
+    await expect(setupPage.hostTransferList).toBeHidden();
+    await expect(setupPage.hostTransferDropdownBtn).toContainText('Select a player...');
 
     // Verify controls are initialized with the global default values
-    await expect(setup.roundsInput).toHaveValue(DEFAULT_ROUNDS.toString());
-    await expect(setup.trackDurationInput).toHaveValue((DEFAULT_TRACK_DURATION / 1000).toString());
+    await expect(setupPage.roundsInput).toHaveValue(DEFAULT_ROUNDS.toString());
+    await expect(setupPage.trackDurationInput).toHaveValue((DEFAULT_TRACK_DURATION / 1000).toString());
 
     // Exactly the default-enabled jokers are active
-    const enabledJokers = await setup.getEnabledJokerButtons();
+    const enabledJokers = await setupPage.getEnabledJokerButtons();
     expect(enabledJokers).toHaveLength(DEFAULT_ENABLED_JOKERS.length);
-    const enabledJokerTypes = await setup.getEnabledJokerTypes();
+    const enabledJokerTypes = await setupPage.getEnabledJokerTypes();
     expect(enabledJokerTypes).toEqual(expect.arrayContaining(DEFAULT_ENABLED_JOKERS));
 
-    await setup.advancedSettingsToggle.click();
-    await expect(setup.advancedSettings).toBeVisible();
+    await setupPage.advancedSettingsToggle.click();
+    await expect(setupPage.advancedSettings).toBeVisible();
 
-    await expect(setup.timeBonusSelect).toBeVisible();
-    const selectedTimeBonus = await setup.timeBonusSelect.inputValue();
+    await expect(setupPage.timeBonusSelect).toBeVisible();
+    const selectedTimeBonus = await setupPage.timeBonusSelect.inputValue();
     expect(selectedTimeBonus).toEqual(DEFAULT_TIME_BONUS.toString());
 
-    expect(await setup.getActiveFirstBonus()).toEqual(DEFAULT_FIRST_BONUS_MULTIPLIER.toString());
-    expect(await setup.getActiveStreakBonus()).toEqual(DEFAULT_STREAK_BONUS_MULTIPLIER.toString());
+    expect(await setupPage.getActiveFirstBonus()).toEqual(DEFAULT_FIRST_BONUS_MULTIPLIER.toString());
+    expect(await setupPage.getActiveStreakBonus()).toEqual(DEFAULT_STREAK_BONUS_MULTIPLIER.toString());
   });
 
-  test('should allow host to select another player and transfer host role', async ({ page }) => {
-    const setup = new SetupPage(page);
-    const targetPlayer = players[2];
+  test('should allow host to select another player and transfer host role', async ({ setupPage, session }) => {
+    const targetPlayer = session.players[2];
 
-    await expect(setup.hostSettings).toBeVisible();
-    await expect(setup.waitingMsg).toBeHidden();
+    await expect(setupPage.hostSettings).toBeVisible();
+    await expect(setupPage.waitingMsg).toBeHidden();
 
     // Open the dropdown
-    await setup.hostTransferDropdownBtn.click();
-    await expect(setup.hostTransferList).toBeVisible();
+    await setupPage.hostTransferDropdownBtn.click();
+    await expect(setupPage.hostTransferList).toBeVisible();
 
     // Select the target player from the list
-    await setup.getPlayerItem(targetPlayer.id).click();
+    await setupPage.getPlayerItem(targetPlayer.id).click();
 
     // Verify selection state
-    await expect(setup.hostTransferList).toBeHidden();
-    await expect(setup.hostTransferConfirmBtn).toBeEnabled();
+    await expect(setupPage.hostTransferList).toBeHidden();
+    await expect(setupPage.hostTransferConfirmBtn).toBeEnabled();
 
     // Verify the header updated with the selected player's name
-    await expect(setup.hostTransferDropdownBtn).toContainText(targetPlayer.username);
+    await expect(setupPage.hostTransferDropdownBtn).toContainText(targetPlayer.username);
 
     // Execute the transfer
-    await setup.hostTransferConfirmBtn.click();
-    await expect(setup.hostTransferConfirmBtn).toHaveText(/transferring/i);
+    await setupPage.hostTransferConfirmBtn.click();
+    await expect(setupPage.hostTransferConfirmBtn).toHaveText(/transferring/i);
 
     // Verify UI transition to the player UI
-    await expect(setup.hostSettings).toBeHidden();
-    await expect(setup.waitingMsg).toBeVisible();
+    await expect(setupPage.hostSettings).toBeHidden();
+    await expect(setupPage.waitingMsg).toBeVisible();
   });
 
-  test('should allow host to configure game and transfer host using only keyboard', async ({ page }) => {
-    const setup = new SetupPage(page);
-    await expect(setup.hostSettings).toBeVisible();
+  test('should allow host to configure game and transfer host using only keyboard', async ({
+    setupPage,
+    page,
+    session,
+  }) => {
+    await expect(setupPage.hostSettings).toBeVisible();
 
     // Configure rounds
-    await setup.roundsInput.focus();
+    await setupPage.roundsInput.focus();
     await page.keyboard.press('Control+A');
     await page.keyboard.type('5');
 
     // Configure track duration
     await page.keyboard.press('Tab');
-    await expect(setup.trackDurationInput).toBeFocused();
+    await expect(setupPage.trackDurationInput).toBeFocused();
     await page.keyboard.press('Control+A');
     await page.keyboard.type('30');
 
     // Move through joker buttons
-    await page.keyboard.press('Tab'); // first joker
-    await expect(setup.firstJoker).toBeFocused();
-    await expect(setup.firstJoker).toHaveClass(/\bactive\b/);
-    await expect(setup.firstJoker).not.toHaveClass(/\binactive\b/);
-    await page.keyboard.press('Space'); // toggle it
-    await expect(setup.firstJoker).toHaveClass(/\binactive\b/);
-    await expect(setup.firstJoker).not.toHaveClass(/\bactive\b/);
+    await page.keyboard.press('Tab');
+    await expect(setupPage.firstJoker).toBeFocused();
+    await expect(setupPage.firstJoker).toHaveClass(/\bactive\b/);
+    await expect(setupPage.firstJoker).not.toHaveClass(/\binactive\b/);
+    await page.keyboard.press('Space');
+    await expect(setupPage.firstJoker).toHaveClass(/\binactive\b/);
+    await expect(setupPage.firstJoker).not.toHaveClass(/\bactive\b/);
 
     // Continue tabbing until Advanced Settings button
-    await setup.tabUntilFocused(setup.advancedSettingsToggle);
+    await setupPage.tabUntilFocused(setupPage.advancedSettingsToggle);
 
     // Open advanced settings
     await page.keyboard.press('Enter');
 
     // Time bonus select
     await page.keyboard.press('Tab');
-    const previousValue = await setup.timeBonusSelect.inputValue();
+    const previousValue = await setupPage.timeBonusSelect.inputValue();
     await page.keyboard.press('ArrowDown');
-    const newValue = await setup.timeBonusSelect.inputValue();
+    const newValue = await setupPage.timeBonusSelect.inputValue();
     expect(newValue).not.toBe(previousValue);
 
     // First bonus radio buttons
     await page.keyboard.press('Tab');
-    const checkedBefore = await setup.getActiveFirstBonus();
+    const checkedBefore = await setupPage.getActiveFirstBonus();
     await page.keyboard.press('ArrowRight');
-    const checkedAfter = await setup.getActiveFirstBonus();
+    const checkedAfter = await setupPage.getActiveFirstBonus();
     expect(checkedAfter).not.toBe(checkedBefore);
 
     // Continue until Confirm button
-    await setup.tabUntilFocused(setup.startBtn);
-    await expect(setup.startBtn).toBeFocused();
+    await setupPage.tabUntilFocused(setupPage.startBtn);
+    await expect(setupPage.startBtn).toBeFocused();
 
     // Continue to host transfer dropdown
     await page.keyboard.press('Tab');
-    await expect(setup.hostTransferDropdownBtn).toBeFocused();
+    await expect(setupPage.hostTransferDropdownBtn).toBeFocused();
 
     // Open dropdown
     await page.keyboard.press('Enter');
-    await expect(setup.hostTransferList).toBeVisible();
+    await expect(setupPage.hostTransferList).toBeVisible();
 
-    // Wait until first element is focussed
-    const firstItem = setup.getPlayerItem(players[1].id);
+    // Wait until first element is focused
+    const firstItem = setupPage.getPlayerItem(session.players[1].id);
     await expect(firstItem).toBeFocused();
 
-    // Navigate to third player (players[2])
+    // Navigate to third player
     await page.keyboard.press('ArrowDown');
-    const targetItem = setup.getPlayerItem(players[2].id);
+    const targetItem = setupPage.getPlayerItem(session.players[2].id);
     await expect(targetItem).toBeFocused();
 
     // Select player
     await page.keyboard.press('Enter');
-    await expect(setup.hostTransferList).toBeHidden();
-    await expect(setup.hostTransferDropdownBtn).toContainText(players[2].username);
+    await expect(setupPage.hostTransferList).toBeHidden();
+    await expect(setupPage.hostTransferDropdownBtn).toContainText(session.players[2].username);
 
     // Transfer button
     await page.keyboard.press('Tab');
-    await expect(setup.hostTransferConfirmBtn).toBeFocused();
-    await expect(setup.hostTransferConfirmBtn).toBeEnabled();
+    await expect(setupPage.hostTransferConfirmBtn).toBeFocused();
+    await expect(setupPage.hostTransferConfirmBtn).toBeEnabled();
 
     // Execute transfer
     await page.keyboard.press('Enter');
-    await expect(setup.hostTransferConfirmBtn).toHaveText(/transferring/i);
+    await expect(setupPage.hostTransferConfirmBtn).toHaveText(/transferring/i);
 
     // Host becomes non-host
-    await expect(setup.hostSettings).toBeHidden();
-    await expect(setup.waitingMsg).toBeVisible();
+    await expect(setupPage.hostSettings).toBeHidden();
+    await expect(setupPage.waitingMsg).toBeVisible();
+  });
+
+  test('should not have any automatically detectable accessibility issues', async ({ setupPage, page }, testInfo) => {
+    await setupPage.waitForLoaded();
+
+    const accessibilityScanResults = await new AxeBuilder({ page })
+      .disableRules(['color-contrast', 'page-has-heading-one'])
+      .analyze();
+
+    await testInfo.attach('violations', {
+      body: JSON.stringify(accessibilityScanResults.violations, null, 2),
+      contentType: 'application/json',
+    });
+
+    expect(accessibilityScanResults.violations).toEqual([]);
   });
 });

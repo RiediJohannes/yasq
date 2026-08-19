@@ -1,8 +1,8 @@
 import { Locator, Page } from '@playwright/test';
 import { FirstBonusMultiplier, Joker, StreakBonusMultiplier, TimeBonus } from '@yasq/shared';
+import { BasePage } from './BasePage';
 
-export class SetupPage {
-  readonly page: Page;
+export class SetupPage extends BasePage {
   readonly hostSettings: Locator;
   readonly advancedSettings: Locator;
   readonly roundsInput: Locator;
@@ -19,7 +19,8 @@ export class SetupPage {
   readonly startBtn: Locator;
 
   constructor(page: Page) {
-    this.page = page;
+    super(page);
+
     this.hostSettings = page.locator('#host-settings');
     this.advancedSettings = page.locator('#advanced-settings');
     this.roundsInput = page.locator('#rounds-input');

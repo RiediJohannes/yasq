@@ -1,7 +1,7 @@
 import { Locator, Page } from '@playwright/test';
+import { BasePage } from './BasePage';
 
-export class TrackSelectionPage {
-  readonly page: Page;
+export class TrackSelectionPage extends BasePage {
   readonly selectionTitle: Locator;
   readonly waitingTitle: Locator;
   readonly trackList: Locator;
@@ -13,7 +13,8 @@ export class TrackSelectionPage {
   readonly clearFiltersButton: Locator;
 
   constructor(page: Page) {
-    this.page = page;
+    super(page);
+
     this.selectionTitle = page.locator('h2:has-text("Select the next track to challenge players:")');
     this.waitingTitle = page.locator('h2:has-text("Waiting for players to submit their guesses...")');
     this.trackList = page.locator('#track-selection-grid');

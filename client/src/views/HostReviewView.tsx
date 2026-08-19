@@ -86,6 +86,7 @@ export const HostReviewView = ({ isHost }: { isHost: boolean }) => {
                       <TooltipDiv
                         text={JokerIcon?.description}
                         className="joker-indicator"
+                        role="img"
                       >
                         <JokerIcon />
                       </TooltipDiv>

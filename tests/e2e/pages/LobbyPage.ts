@@ -1,7 +1,7 @@
 import { Locator, Page } from '@playwright/test';
+import { BasePage } from './BasePage';
 
-export class LobbyPage {
-  readonly page: Page;
+export class LobbyPage extends BasePage {
   readonly settingsSummary: Locator;
   readonly startBtn: Locator;
   readonly readyBtn: Locator;
@@ -15,7 +15,8 @@ export class LobbyPage {
   readonly streakBonusDisplay: Locator;
 
   constructor(page: Page) {
-    this.page = page;
+    super(page);
+
     this.settingsSummary = page.locator('#settings-summary');
     this.startBtn = page.locator('#btn-start');
     this.readyBtn = page.locator('#btn-ready');

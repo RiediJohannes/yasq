@@ -1,4 +1,4 @@
-import { GameSettings, Joker, PointsBonus, TimeBonus } from '@yasq/shared';
+import { GameSettings, Joker, PointsBonus, Tag, TimeBonus } from '@yasq/shared';
 
 /** Extension of the {@link TimeBonus} enum for selection in the UI */
 export const OptionalTimeBonus = {
@@ -29,16 +29,6 @@ export interface Track {
   played: boolean;
   tags: Tag[];
   originalIndex?: number;
-}
-
-export interface Tag {
-  type: string;
-  value: string;
-}
-
-export interface Playlist {
-  name: string;
-  tracks: string[];
 }
 
 export interface ReviewData {

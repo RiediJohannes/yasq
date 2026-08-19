@@ -63,6 +63,7 @@ export const WithTooltip = ({ text, children, id, disabled = false }: WithToolti
 
   return cloneElement(children, {
     'data-tooltip': text,
+    'aria-label': text,
     id: childProps.id ?? tooltipId,
     className: `has-tooltip ${isTooltipOpen ? 'show-tooltip' : ''} ${childProps.className || ''}`.trim(),
     // Attach a bunch of event handlers that open/close the added tooltip as expected

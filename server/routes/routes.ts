@@ -196,7 +196,7 @@ export const setupRoutes = (
       LogCategory.GAME
     );
 
-    if (game.state === GameState.ROUND_COMPLETED) {
+    if (game.state === GameState.HOST_REVIEW) {
       logger.debug(instanceId, `Game moved to state: ${game.state}`, LogCategory.GAME);
     }
 
@@ -256,14 +256,14 @@ export const setupRoutes = (
 
     triggerUpdate(instanceId);
 
-    res.send({ status: GameState.RESULTS });
+    res.send({ status: GameState.ROUND_RESULTS });
   });
 
   router.get('/get-results', fetchGame, (req, res) => {
     const { userId } = req.query as InstanceUserQuery;
     const game = req.game!;
 
-    if (game?.state !== GameState.RESULTS) {
+    if (game?.state !== GameState.ROUND_RESULTS) {
       return res.status(400).send({ error: 'Results not ready yet.' });
     }
 
@@ -313,7 +313,7 @@ export const setupRoutes = (
     const { instanceId } = req.body;
     const game = req.game!;
 
-    if (game.state !== GameState.RESULTS) {
+    if (game.state !== GameState.ROUND_RESULTS) {
       return res.status(403).send({
         error: 'Can only start next round after round results are shown',
       });
@@ -321,7 +321,7 @@ export const setupRoutes = (
 
     const newState = game.advanceRound();
 
-    if (newState === GameState.GAME_FINISHED) {
+    if (newState === GameState.FINAL_RESULTS) {
       logger.info(instanceId, `Game ended!`, LogCategory.GAME);
       void generateResultsImage(game.instanceId, game.temporaryDirectory(true), game.leaderboard, userDataCache);
       logger.debug(
@@ -398,7 +398,7 @@ export const setupRoutes = (
   router.get('/get-final-results', fetchGame, (req, res) => {
     const game = req.game!;
 
-    if (game?.state !== GameState.GAME_FINISHED) {
+    if (game?.state !== GameState.FINAL_RESULTS) {
       return res.status(400).send({ error: 'Game has not finished yet.' });
     }
 

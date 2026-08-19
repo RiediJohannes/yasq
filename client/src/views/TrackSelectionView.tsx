@@ -4,7 +4,7 @@ import { useEffect } from 'preact/hooks';
 import { auth, socket } from '../main';
 import { discordSdk } from '../main';
 import * as backend from '../utils/backend';
-import { Track, Playlist } from '../utils/types';
+import { Track } from '../utils/types';
 import { NonDraggableImg } from '../components/NonDraggableImg';
 import { TagFilterDropdown } from '../components/TagFilterComponent';
 import { SimpleDropdown } from '../components/SimpleDropdown';
@@ -16,6 +16,7 @@ import {
   getReachableTags,
   SortOption,
 } from '../utils/trackFiltering';
+import { Playlist } from '@yasq/shared';
 
 const selectedPlaylistName = signal<string>('All playlists');
 const selectedTags = signal<Record<string, string[]>>({});
@@ -23,7 +24,7 @@ const searchTerm = signal('');
 const hidePlayed = signal(false);
 const sortOrder = signal<SortOption>('Default Order');
 
-export const SelectionView = ({ isHost }: { isHost: boolean }) => {
+export const TrackSelectionView = ({ isHost }: { isHost: boolean }) => {
   const tracks = useSignal<Track[] | null>(null);
   const playlists = useSignal<Playlist[]>([]);
 
