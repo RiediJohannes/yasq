@@ -7,9 +7,7 @@ import { TimeBonus } from '@yasq/shared';
 /**
  * Fetch and cache sample data to display in a {@link TimeBonusPlot} for each variant of {@link TimeBonus}.
  */
-export const useTimeBonusSamples = (
-  isHost: boolean
-): {
+export const useTimeBonusSamples = (): {
   timeBonusSamples: Signal<Map<TimeBonus, TimeBonusPlotPayload>>;
   isLoading: Signal<boolean>;
 } => {
@@ -17,7 +15,7 @@ export const useTimeBonusSamples = (
   const isLoading = useSignal(false);
 
   useEffect(() => {
-    if (!isHost || samplesCache.value.size > 0) return;
+    if (samplesCache.value.size > 0) return;
 
     // Prefetch the time bonus plot payload for each time bonus type
     isLoading.value = true;
@@ -43,7 +41,7 @@ export const useTimeBonusSamples = (
       samplesCache.value = newSamplesMap;
       isLoading.value = false;
     });
-  }, [isHost]);
+  }, []);
 
   return { timeBonusSamples: samplesCache, isLoading };
 };

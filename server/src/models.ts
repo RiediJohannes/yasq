@@ -33,7 +33,7 @@ export class GameInstance {
   public instanceId: string;
   public registeredUsers: Set<string> = new Set();
   public hostId: string | null;
-  public state: string = GameState.SETUP;
+  public state: string = GameState.LOBBY;
   public currentRound: number = 0;
   public readyUsers: Set<string> = new Set();
   public guessedPlayers: Set<string> = new Set();

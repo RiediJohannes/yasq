@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'preact/hooks';
-
 import * as backend from '../utils/backend';
 import { auth, discordSdk, gameState, participants } from '../main';
 import { capitalize, formatBonusMultiplier } from '../utils/helper';
-import { ALL_JOKER_ICONS } from '../components/JokerIcons';
+import { ALL_JOKER_ICONS, InfoIcon } from '../components/Icons';
 import { OptionalTimeBonus, TOptionalTimeBonus } from '../utils/types';
 import { Joker, TimeBonus } from '@yasq/shared';
 import { ReadyButton } from '../components/ReadyButton';
-import { TooltipDiv } from '../components/Tooltip';
+import { TooltipDiv, WithTooltip } from '../components/Tooltip';
+import { useSignal } from '@preact/signals';
+import { TimeBonusPlot } from '../components/TimeBonusPlot';
+import { useTimeBonusSamples } from '../hooks/useTimeBonusSamples';
+import { Modal } from '../components/Modal';
 
 export const PLAYER_TIME_BONUS_LABELS: Record<TOptionalTimeBonus, string> = {
   [TimeBonus.LINEAR]: '⏳ Steady Pace',
@@ -19,23 +21,7 @@ export const PLAYER_TIME_BONUS_LABELS: Record<TOptionalTimeBonus, string> = {
 export const LobbyView = ({ isHost }: { isHost: boolean }) => {
   const playersExcludingHost = participants.value.filter(p => p.id !== gameState.value.hostId);
   const readyUsers = playersExcludingHost.filter(p => gameState.value.readyUsers.includes(p.id)).length;
-  const allPlayersReady = playersExcludingHost.length > 0 && readyUsers === playersExcludingHost.length;
-
-  const [activeTooltipType, setActiveTooltipType] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!activeTooltipType) return;
-
-    const closeAllTooltips = () => setActiveTooltipType(null);
-
-    window.addEventListener('touchstart', closeAllTooltips);
-    window.addEventListener('click', closeAllTooltips);
-
-    return () => {
-      window.removeEventListener('touchstart', closeAllTooltips);
-      window.removeEventListener('click', closeAllTooltips);
-    };
-  }, [activeTooltipType]);
+  const allPlayersAreReady = playersExcludingHost.length > 0 && readyUsers === playersExcludingHost.length;
 
   const handleStart = async () => {
     await backend.startGame(auth.value.access_token, discordSdk.instanceId);
@@ -43,6 +29,26 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
 
   const handleEditSettings = async () => {
     await backend.restartGame(auth.value.access_token, discordSdk.instanceId);
+  };
+
+  const currentTimeBonusName = gameState.value.gameSettings.timeBonus?.replace('_', '') ?? 'None';
+  const currentTimeBonusLabel =
+    PLAYER_TIME_BONUS_LABELS[(gameState.value.gameSettings.timeBonus as TOptionalTimeBonus) ?? OptionalTimeBonus.NONE];
+
+  const { timeBonusSamples, isLoading } = useTimeBonusSamples();
+  const activeTimeBonusSample =
+    gameState.value.gameSettings.timeBonus !== null
+      ? timeBonusSamples.value.get(gameState.value.gameSettings.timeBonus)
+      : null;
+
+  const sampleParticipants = new Map((activeTimeBonusSample?.participants || []).map(p => [p.id, p]));
+
+  const showTimeBonusDialog = useSignal<boolean>(false);
+  const openTimeBonusDialog = () => {
+    showTimeBonusDialog.value = true;
+  };
+  const closeTimeBonusDialog = () => {
+    showTimeBonusDialog.value = false;
   };
 
   return (
@@ -64,7 +70,7 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
           <dt>⏳ Guess Time</dt>
           <dd id="settings-guess-time">{(gameState.value.gameSettings.maxGuessTime ?? 0) / 1000}s</dd>
 
-          <dt>❓ Jokers</dt>
+          <dt className="top">❓ Jokers</dt>
           <dd id="settings-jokers">
             <div className="joker-column">
               {gameState.value.gameSettings.enabledJokers.length ? (
@@ -98,11 +104,52 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
 
           <dt>⏱️ Time Bonus</dt>
           <dd id="settings-time-bonus">
-            {
-              PLAYER_TIME_BONUS_LABELS[
-                (gameState.value.gameSettings.timeBonus as TOptionalTimeBonus) ?? OptionalTimeBonus.NONE
-              ]
-            }
+            <div className="time-bonus-row">
+              <span>{currentTimeBonusLabel}</span>
+              {activeTimeBonusSample && (
+                <WithTooltip text="Click for more info">
+                  <button
+                    className="time-bonus-info-btn"
+                    onClick={openTimeBonusDialog}
+                  >
+                    <InfoIcon />
+                  </button>
+                </WithTooltip>
+              )}
+            </div>
+
+            <Modal
+              title={`Time Bonus Calculation - ${capitalize(currentTimeBonusName)} Decay`}
+              width="650px"
+              height="380px"
+              isOpen={showTimeBonusDialog.value}
+              onClose={closeTimeBonusDialog}
+            >
+              <p>
+                The time bonus you earn always depends on your <span className="highlight">answer speed</span> in
+                relation to the total guess time and the speed of the other players. The latter matters because the time
+                bonus <span className="highlight">only starts diminishing</span> once the{' '}
+                <span className="highlight">first (at least partially) correct answer</span> arrives.
+              </p>
+              <p>
+                The following graph shows the value of the time bonus over time for some sample answer times of
+                simulated players.
+              </p>
+              <p className="text-row">
+                <span>Showing calculation for:</span>
+                <span className="time-bonus-label guess-text">{currentTimeBonusLabel}</span>
+                <code>({currentTimeBonusName.toLowerCase()} decay)</code>
+              </p>
+              {isLoading.value ? (
+                <p className="info-message time-bonus-loading">Loading sample data...</p>
+              ) : (
+                <TimeBonusPlot
+                  currentPlayer={null}
+                  participants={sampleParticipants}
+                  data={activeTimeBonusSample?.timeBonusSummary ?? null}
+                />
+              )}
+            </Modal>
           </dd>
 
           <dt>🥇 First Bonus</dt>
@@ -128,10 +175,10 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
         {isHost ? (
           <button
             id="btn-start"
-            disabled={!allPlayersReady}
+            disabled={!allPlayersAreReady}
             onClick={handleStart}
           >
-            {allPlayersReady ? 'Start Game' : `Waiting... (${readyUsers}/${playersExcludingHost.length})`}
+            {allPlayersAreReady ? 'Start Game' : `Waiting... (${readyUsers}/${playersExcludingHost.length})`}
           </button>
         ) : (
           <ReadyButton promptText={'Ready Up'} />

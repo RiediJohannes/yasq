@@ -4,7 +4,7 @@ import { useEffect } from 'preact/hooks';
 import * as backend from '../utils/backend';
 import { auth, discordSdk, participants } from '../main';
 import { findUser } from '../utils/helper';
-import { ALL_JOKER_ICONS } from '../components/JokerIcons';
+import { ALL_JOKER_ICONS } from '../components/Icons';
 import { ReviewData } from '../utils/types';
 import { getAvatarUrl, getDisplayName } from '@yasq/shared';
 import { DiscordAvatar } from '../components/DiscordAvatar';
