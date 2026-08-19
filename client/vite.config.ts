@@ -16,6 +16,7 @@ export default defineConfig(({ mode }) => {
     },
     publicDir: 'src/assets',
     server: {
+      host: '0.0.0.0',
       allowedHosts: [env.VITE_URL_MAPPING],
       proxy: {
         '/api': {

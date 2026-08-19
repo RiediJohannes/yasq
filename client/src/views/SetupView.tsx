@@ -4,7 +4,7 @@ import { TargetedEvent } from 'preact';
 
 import * as backend from '../utils/backend';
 import { auth, discordSdk, gameState } from '../main';
-import { ALL_JOKER_ICONS } from '../components/JokerIcons';
+import { ALL_JOKER_ICONS } from '../components/Icons';
 import {
   DEFAULT_ENABLED_JOKERS,
   DEFAULT_MAX_GUESS_TIME,
@@ -54,7 +54,7 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
 
   const selectedBonus = useSignal<TOptionalTimeBonus>(gameState.value.gameSettings.timeBonus ?? OptionalTimeBonus.NONE);
 
-  const { timeBonusSamples, isLoading } = useTimeBonusSamples(isHost);
+  const { timeBonusSamples, isLoading } = useTimeBonusSamples();
 
   const activeTimeBonusSample =
     selectedBonus.value !== OptionalTimeBonus.NONE

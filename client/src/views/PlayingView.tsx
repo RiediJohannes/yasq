@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'preact/hooks';
 import * as backend from '../utils/backend';
 import { audioPlayer, auth, discordSdk, gameState, isMac, participants } from '../main';
 import { getAvatarUrl, getDisplayName, Joker, MAX_GUESS_LENGTH, POLLING_INTERVAL, Tag } from '@yasq/shared';
-import { ALL_JOKER_ICONS } from '../components/JokerIcons';
+import { ALL_JOKER_ICONS } from '../components/Icons';
 import { capitalize, findUser, getActionKeyLabel } from '../utils/helper';
 import { NonDraggableImg } from '../components/NonDraggableImg';
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';

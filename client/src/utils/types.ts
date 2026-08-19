@@ -1,4 +1,5 @@
 import { GameSettings, Joker, PointsBonus, Tag, TimeBonus } from '@yasq/shared';
+import { CSSProperties } from 'preact';
 
 /** Extension of the {@link TimeBonus} enum for selection in the UI */
 export const OptionalTimeBonus = {
@@ -46,3 +47,7 @@ export interface RoundResult {
   isFirst?: boolean;
   awardedBonuses?: PointsBonus[];
 }
+
+export type CommonCSSProperties = {
+  [K in keyof CSSProperties as string extends K ? never : number extends K ? never : K]: CSSProperties[K];
+};

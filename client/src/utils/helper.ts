@@ -39,3 +39,11 @@ export function formatBonusMultiplier(rate: number): string {
 export const getActionKeyLabel = (isMac: boolean) => {
   return isMac ? '⌘' : 'Alt';
 };
+
+export const isTouchDevice = (): boolean => {
+  const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
+  // Legacy fallback
+  const hasTouchEvents = 'ontouchstart' in window;
+
+  return isCoarsePointer || hasTouchEvents;
+};
