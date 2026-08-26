@@ -30,8 +30,8 @@ export const mockDiscordSdk = {
       participants: window.__MOCK_PARTICIPANTS__ || [
         { id: '0', username: 'MockPlayer1' },
         { id: '1', username: 'MockPlayer2' },
-        { id: '2', username: 'MockPlayer2' },
-        { id: '3', username: 'MockPlayer2' },
+        { id: '2', username: 'MockPlayer3' },
+        { id: '3', username: 'MockPlayer4' },
       ],
     }),
   },

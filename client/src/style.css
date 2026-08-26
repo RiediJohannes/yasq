@@ -488,6 +488,7 @@ select:disabled option {
 .sidebar {
   padding: var(--padding-large);
   width: 350px;
+  overflow-y: auto;
   flex-shrink: 0;
   gap: var(--gap-medium);
   text-align: center;
@@ -552,13 +553,13 @@ select:disabled option {
   gap: var(--gap-tiny);
 }
 
-.sidebar > div::-webkit-scrollbar {
+.sidebar::-webkit-scrollbar {
   width: 8px;
 }
-.sidebar > div::-webkit-scrollbar-track {
+.sidebar::-webkit-scrollbar-track {
   background: transparent;
 }
-.sidebar > div::-webkit-scrollbar-thumb {
+.sidebar::-webkit-scrollbar-thumb {
   background-color: var(--bg-dark);
   border-radius: var(--border-radius-small);
 }
