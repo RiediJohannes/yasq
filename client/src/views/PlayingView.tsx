@@ -221,6 +221,7 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
         if (progressBar) {
           progressBar.style.width = `${percentage}%`;
           progressBar.style.backgroundColor = percentage < 20 ? '#f04747' : '#5865f2';
+          progressBar.classList.toggle('blink', percentage < 5);
         }
 
         // Check if we need to load a new source

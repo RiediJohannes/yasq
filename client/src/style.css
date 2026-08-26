@@ -601,6 +601,7 @@ select:disabled option {
   width: 100%;
   height: 40px;
   cursor: pointer;
+  accent-color: var(--blurple);
 }
 
 #volume-slider:focus-visible {
@@ -1304,6 +1305,20 @@ kbd {
   height: 100%;
   background-color: var(--blurple);
   transition: width 1s linear;
+}
+
+@keyframes pulse-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+#progress-bar.blink {
+  animation: pulse-blink 0.8s infinite;
 }
 
 #countdown-overlay {
