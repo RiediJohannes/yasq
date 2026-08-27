@@ -67,6 +67,6 @@ describe.skip('generateResultsImage', () => {
     expect(stats.size).toBeGreaterThan(1000); // Confirms it isn't an empty or blank file asset
 
     const hash = getFileHash(testOutputPath);
-    expect(hash).toBe('fb239b4c9777cf80fd8fb9282fb0b80c1421ea2f85a4870be944e6006da889e3');
+    expect(hash).toBe('9f9faa6a4e4c7ce8e3f2030d5024db65cc492e7a90986a9050bc3833edc4d78d');
   });
 });

@@ -29,12 +29,14 @@ export const RoundBubble = ({ roundResult, userId }: RoundBubbleProps) => {
   const tooltipId = roundResult.round ? `round-${userId}-${roundResult.round}` : `user-${userId}`;
   const optionalRoundPrefix = roundResult.round ? `Round ${roundResult.round}: ` : '';
   const tooltipContent = `${optionalRoundPrefix}${roundResult.guess || 'No guess'}`;
+  const statusClass =
+    roundResult.scoreValue > 0.5 ? 'correct' : roundResult.scoreValue === 0.5 ? 'partial' : 'incorrect';
 
   return (
     <TooltipDiv
       id={tooltipId}
       text={tooltipContent}
-      className={`round-bubble ${roundResult.scoreValue > 0 ? 'correct' : 'incorrect'} ${roundResult.isFirst ? 'first' : ''}`}
+      className={`round-bubble ${statusClass} ${roundResult.isFirst ? 'first' : ''}`}
     >
       {roundResult.points}
     </TooltipDiv>

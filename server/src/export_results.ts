@@ -114,13 +114,15 @@ export async function generateResultsImage(
                       <div class="history-label">Round Breakdown:</div>
                       <div class="round-bubbles">
                         ${player.roundHistory
-                          .map(
-                            (r: RoundResult) => `
-                          <div class="round-bubble ${r.scoreValue > 0 ? 'correct' : 'incorrect'} ${r.isFirst ? 'first' : ''}">
-                            ${r.points}
-                          </div>
-                        `
-                          )
+                          .map((r: RoundResult) => {
+                            const statusClass =
+                              r.scoreValue > 0.5 ? 'correct' : r.scoreValue === 0.5 ? 'partial' : 'incorrect';
+                            return `
+                              <div class="round-bubble ${statusClass} ${r.isFirst ? 'first' : ''}">
+                                ${r.points}
+                              </div>
+                            `;
+                          })
                           .join('')}
                       </div>
                     </div>
