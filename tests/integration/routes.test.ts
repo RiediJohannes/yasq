@@ -1,11 +1,16 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, afterEach } from 'vitest';
-import { setBaseUrl, setupGame, submitGuess, useJoker } from '../../client/src/utils/backend';
+import { assignNewHost, playTrack, setBaseUrl, setupGame, submitGuess, useJoker } from '../../client/src/utils/backend';
 import { setupServer } from '../../server';
-import { FirstBonusMultiplier, Joker, StreakBonusMultiplier, TimeBonus } from '@yasq/shared';
+import { FirstBonusMultiplier, GameState, Joker, StreakBonusMultiplier, TimeBonus } from '@yasq/shared';
 import type { Server } from 'http';
 import { AddressInfo } from 'net';
 import { TestApi } from '../utils/api.js';
 import { exchangeCodeForToken, getDiscordUser } from '../../server/src/utils/discord';
+
+const hostToken = 'token_1';
+const player1Token = 'token_2';
+const player2Token = 'token_3';
+const nonRegisteredPlayerToken = 'token_4';
 
 let httpServer: Server;
 let baseUrl: string;
@@ -54,9 +59,55 @@ beforeEach(async context => {
   api = new TestApi(baseUrl, currentInstanceId, true);
 });
 
+describe('assignNewHost', () => {
+  beforeEach(async () => {
+    await api.setupSession(
+      [
+        { id: '1', username: 'Player1' },
+        { id: '2', username: 'Player2' },
+      ],
+      GameState.SETUP
+    );
+  });
+
+  afterEach(async () => {
+    await api.deleteSession();
+  });
+
+  it('should return 200 OK when host is assigned by current host', async () => {
+    const response = await assignNewHost(hostToken, currentInstanceId, '2');
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.status).toBe('success');
+  });
+
+  it('should return 403 Forbidden when non-host player tries to assign host', async () => {
+    const response = await assignNewHost(player1Token, currentInstanceId, '2');
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.error).toContain('Only host can perform this action');
+  });
+
+  it('should return 400 Bad Request when assigning host to non-registered player', async () => {
+    const response = await assignNewHost(hostToken, currentInstanceId, '3');
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain('New host must be a registered user');
+  });
+});
+
 describe('setupGame', () => {
   beforeEach(async () => {
-    await api.setupSession([{ id: '1', username: 'TestPlayer' }], 'SETUP');
+    await api.setupSession(
+      [
+        { id: '1', username: 'Player1' },
+        { id: '2', username: 'Player2' },
+      ],
+      GameState.SETUP
+    );
   });
 
   afterEach(async () => {
@@ -64,9 +115,7 @@ describe('setupGame', () => {
   });
 
   it('should return 200 OK when valid settings are provided', async () => {
-    const token = 'token_1';
-
-    const setupRes = await setupGame(token, currentInstanceId, {
+    const response = await setupGame(hostToken, currentInstanceId, {
       rounds: 5,
       trackDuration: 60,
       enabledJokers: [],
@@ -74,16 +123,14 @@ describe('setupGame', () => {
       timeBonus: TimeBonus.LINEAR,
       streakBonusMultiplier: StreakBonusMultiplier.OFF,
     });
-    const body = await setupRes.json();
+    const body = await response.json();
 
-    expect(setupRes.status).toBe(200);
+    expect(response.status).toBe(200);
     expect(body.status).toContain('LOBBY');
   });
 
   it('should return 400 Bad Request when rounds are set to 0', async () => {
-    const token = 'token_1';
-
-    const setupRes = await setupGame(token, currentInstanceId, {
+    const response = await setupGame(hostToken, currentInstanceId, {
       rounds: 0,
       trackDuration: 60,
       enabledJokers: [],
@@ -91,16 +138,14 @@ describe('setupGame', () => {
       timeBonus: TimeBonus.LINEAR,
       streakBonusMultiplier: StreakBonusMultiplier.OFF,
     });
-    const body = await setupRes.json();
+    const body = await response.json();
 
-    expect(setupRes.status).toBe(400);
+    expect(response.status).toBe(400);
     expect(body.error).toContain('Rounds and track duration must be greater than 0.');
   });
 
   it('should return 400 Bad Request when track duration exceeds the maximum allowed value', async () => {
-    const token = 'token_1';
-
-    const setupRes = await setupGame(token, currentInstanceId, {
+    const response = await setupGame(hostToken, currentInstanceId, {
       rounds: 5,
       trackDuration: 999999999,
       enabledJokers: [],
@@ -108,16 +153,85 @@ describe('setupGame', () => {
       timeBonus: TimeBonus.LINEAR,
       streakBonusMultiplier: StreakBonusMultiplier.OFF,
     });
-    const body = await setupRes.json();
+    const body = await response.json();
 
-    expect(setupRes.status).toBe(400);
+    expect(response.status).toBe(400);
     expect(body.error).toContain('Track duration must not exceed');
+  });
+
+  it('should return 403 Forbidden when non-host player tries to setup game', async () => {
+    const response = await setupGame(player1Token, currentInstanceId, {
+      rounds: 5,
+      trackDuration: 60,
+      enabledJokers: [],
+      firstBonusMultiplier: FirstBonusMultiplier.OFF,
+      timeBonus: TimeBonus.LINEAR,
+      streakBonusMultiplier: StreakBonusMultiplier.OFF,
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.error).toContain('Only host can perform this action');
+  });
+});
+
+describe('playTrack', () => {
+  beforeEach(async () => {
+    await api.setupSession(
+      [
+        { id: '1', username: 'Player1' },
+        { id: '2', username: 'Player2' },
+      ],
+      GameState.TRACK_SELECTION
+    );
+  });
+
+  afterEach(async () => {
+    await api.deleteSession();
+  });
+
+  it('should return 200 OK when valid audio file is requested', async () => {
+    const response = await playTrack(hostToken, 'track001.mp3', currentInstanceId);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.status).toContain('PLAYING');
+  });
+
+  it('should return 400 Bad Request when invalid audio file is requested', async () => {
+    const response = await playTrack(hostToken, 'bla.mp3', currentInstanceId);
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain('Track not found.');
+  });
+
+  it('should return 403 Forbidden when non-allowed audio file is requested', async () => {
+    const response = await playTrack(hostToken, 'track002.mp3', currentInstanceId);
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.error).toContain('You do not have permission to play this track.');
+  });
+
+  it('should return 403 Forbidden when non-host player tries to play track', async () => {
+    const response = await playTrack(player1Token, 'track002.mp3', currentInstanceId);
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.error).toContain('Only host can perform this action');
   });
 });
 
 describe('submitGuess', () => {
   beforeEach(async () => {
-    await api.setupSession([{ id: '1', username: 'TestPlayer' }], 'PLAYING');
+    await api.setupSession(
+      [
+        { id: '1', username: 'Player1' },
+        { id: '2', username: 'Player2' },
+      ],
+      GameState.PLAYING
+    );
   });
 
   afterEach(async () => {
@@ -125,36 +239,30 @@ describe('submitGuess', () => {
   });
 
   it('should return 200 OK when guess is submitted by registered player', async () => {
-    const token = 'token_1';
+    const response = await submitGuess(player1Token, currentInstanceId, 'guess');
+    const body = await response.json();
 
-    const setupRes = await submitGuess(token, currentInstanceId, 'guess');
-    const body = await setupRes.json();
-
-    expect(setupRes.status).toBe(200);
+    expect(response.status).toBe(200);
     expect(body.status).toContain('submitted');
   });
 
   it('should return 403 Forbidden when guess is submitted by non-registered player', async () => {
-    const token = 'token_2';
+    const response = await submitGuess(nonRegisteredPlayerToken, currentInstanceId, 'guess');
+    const body = await response.json();
 
-    const setupRes = await submitGuess(token, currentInstanceId, 'guess');
-    const body = await setupRes.json();
-
-    expect(setupRes.status).toBe(403);
+    expect(response.status).toBe(403);
     expect(body.error).toContain('User not registered in this instance.');
   });
 
   it('should return 400 Bad Request when submitted guess is too long', async () => {
-    const token = 'token_1';
-
-    const setupRes = await submitGuess(
-      token,
+    const response = await submitGuess(
+      player1Token,
       currentInstanceId,
       'thisisaverylongguessthatislongerthantheallowedcharacterlimitof100charactersandisthereforerejectedbytheserver'
     );
-    const body = await setupRes.json();
+    const body = await response.json();
 
-    expect(setupRes.status).toBe(400);
+    expect(response.status).toBe(400);
     expect(body.error).toContain('Guess must be between 1 and 100 characters.');
   });
 });
@@ -165,9 +273,13 @@ describe('useJoker', () => {
       [
         { id: '1', username: 'Player1' },
         { id: '2', username: 'Player2' },
+        { id: '3', username: 'Player3' },
       ],
-      'PLAYING',
+      GameState.PLAYING,
       {
+        settings: {
+          trackDuration: 60_000,
+        },
         trackInfo: {
           url: 'some url',
           track: {
@@ -189,9 +301,8 @@ describe('useJoker', () => {
 
   it('should return 200 OK when OBFUSCATION joker is used', async () => {
     await api.patchEnabledJokers([Joker.OBFUSCATION]);
-    const token = 'token_1';
 
-    const response = await useJoker(token, currentInstanceId, Joker.OBFUSCATION);
+    const response = await useJoker(player1Token, currentInstanceId, Joker.OBFUSCATION);
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -201,9 +312,8 @@ describe('useJoker', () => {
 
   it('should return 200 OK when TRIVIA joker is used', async () => {
     await api.patchEnabledJokers([Joker.TRIVIA]);
-    const token = 'token_1';
 
-    const response = await useJoker(token, currentInstanceId, Joker.TRIVIA);
+    const response = await useJoker(player1Token, currentInstanceId, Joker.TRIVIA);
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -216,9 +326,8 @@ describe('useJoker', () => {
 
   it('should return 200 OK when MULTIPLE_CHOICE joker is used', async () => {
     await api.patchEnabledJokers([Joker.MULTIPLE_CHOICE]);
-    const token = 'token_1';
 
-    const response = await useJoker(token, currentInstanceId, Joker.MULTIPLE_CHOICE);
+    const response = await useJoker(player1Token, currentInstanceId, Joker.MULTIPLE_CHOICE);
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -226,12 +335,12 @@ describe('useJoker', () => {
     expect(body.hint).toContain('Game A');
   });
 
-  // TODO: skip for now as we have to call playTrack first to generate the glimpse image
-  it.skip('should return 200 OK when GLIMPSE joker is used', async () => {
+  it('should return 200 OK when GLIMPSE joker is used', async () => {
     await api.patchEnabledJokers([Joker.GLIMPSE]);
-    const token = 'token_1';
 
-    const response = await useJoker(token, currentInstanceId, Joker.GLIMPSE);
+    await playTrack(hostToken, 'track001.mp3', currentInstanceId);
+
+    const response = await useJoker(player1Token, currentInstanceId, Joker.GLIMPSE);
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -241,9 +350,8 @@ describe('useJoker', () => {
 
   it('should return 400 Bad Request when SPY joker is missing targetId', async () => {
     await api.patchEnabledJokers([Joker.SPY]);
-    const token = 'token_1';
 
-    const response = await useJoker(token, currentInstanceId, Joker.SPY);
+    const response = await useJoker(player1Token, currentInstanceId, Joker.SPY);
     const body = await response.json();
 
     expect(response.status).toBe(400);
@@ -252,9 +360,8 @@ describe('useJoker', () => {
 
   it('should return 202 Accepted when SPY joker target has not submitted', async () => {
     await api.patchEnabledJokers([Joker.SPY]);
-    const token = 'token_1';
 
-    const response = await useJoker(token, currentInstanceId, Joker.SPY, '2');
+    const response = await useJoker(player1Token, currentInstanceId, Joker.SPY, '3');
     const body = await response.json();
 
     expect(response.status).toBe(202);
@@ -263,11 +370,9 @@ describe('useJoker', () => {
 
   it('should return 200 OK when SPY joker is used with valid target', async () => {
     await api.patchEnabledJokers([Joker.SPY]);
-    const token1 = 'token_1';
-    const token2 = 'token_2';
 
-    await submitGuess(token2, currentInstanceId, 'guess');
-    const response = await useJoker(token1, currentInstanceId, Joker.SPY, '2');
+    await submitGuess(player2Token, currentInstanceId, 'guess');
+    const response = await useJoker(player1Token, currentInstanceId, Joker.SPY, '3');
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -277,9 +382,8 @@ describe('useJoker', () => {
 
   it('should return 403 Forbidden when joker is not enabled', async () => {
     await api.patchEnabledJokers([Joker.TRIVIA, Joker.MULTIPLE_CHOICE, Joker.SPY]);
-    const token = 'token_1';
 
-    const response = await useJoker(token, currentInstanceId, Joker.OBFUSCATION);
+    const response = await useJoker(player1Token, currentInstanceId, Joker.OBFUSCATION);
     const body = await response.json();
 
     expect(response.status).toBe(403);
@@ -288,10 +392,9 @@ describe('useJoker', () => {
 
   it('should return 403 Forbidden when joker already used', async () => {
     await api.patchEnabledJokers([Joker.OBFUSCATION]);
-    const token = 'token_1';
 
-    await useJoker(token, currentInstanceId, Joker.OBFUSCATION);
-    const response = await useJoker(token, currentInstanceId, Joker.OBFUSCATION);
+    await useJoker(player1Token, currentInstanceId, Joker.OBFUSCATION);
+    const response = await useJoker(player1Token, currentInstanceId, Joker.OBFUSCATION);
     const body = await response.json();
 
     expect(response.status).toBe(403);

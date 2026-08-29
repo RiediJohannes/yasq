@@ -10,9 +10,15 @@ import { GameInstance } from './src/models.js';
 
 import { setupRoutes } from './routes/routes.js';
 import { setupMockRoutes } from './routes/mockRoutes.js';
-import { getGameStatusPayload, invalidateToken, setupTempDir, validateToken } from './src/helper.js';
 import {
-  STATIC_FILES_DIR,
+  getFilePath,
+  getGameStatusPayload,
+  invalidateToken,
+  isMockMode,
+  setupTempDir,
+  validateToken,
+} from './src/helper.js';
+import {
   TEMP_FILES_DIR,
   WS_GAME_STATUS_UPDATE_EVENT,
   WS_JOIN_INSTANCE_EVENT,
@@ -20,6 +26,7 @@ import {
   type Track,
 } from '@yasq/shared';
 import { LogCategory, logger } from './src/utils/logger.js';
+import { loadPermissions } from './src/access_control.js';
 
 dotenv.config({ path: '../.env' });
 
@@ -75,17 +82,12 @@ function setupFileWatcher(filePath: string, onFileChange: () => void, fileName: 
 }
 
 export function setupServer() {
-  const isMockMode = process.env.VITE_MOCK_MODE === 'true';
   const instances: Record<string, GameInstance> = {};
 
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  const tracksPath = isMockMode
-    ? path.join(__dirname, '..', 'mock_data', 'mockTracks.json')
-    : path.join(__dirname, STATIC_FILES_DIR, 'tracks.json');
-
-  const playlistsPath = isMockMode
-    ? path.join(__dirname, '..', 'mock_data', 'mockPlaylists.json')
-    : path.join(__dirname, STATIC_FILES_DIR, 'playlists.json');
+  const tracksPath = getFilePath('tracks.json');
+  const playlistsPath = getFilePath('playlists.json');
+  const permissionsPath = getFilePath('permissions.json');
 
   // Cache the data in memory
   let cachedTracks = loadTracks(tracksPath);
@@ -179,8 +181,12 @@ export function setupServer() {
 
   // Allow express to parse JSON bodies
   app.use(express.json());
-  app.use('/music', express.static(path.join(__dirname, STATIC_FILES_DIR, 'music')));
-  app.use('/game_covers', express.static(path.join(__dirname, STATIC_FILES_DIR, 'game_covers')));
+
+  const musicPath = getFilePath('music');
+  const gameCoverPath = getFilePath('game_covers');
+
+  app.use('/music', express.static(musicPath));
+  app.use('/game_covers', express.static(gameCoverPath));
 
   // Folder for serving temporary static files
   const tempDir = setupTempDir(__dirname);
@@ -204,10 +210,12 @@ export function setupServer() {
   });
 
   // Only register mock routes when server is started in mock mode
-  if (isMockMode) {
+  if (isMockMode()) {
     console.log('[MODE] Server is running in mock mode');
     app.use('/api/test', setupMockRoutes(server, instances));
   }
+
+  loadPermissions(permissionsPath);
 
   return httpServer;
 }

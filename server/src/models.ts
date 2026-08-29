@@ -21,12 +21,13 @@ import {
   type TrackInfo,
 } from '@yasq/shared';
 import MersenneTwister from 'mersenne-twister';
-import { hash } from './helper.js';
+import { getFilePath, hash } from './helper.js';
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
 import fsAsync from 'fs/promises';
 import { LogCategory, logger } from './utils/logger.js';
+import { fileURLToPath } from 'url';
 
 export class GameInstance {
   public instanceId: string;
@@ -328,7 +329,7 @@ export class GameInstance {
 
     // Generate the blurred cover art on the server once at the beginning of the round if needed
     if (track.cover && this.settings.enabledJokers.has(Joker.GLIMPSE)) {
-      await this.generateBlurredImage(`/game_covers/${track.cover}`);
+      await this.generateBlurredImage(track.cover);
     }
 
     const totalWaitTime = COUNTDOWN_DURATION + this.settings.trackDuration;
@@ -435,7 +436,8 @@ export class GameInstance {
   }
 
   public temporaryDirectory(createIfAbsent: boolean = false): string {
-    const instanceTempDir = path.join(process.cwd(), STATIC_FILES_DIR, TEMP_FILES_DIR, this.instanceId);
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const instanceTempDir = path.join(__dirname, '..', STATIC_FILES_DIR, TEMP_FILES_DIR, this.instanceId);
 
     if (createIfAbsent && !fs.existsSync(instanceTempDir)) {
       fs.mkdirSync(instanceTempDir, {
@@ -446,14 +448,13 @@ export class GameInstance {
     return instanceTempDir;
   }
 
-  private async generateBlurredImage(sourcePathRelative: string) {
-    const staticFilesDir = path.join(process.cwd(), STATIC_FILES_DIR);
+  private async generateBlurredImage(coverImageFile: string) {
     const outputDir = this.temporaryDirectory(true);
 
     try {
       const outputPath = path.join(outputDir, `glimpse_${this.currentRound}.jpg`);
 
-      await sharp(path.join(staticFilesDir, sourcePathRelative))
+      await sharp(path.join(getFilePath('game_covers'), coverImageFile))
         .resize(500)
         .blur(GLIMPSE_BLUR_INTENSITY)
         .jpeg()
@@ -461,7 +462,7 @@ export class GameInstance {
     } catch (err: any) {
       logger.error(
         this.instanceId,
-        `Failed to generate Glimpse image from source '${sourcePathRelative}'`,
+        `Failed to generate Glimpse image from source '${coverImageFile}'`,
         err.message,
         LogCategory.GAME
       );

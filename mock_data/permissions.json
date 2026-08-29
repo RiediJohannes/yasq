@@ -1,0 +1,7 @@
+[
+  {
+    "type": "blacklist",
+    "userIds": ["1"],
+    "files": ["track002.mp3"]
+  }
+]

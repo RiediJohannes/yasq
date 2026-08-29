@@ -30,7 +30,7 @@ describe('isAllowed', () => {
     vi.mocked(fs.existsSync).mockReturnValue(true);
     vi.mocked(fs.readFileSync).mockReturnValue(mockData);
 
-    loadPermissions();
+    loadPermissions('mock_path');
 
     expect(isAllowed(PLAYER_1, TRACK_1)).toBe(true); // Whitelisted
     expect(isAllowed(PLAYER_2, TRACK_1)).toBe(false); // Not whitelisted
@@ -48,7 +48,7 @@ describe('isAllowed', () => {
     vi.mocked(fs.existsSync).mockReturnValue(true);
     vi.mocked(fs.readFileSync).mockReturnValue(mockData);
 
-    loadPermissions();
+    loadPermissions('mock_path');
 
     expect(isAllowed(PLAYER_1, TRACK_2)).toBe(false); // Blacklisted
     expect(isAllowed(PLAYER_2, TRACK_2)).toBe(true); // Not blacklisted
@@ -57,7 +57,7 @@ describe('isAllowed', () => {
   it('should start with no restrictions if file does not exist', () => {
     vi.mocked(fs.existsSync).mockReturnValue(false);
 
-    loadPermissions();
+    loadPermissions('mock_path');
 
     expect(isAllowed(PLAYER_3, TRACK_3)).toBe(true);
   });

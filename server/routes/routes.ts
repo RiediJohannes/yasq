@@ -259,7 +259,7 @@ export const setupRoutes = (
     res.send({ status: GameState.ROUND_RESULTS });
   });
 
-  router.get('/get-results', fetchGame, (req, res) => {
+  router.get('/get-round-results', fetchGame, (req, res) => {
     const { userId } = req.query as InstanceUserQuery;
     const game = req.game!;
 
@@ -340,7 +340,7 @@ export const setupRoutes = (
     res.send({ status: newState });
   });
 
-  router.post('/play-local', authenticateUser, fetchGame, isHost, async (req, res) => {
+  router.post('/play-track', authenticateUser, fetchGame, isHost, async (req, res) => {
     const { fileName, instanceId } = req.body;
     const userId = req.userId!;
     const game = req.game!;
@@ -535,7 +535,7 @@ export const setupRoutes = (
     }
   });
 
-  router.get('/get-channels', authenticateUser, fetchGame, isHost, async (req, res) => {
+  router.get('/get-discord-channels', authenticateUser, fetchGame, isHost, async (req, res) => {
     const { instanceId, guildId } = req.query as InstanceGuildQuery;
 
     // Return empty list if bot token is not set

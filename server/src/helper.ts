@@ -12,6 +12,7 @@ import {
   type Participant,
 } from '@yasq/shared';
 import { getDiscordUser } from './utils/discord.js';
+import { fileURLToPath } from 'url';
 
 const tokenCache = new Map<string, { userId: string; expires: number }>();
 const TTL = 10 * 60 * 1000; // Cache for 10 minutes
@@ -134,4 +135,16 @@ export function filterDiscordTextChannels(channels: APIChannel[]) {
     });
 
   return textChannels;
+}
+
+export function isMockMode() {
+  return process.env.VITE_MOCK_MODE === 'true';
+}
+
+export function getFilePath(fileName: string) {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+  return isMockMode()
+    ? path.join(__dirname, '..', '..', 'mock_data', fileName)
+    : path.join(__dirname, '..', STATIC_FILES_DIR, fileName);
 }

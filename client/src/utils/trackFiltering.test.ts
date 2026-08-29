@@ -7,7 +7,7 @@ import {
   getRandomEligibleTrack,
 } from './trackFiltering';
 import { Track } from './types';
-import mockTracksData from '../../../mock_data/mockTracks.json';
+import mockTracksData from '../../../mock_data/tracks.json';
 import { Playlist } from '@yasq/shared';
 
 // Map the raw JSON data to satisfy the `Track` interface by adding default values for optional/required runtime fields

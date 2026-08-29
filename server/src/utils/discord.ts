@@ -1,8 +1,7 @@
 import fs from 'fs';
+import { isMockMode } from '../helper.js';
 
 const DISCORD_API = 'https://discord.com/api';
-
-const isMockMode = () => process.env.VITE_MOCK_MODE === 'true';
 
 export async function exchangeCodeForToken(code: string): Promise<string> {
   if (isMockMode() && code === 'mock_code') {

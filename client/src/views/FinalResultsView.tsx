@@ -56,7 +56,7 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
     if (!isHost) return;
 
     backend
-      .getChannels(auth.value.access_token, discordSdk.instanceId, discordSdk.guildId!)
+      .getDiscordChannels(auth.value.access_token, discordSdk.instanceId, discordSdk.guildId!)
       .then(data => setChannels(data));
   }, [isHost]);
 
