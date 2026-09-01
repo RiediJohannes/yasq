@@ -60,7 +60,10 @@ export const DEFAULT_VOLUME_SLIDER_VAL: number = 0.5;
 export const POLLING_INTERVAL: number = 500;
 
 export const STATIC_FILES_DIR: string = 'data';
+export const SAMPLE_DATA_DIR: string = 'sample';
 export const TEMP_FILES_DIR: string = 'temp';
+
+export const EXIT_CODE_CONFIG_ERROR: number = 1;
 
 export const COUNTDOWN_DURATION: number = 4000;
 export const DEFAULT_TRACK_DURATION: number = 60_000;

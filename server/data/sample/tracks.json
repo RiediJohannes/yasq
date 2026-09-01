@@ -1,0 +1,22 @@
+[
+  {
+    "game": "Game A",
+    "title": "Town Theme",
+    "audio": "track001.mp3",
+    "cover": "game_a.png",
+    "tags": [
+      { "type": "platform", "value": "Platform A" },
+      { "type": "release", "value": "2021" }
+    ]
+  },
+  {
+    "game": "Game B",
+    "title": "The Field of Dreams",
+    "audio": "track002.mp3",
+    "cover": "game_b.png",
+    "tags": [
+      { "type": "platform", "value": "Platform B" },
+      { "type": "release", "value": "2013" }
+    ]
+  }
+]

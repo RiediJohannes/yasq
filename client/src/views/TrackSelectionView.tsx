@@ -1,8 +1,7 @@
-import { useSignal, computed, signal } from '@preact/signals';
+import { computed, signal, useSignal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 
-import { auth, socket } from '../main';
-import { discordSdk } from '../main';
+import { auth, discordSdk, socket } from '../main';
 import * as backend from '../utils/backend';
 import { Track } from '../utils/types';
 import { NonDraggableImg } from '../components/NonDraggableImg';
@@ -192,10 +191,10 @@ export const TrackSelectionView = ({ isHost }: { isHost: boolean }) => {
             >
               <div className="cover-wrapper">
                 <NonDraggableImg
-                  src={`/game_covers/${track.cover || 'default.svg'}`}
+                  src={track.cover ? `/game_covers/${track.cover}` : '/default.svg'}
                   alt={`Cover of ${track.game}`}
                   onError={e => {
-                    (e.currentTarget as HTMLImageElement).src = '/game_covers/default.svg';
+                    (e.currentTarget as HTMLImageElement).src = '/default.svg';
                   }}
                 />
                 {track.played && <span className="played-overlay">PLAYED</span>}

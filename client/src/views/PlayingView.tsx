@@ -271,10 +271,10 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
                 <hr className="divider" />
                 <div className="track-details">
                   <NonDraggableImg
-                    src={activeTrackInfo.value.gameCover || '/game_covers/default.svg'}
+                    src={activeTrackInfo.value.gameCover || '/default.svg'}
                     alt={`Cover of ${activeTrackInfo.value.correctAnswer}`}
                     onError={e => {
-                      (e.currentTarget as HTMLImageElement).src = '/game_covers/default.svg';
+                      (e.currentTarget as HTMLImageElement).src = '/default.svg';
                     }}
                   />
                   <div>

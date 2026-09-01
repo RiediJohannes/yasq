@@ -1,0 +1,10 @@
+[
+  {
+    "name": "Sample Playlist",
+    "tracks": ["track001.mp3", "track002.mp3"]
+  },
+  {
+    "name": "Your Playlist",
+    "tracks": []
+  }
+]

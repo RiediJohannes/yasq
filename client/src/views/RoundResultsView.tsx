@@ -65,10 +65,10 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
           <hr className="divider" />
           <div className="track-details">
             <NonDraggableImg
-              src={roundData.value.gameCover || '/game_covers/default.svg'}
+              src={roundData.value.gameCover || '/default.svg'}
               alt={`Cover of ${roundData.value.correctAnswer}`}
               onError={e => {
-                (e.currentTarget as HTMLImageElement).src = '/game_covers/default.svg';
+                (e.currentTarget as HTMLImageElement).src = '/default.svg';
               }}
             />
             <div>
@@ -206,10 +206,10 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
         <hr className="divider" />
         <div className="track-details">
           <NonDraggableImg
-            src={roundData.value.gameCover || '/game_covers/default.svg'}
+            src={roundData.value.gameCover || '/default.svg'}
             alt={`Cover of ${roundData.value.correctAnswer}`}
             onError={e => {
-              (e.currentTarget as HTMLImageElement).src = '/game_covers/default.svg';
+              (e.currentTarget as HTMLImageElement).src = '/default.svg';
             }}
           />
           <div>

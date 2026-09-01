@@ -37,12 +37,15 @@ npm install
 3. **Set up Environment Variables**\
    Create a `.env` file in the root directory:
 
-```env
+```dotenv
+# Required variables
 VITE_DISCORD_CLIENT_ID=<Copy Client ID from Discord Developer Portal>
 DISCORD_CLIENT_SECRET=<Copy Client Secret from Discord Developer Portal>
 VITE_URL_MAPPING=<Fill Later>
-DISCORD_BOT_TOKEN=<Copy Bot Token from Discord Developer Portal> (Optional)
-LOG_LEVEL=<options: debug, info, warn, error> (Optional, defaults to 'info')
+# Optional variables
+DISCORD_BOT_TOKEN=<Copy Bot Token from Discord Developer Portal>
+LOG_LEVEL=<options: debug, info, warn, error> (defaults to 'info')
+DATA_SOURCE=<Relative path to quiz data> (see "Game Setup")
 ```
 
 ### Local Development
@@ -71,9 +74,34 @@ cloudflared tunnel --url http://localhost:5173
 
 ### Game Setup
 
-1. Copy track audio files into `server/data/music`
-2. Copy game cover image files into `server/data/game_covers`
-3. Create `tracks.json` in `server/data` with the following format:
+To create your own quiz game, you need to provide the respective static data files (audio files of the soundtracks and
+_optionally_ images of the game covers) as well as a JSON file to add the necessary metadata.
+
+#### Data Location
+
+YASQ always expects quiz data to be placed in a **subdirectory** of `server/data`. The project provides a tiny sample quiz
+in `server/data/sample`, which will be loaded by default. When you create your own quiz, you can either replace the files
+in the `sample` directory or create a new subdirectory.
+
+If `server/data` contains _more than one_ subdirectory, you must specify
+which one to load via the `DATA_SOURCE` environment variable, given as a path relative to `server/data`.
+Otherwise, the system will fall back to look for the `sample` directory.
+
+**Examples:**
+
+```dotenv
+DATA_SOURCE=my_quiz    # loads data from server/data/my_quiz
+DATA_SOURCE=nested/example/quiz    # loads data from server/data/nested/example/quiz
+```
+
+#### Data Format
+
+In the following, we assume a custom quiz is set up in `server/data/my_quiz` and we call this location `quizDir` for short.
+Within a given quiz directory (`quizDir`), data must be structured in the following way:
+
+1. Track audio files in `quizDir/music`
+2. Game cover image files in `quizDir/game_covers`
+3. A `tracks.json` file directly in `quizDir` with the following format:
 
    ```json
    [
@@ -101,9 +129,10 @@ cloudflared tunnel --url http://localhost:5173
    ]
    ```
 
-   Tags can be used to provide more information about a specific game (e.g. Release, Platform, Developer)
+   Tags can be used to provide more information about a specific game (e.g. Release, Platform, Developer), and the specific choice and number of tags is up to the user.
+   Nevertheless, each game should have at least one tag for the Trivia joker to make sense.
 
-4. (Optional) Create `playlists.json` in `server/data` with the following format:
+4. (Optional) A `playlists.json` file in `quizDir` with the following format:
    ```json
    [
        {
@@ -117,7 +146,8 @@ cloudflared tunnel --url http://localhost:5173
        ...
    ]
    ```
-5. (Optional) Create `permissions.json` in `server/data` to restrict specific tracks to certain Discord User IDs:
+   This file can be used to bundle certain tracks in playlists, which is just a way to organize tracks to make them easier to find for the quiz host.
+5. (Optional) A `permissions.json` in `quizDir` to restrict access to specific tracks to certain Discord User IDs:
    ```json
    [
        {

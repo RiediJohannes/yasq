@@ -14,6 +14,7 @@ export default defineConfig(({ mode }) => {
     define: {
       'import.meta.env.VERSION': JSON.stringify(pkg.version),
     },
+    publicDir: 'src/assets',
     server: {
       allowedHosts: [env.VITE_URL_MAPPING],
       proxy: {

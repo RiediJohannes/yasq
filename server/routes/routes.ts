@@ -8,14 +8,16 @@ import { GameInstance } from '../src/models.js';
 import type { InstanceGuildQuery, InstanceQuery, InstanceUserQuery } from '../src/types.js';
 import {
   COUNTDOWN_DURATION,
-  INT32_MAX_VALUE,
-  MAX_GUESS_LENGTH,
   GameState,
+  INT32_MAX_VALUE,
   Joker,
-  TimeBonus,
+  MAX_GUESS_LENGTH,
   type Participant,
-  type TimeBonusSummary,
   type Playlist,
+  STATIC_FILES_DIR,
+  TEMP_FILES_DIR,
+  TimeBonus,
+  type TimeBonusSummary,
   type Track,
 } from '@yasq/shared';
 import { broadcastGameStatus, filterDiscordTextChannels, userDataCache } from '../src/helper.js';
@@ -495,7 +497,7 @@ export const setupRoutes = (
   router.get('/download-results', (req, res) => {
     const { instanceId } = req.query as InstanceQuery;
 
-    const filePath = path.join(__dirname, `../data/temp/${instanceId}/results.png`);
+    const filePath = path.join(__dirname, '..', STATIC_FILES_DIR, TEMP_FILES_DIR, `${instanceId}/results.png`);
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ error: 'Results image has not been generated yet.' });
     }
@@ -514,7 +516,7 @@ export const setupRoutes = (
     const { instanceId, channelId } = req.body;
     const game = req.game!;
 
-    const filePath = path.join(__dirname, `../data/temp/${instanceId}/results.png`);
+    const filePath = path.join(__dirname, '..', STATIC_FILES_DIR, TEMP_FILES_DIR, `${instanceId}/results.png`);
 
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ error: 'Results image has not been generated yet.' });

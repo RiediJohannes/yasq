@@ -28,10 +28,8 @@ dist-ssr
 *.sw?
 
 # Application specific ignores
-server/music/*
-server/game_covers/*
-!server/game_covers/default.svg
 server/data/*
+!server/data/sample
 **/coverage/*
 
 # Playwright

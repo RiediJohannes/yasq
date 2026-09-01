@@ -11,6 +11,7 @@ import {
   Joker,
   MAX_TIME_MULTIPLIER,
   MIN_TIME_MULTIPLIER,
+  SAMPLE_DATA_DIR,
   STATIC_FILES_DIR,
   StreakBonusMultiplier,
   type Tag,
@@ -1046,7 +1047,8 @@ describe('GameInstance - getGlimpseHint', () => {
   let game: GameInstance;
 
   const rootDir: string = process.cwd();
-  const gameCoverDir: string = path.join(rootDir, STATIC_FILES_DIR, 'game_covers');
+  const gameCoverDir: string = path.join(rootDir, STATIC_FILES_DIR, SAMPLE_DATA_DIR, 'game_covers');
+  let testImagePath: string;
 
   const mockCallback = vi.fn();
   const testCover = 'test.png';
@@ -1068,13 +1070,14 @@ describe('GameInstance - getGlimpseHint', () => {
       'base64'
     );
 
-    const testImagePath = path.join(gameCoverDir, testCover);
+    testImagePath = path.join(gameCoverDir, testCover);
     fs.writeFileSync(testImagePath, testImageBuffer);
   });
 
   afterEach(() => {
     // Clean up temporary test image
     fs.rmSync('./temp', { recursive: true, force: true });
+    fs.rmSync(testImagePath, { force: true });
   });
 
   it('should generate a modified JPEG version of the cover image at the beginning of the round', async () => {
@@ -1098,7 +1101,9 @@ describe('GameInstance - getGlimpseHint', () => {
     expect(fs.readdirSync(instanceTempDir)).toContain(modifiedImgName);
 
     // Temp image is different from original image
-    const originalImg = fs.readFileSync(path.join(rootDir, STATIC_FILES_DIR, 'game_covers', track.cover));
+    const originalImg = fs.readFileSync(
+      path.join(rootDir, STATIC_FILES_DIR, SAMPLE_DATA_DIR, 'game_covers', track.cover)
+    );
     const modifiedImg = fs.readFileSync(path.join(instanceTempDir, modifiedImgName));
     expect(originalImg).not.toEqual(modifiedImg);
   });

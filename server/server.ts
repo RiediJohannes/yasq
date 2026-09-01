@@ -11,6 +11,7 @@ import { GameInstance } from './src/models.js';
 import { setupRoutes } from './routes/routes.js';
 import { setupMockRoutes } from './routes/mockRoutes.js';
 import {
+  getDataSourceDir,
   getFilePath,
   getGameStatusPayload,
   invalidateToken,
@@ -19,29 +20,85 @@ import {
   validateToken,
 } from './src/helper.js';
 import {
+  type Playlist,
+  SAMPLE_DATA_DIR,
+  STATIC_FILES_DIR,
   TEMP_FILES_DIR,
+  type Track,
   WS_GAME_STATUS_UPDATE_EVENT,
   WS_JOIN_INSTANCE_EVENT,
-  type Playlist,
-  type Track,
 } from '@yasq/shared';
 import { LogCategory, logger } from './src/utils/logger.js';
 import { loadPermissions } from './src/access_control.js';
 
 dotenv.config({ path: '../.env' });
 
+function abortStartup(message: string, exitCode: number): never {
+  console.error(`[FATAL] ${message}`);
+  process.exit(exitCode);
+}
+
+export function validateDataSource(
+  projectRoot: string,
+  dataRoot: string = path.resolve(projectRoot, STATIC_FILES_DIR)
+): string {
+  const dataSubdirectories = fs.readdirSync(dataRoot, { withFileTypes: true }).filter(item => item.isDirectory());
+
+  if (dataSubdirectories.length === 0) {
+    abortStartup(
+      `No quiz data provided. Please add the necessary files in '${dataRoot}' as described in the README!`,
+      10
+    );
+  } else if (dataSubdirectories.length > 1 && !process.env.DATA_SOURCE) {
+    console.log(
+      `Detected multiple data sources in ${dataRoot}. To select a specific source, set the DATA_SOURCE environment variable. Falling back to '${SAMPLE_DATA_DIR}'.`
+    );
+  }
+
+  const dataSourcePath = getDataSourceDir();
+
+  // Reject absolute paths
+  if (path.posix.isAbsolute(dataSourcePath) || path.win32.isAbsolute(dataSourcePath)) {
+    abortStartup(`DATA_SOURCE must be a relative path. Received: '${dataSourcePath}'`, 10);
+  }
+
+  let resolvedTarget = path.resolve(dataRoot, dataSourcePath);
+  const relativePathToTarget = path.relative(dataRoot, resolvedTarget);
+
+  // Reject attempts to escape the data directory
+  const isOutsideDataRoot = relativePathToTarget.startsWith('..') || path.isAbsolute(relativePathToTarget);
+  if (isOutsideDataRoot) {
+    abortStartup(`DATA_SOURCE '${dataSourcePath}' escapes data root directory '${dataRoot}'.`, 11);
+  }
+
+  // Ensure source path actually exists
+  if (!fs.existsSync(resolvedTarget)) {
+    // Fallback: If there is only one subdirectory in dataRoot and the user did not explicitly set a DATA_SOURCE, take that one
+    if (!process.env.DATA_SOURCE && dataSubdirectories.length === 1) {
+      const assumedDataSource = dataSubdirectories[0]!.name;
+      process.env.DATA_SOURCE = assumedDataSource;
+      resolvedTarget = path.join(dataRoot, assumedDataSource);
+    } else {
+      abortStartup(`DATA_SOURCE '${resolvedTarget}' does not exist.`, 12);
+    }
+  }
+  if (!fs.statSync(resolvedTarget).isDirectory()) {
+    abortStartup(`DATA_SOURCE '${resolvedTarget}' is not a directory.`, 13);
+  }
+
+  return resolvedTarget;
+}
+
 function loadTracks(tracksPath: string): Track[] {
   if (!fs.existsSync(tracksPath)) {
-    console.error(`Tracks file not found at ${tracksPath}.`);
-    process.exit(1);
+    abortStartup(`Tracks file not found at ${tracksPath}.`, 20);
   }
 
   try {
     const tracksRaw = fs.readFileSync(tracksPath, 'utf-8');
     return JSON.parse(tracksRaw) as Track[];
   } catch (err) {
-    console.error(`Error parsing JSON from ${tracksPath}:`, err);
-    process.exit(1);
+    abortStartup(`Error parsing JSON from ${tracksPath}: ${err}`, 21);
   }
 }
 
@@ -60,14 +117,14 @@ function loadPlaylists(playlistsPath: string): Playlist[] {
   }
 }
 
-function setupFileWatcher(filePath: string, onFileChange: () => void, fileName: string) {
+function setupFileWatcher(filePath: string, onFileChange: () => void, fileName: string): fs.FSWatcher | undefined {
   if (!fs.existsSync(filePath)) {
     return;
   }
 
   let changeTimeout: NodeJS.Timeout | null = null;
 
-  fs.watch(filePath, (_eventType, _filename) => {
+  return fs.watch(filePath, (_eventType, _filename) => {
     // Debounce to avoid multiple triggers from the same change
     if (changeTimeout) clearTimeout(changeTimeout);
     changeTimeout = setTimeout(() => {
@@ -84,7 +141,11 @@ function setupFileWatcher(filePath: string, onFileChange: () => void, fileName: 
 export function setupServer() {
   const instances: Record<string, GameInstance> = {};
 
-  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const projectRoot = path.dirname(fileURLToPath(import.meta.url));
+
+  const activeDataDir = validateDataSource(projectRoot);
+  console.log(`Loading server data from: ${activeDataDir}`);
+
   const tracksPath = getFilePath('tracks.json');
   const playlistsPath = getFilePath('playlists.json');
   const permissionsPath = getFilePath('permissions.json');
@@ -94,7 +155,7 @@ export function setupServer() {
   let cachedPlaylists = loadPlaylists(playlistsPath);
 
   // Watch for file changes and update cache
-  setupFileWatcher(
+  const tracksWatcher = setupFileWatcher(
     tracksPath,
     () => {
       cachedTracks = loadTracks(tracksPath);
@@ -103,7 +164,7 @@ export function setupServer() {
     'Tracks'
   );
 
-  setupFileWatcher(
+  const playlistsWatcher = setupFileWatcher(
     playlistsPath,
     () => {
       cachedPlaylists = loadPlaylists(playlistsPath);
@@ -122,10 +183,8 @@ export function setupServer() {
     if (!token) return next(new Error('Missing token'));
 
     try {
-      const userId = await validateToken(token);
-
-      // Bind it to the socket so it's available everywhere
-      socket.data.userId = userId;
+      // Bind user ID to socket so it's available everywhere
+      socket.data.userId = await validateToken(token);
       next();
     } catch (err) {
       next(new Error(`Invalid token: ${err}`));
@@ -189,7 +248,7 @@ export function setupServer() {
   app.use('/game_covers', express.static(gameCoverPath));
 
   // Folder for serving temporary static files
-  const tempDir = setupTempDir(__dirname);
+  const tempDir = setupTempDir(projectRoot);
   app.use(`/${TEMP_FILES_DIR}`, express.static(tempDir));
 
   // Register routes for REST communication between clients and server
@@ -205,7 +264,7 @@ export function setupServer() {
   );
 
   // Add a simple endpoint for health checks
-  app.get('/health', (req, res) => {
+  app.get('/health', (_, res) => {
     res.status(200).json({ ok: true });
   });
 
@@ -216,6 +275,12 @@ export function setupServer() {
   }
 
   loadPermissions(permissionsPath);
+
+  // Clean up file watchers on server shutdown
+  httpServer.on('close', () => {
+    tracksWatcher?.close();
+    playlistsWatcher?.close();
+  });
 
   return httpServer;
 }
