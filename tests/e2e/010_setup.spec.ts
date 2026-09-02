@@ -1,11 +1,11 @@
-import { test, expect } from './test_setup.js';
+import { expect, test } from './test_setup.js';
 import {
   DEFAULT_ENABLED_JOKERS,
   DEFAULT_FIRST_BONUS_MULTIPLIER,
+  DEFAULT_MAX_GUESS_TIME,
   DEFAULT_ROUNDS,
   DEFAULT_STREAK_BONUS_MULTIPLIER,
   DEFAULT_TIME_BONUS,
-  DEFAULT_TRACK_DURATION,
   GameState,
   Joker,
 } from '@yasq/shared';
@@ -43,7 +43,7 @@ test.describe('Host UI', () => {
 
     // Verify controls are initialized with the global default values
     await expect(setupPage.roundsInput).toHaveValue(DEFAULT_ROUNDS.toString());
-    await expect(setupPage.trackDurationInput).toHaveValue((DEFAULT_TRACK_DURATION / 1000).toString());
+    await expect(setupPage.maxGuessTimeInput).toHaveValue((DEFAULT_MAX_GUESS_TIME / 1000).toString());
 
     // Exactly the default-enabled jokers are active
     const enabledJokers = await setupPage.getEnabledJokerButtons();
@@ -103,9 +103,9 @@ test.describe('Host UI', () => {
     await page.keyboard.press('Control+A');
     await page.keyboard.type('5');
 
-    // Configure track duration
+    // Configure guess time
     await page.keyboard.press('Tab');
-    await expect(setupPage.trackDurationInput).toBeFocused();
+    await expect(setupPage.maxGuessTimeInput).toBeFocused();
     await page.keyboard.press('Control+A');
     await page.keyboard.type('30');
 

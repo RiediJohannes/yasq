@@ -231,10 +231,12 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
 
         // Sync timing
         const elapsedSeconds = timePassedMs / 1000;
+        const trackDuration = audioPlayer.duration || totalDurationMs / 1000;
+        const expectedPlaybackTime = trackDuration > 0 ? elapsedSeconds % trackDuration : elapsedSeconds;
 
         // If we are more than 2 seconds out of sync, snap to server time
-        if (Math.abs(audioPlayer.currentTime - elapsedSeconds) > 2) {
-          audioPlayer.currentTime = elapsedSeconds;
+        if (Math.abs(audioPlayer.currentTime - expectedPlaybackTime) > 2) {
+          audioPlayer.currentTime = expectedPlaybackTime;
         }
 
         if (audioPlayer.paused) {

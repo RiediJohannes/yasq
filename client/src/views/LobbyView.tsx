@@ -61,8 +61,8 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
           <dt>🔄 Rounds</dt>
           <dd id="settings-rounds">{gameState.value.gameSettings.rounds}</dd>
 
-          <dt>⏳ Track Duration</dt>
-          <dd id="settings-duration">{(gameState.value.gameSettings.trackDuration ?? 0) / 1000}s</dd>
+          <dt>⏳ Guess Time</dt>
+          <dd id="settings-guess-time">{(gameState.value.gameSettings.maxGuessTime ?? 0) / 1000}s</dd>
 
           <dt>❓ Jokers</dt>
           <dd id="settings-jokers">

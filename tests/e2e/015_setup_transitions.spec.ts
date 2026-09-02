@@ -3,10 +3,10 @@ import { EXPECTED_TIME_BONUS_LABELS, toBonusPercent } from '../utils/helper.js';
 import {
   DEFAULT_ENABLED_JOKERS,
   DEFAULT_FIRST_BONUS_MULTIPLIER,
+  DEFAULT_MAX_GUESS_TIME,
   DEFAULT_ROUNDS,
   DEFAULT_STREAK_BONUS_MULTIPLIER,
   DEFAULT_TIME_BONUS,
-  DEFAULT_TRACK_DURATION,
   FirstBonusMultiplier,
   GameState,
   Joker,
@@ -24,7 +24,7 @@ test.use({
 test.describe('Host UI', () => {
   test('should persist settings across transition to the lobby', async ({ setupPage, lobbyPage }) => {
     const ROUNDS = 12;
-    const TRACK_DURATION = 45;
+    const MAX_GUESS_TIME = 45;
     const TIME_BONUS = TimeBonus.EXPONENTIAL;
     const FIRST_BONUS = FirstBonusMultiplier.LARGE;
     const STREAK_BONUS = StreakBonusMultiplier.OFF;
@@ -36,8 +36,8 @@ test.describe('Host UI', () => {
     await expect(setupPage.roundsInput).not.toHaveValue(ROUNDS.toString());
     await setupPage.roundsInput.fill(ROUNDS.toString());
 
-    await expect(setupPage.trackDurationInput).not.toHaveValue(TRACK_DURATION.toString());
-    await setupPage.trackDurationInput.fill(TRACK_DURATION.toString());
+    await expect(setupPage.maxGuessTimeInput).not.toHaveValue(MAX_GUESS_TIME.toString());
+    await setupPage.maxGuessTimeInput.fill(MAX_GUESS_TIME.toString());
 
     expect(await setupPage.getEnabledJokerTypes()).toEqual(DEFAULT_ENABLED_JOKERS);
     expect(new Set(await setupPage.getEnabledJokerTypes())).not.toEqual(ENABLED_JOKERS);
@@ -66,7 +66,7 @@ test.describe('Host UI', () => {
 
     // Assert that the Lobby displays the exact settings we just configured
     await expect(lobbyPage.roundsDisplay).toHaveText(ROUNDS.toString());
-    await expect(lobbyPage.durationDisplay).toHaveText(`${TRACK_DURATION}s`);
+    await expect(lobbyPage.guessTimeDisplay).toHaveText(`${MAX_GUESS_TIME}s`);
 
     // Compare enabled jokers as sorted arrays to also catch potential duplicates in the displayed list
     const displayedJokers = await lobbyPage.getEnabledJokerTypes();
@@ -92,7 +92,7 @@ test.describe('Host UI', () => {
 
     // Assert that default settings are correctly rendered in the lobby
     await expect(lobbyPage.roundsDisplay).toHaveText(DEFAULT_ROUNDS.toString());
-    await expect(lobbyPage.durationDisplay).toHaveText(`${DEFAULT_TRACK_DURATION / 1000}s`);
+    await expect(lobbyPage.guessTimeDisplay).toHaveText(`${DEFAULT_MAX_GUESS_TIME / 1000}s`);
 
     const displayedJokers = await lobbyPage.getEnabledJokerTypes();
     expect(displayedJokers.sort()).toEqual([...DEFAULT_ENABLED_JOKERS].sort());

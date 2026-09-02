@@ -11,7 +11,7 @@ import {
 
 const CUSTOM_SETTINGS = {
   rounds: 14,
-  trackDuration: 50_000,
+  maxGuessTime: 50_000,
   timeBonus: TimeBonus.LOGISTIC,
   firstBonusMultiplier: FirstBonusMultiplier.OFF,
   streakBonusMultiplier: StreakBonusMultiplier.LARGE,
@@ -35,7 +35,7 @@ test.describe('Host UI', () => {
     // Assert that all settings are accurately displayed on the LobbyView
     await expect(lobbyPage.settingsSummary).toBeVisible();
     await expect(lobbyPage.roundsDisplay).toHaveText(CUSTOM_SETTINGS.rounds.toString());
-    await expect(lobbyPage.durationDisplay).toHaveText(`${CUSTOM_SETTINGS.trackDuration / 1000}s`);
+    await expect(lobbyPage.guessTimeDisplay).toHaveText(`${CUSTOM_SETTINGS.maxGuessTime / 1000}s`);
 
     const displayedJokers = await lobbyPage.getEnabledJokerTypes();
     expect(displayedJokers.sort()).toEqual([...CUSTOM_SETTINGS.enabledJokers].sort());
@@ -59,7 +59,7 @@ test.describe('Host UI', () => {
 
     // Assert basic settings are pre-filled correctly
     await expect(setupPage.roundsInput).toHaveValue(CUSTOM_SETTINGS.rounds.toString());
-    await expect(setupPage.trackDurationInput).toHaveValue((CUSTOM_SETTINGS.trackDuration / 1000).toString());
+    await expect(setupPage.maxGuessTimeInput).toHaveValue((CUSTOM_SETTINGS.maxGuessTime / 1000).toString());
 
     const enabledJokers = new Set(await setupPage.getEnabledJokerTypes());
     expect(enabledJokers).toEqual(new Set(CUSTOM_SETTINGS.enabledJokers));

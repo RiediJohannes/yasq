@@ -5,7 +5,7 @@ import AxeBuilder from '@axe-core/playwright';
 const PLAYING_SESSION_DATA = {
   settings: {
     rounds: 5,
-    trackDuration: 30_000,
+    maxGuessTime: 30_000,
     enabledJokers: ['OBFUSCATION', 'TRIVIA', 'MULTIPLE_CHOICE', 'SPY'],
   },
   trackInfo: {

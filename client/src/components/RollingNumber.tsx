@@ -9,7 +9,7 @@ export const RollingNumber = ({ target, className }: RollingNumberProps) => {
   const [displayValue, setDisplayValue] = useState(0);
 
   useEffect(() => {
-    const duration = 2000; // 2 second animation
+    const duration = 2000; // 2-second animation
     const startTime = performance.now();
 
     const animate = (currentTime: number) => {

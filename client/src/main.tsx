@@ -49,6 +49,7 @@ export const participants = signal<Participant[]>([]);
 export const volume = signal(DEFAULT_VOLUME_SLIDER_VAL);
 
 export const audioPlayer = new Audio();
+audioPlayer.loop = true;
 const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
 const source = audioContext.createMediaElementSource(audioPlayer);
 export const gainNode = audioContext.createGain();

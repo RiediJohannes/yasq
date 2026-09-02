@@ -7,14 +7,14 @@ import { auth, discordSdk, gameState } from '../main';
 import { ALL_JOKER_ICONS } from '../components/JokerIcons';
 import {
   DEFAULT_ENABLED_JOKERS,
+  DEFAULT_MAX_GUESS_TIME,
   DEFAULT_ROUNDS,
-  DEFAULT_TRACK_DURATION,
   FirstBonusMultiplier,
   GameSettings,
   Joker,
+  sortByEnumOrder,
   StreakBonusMultiplier,
   TimeBonus,
-  sortByEnumOrder,
 } from '@yasq/shared';
 import { NonDraggableImg } from '../components/NonDraggableImg';
 import { OptionalTimeBonus, TOptionalTimeBonus } from '../utils/types';
@@ -34,10 +34,10 @@ const HOST_TIME_BONUS_LABELS: Record<TOptionalTimeBonus, string> = {
 
 export const SetupView = ({ isHost }: { isHost: boolean }) => {
   const roundCount = useSignal(gameState.value.gameSettings.rounds || DEFAULT_ROUNDS);
-  const trackDuration = useSignal(
-    gameState.value.gameSettings.trackDuration
-      ? gameState.value.gameSettings.trackDuration / 1000
-      : DEFAULT_TRACK_DURATION
+  const maxGuessTime = useSignal(
+    gameState.value.gameSettings.maxGuessTime
+      ? gameState.value.gameSettings.maxGuessTime / 1000
+      : DEFAULT_MAX_GUESS_TIME
   );
   const isSubmitting = useSignal(false);
   const isAdvancedOpen = useSignal(false);
@@ -82,7 +82,7 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
 
     const currentSettings: GameSettings<Joker[]> = {
       rounds: roundCount.value,
-      trackDuration: trackDuration.value,
+      maxGuessTime: maxGuessTime.value,
       enabledJokers: [...activeJokers.value].sort(sortByEnumOrder(Joker)),
       firstBonusMultiplier: firstBonusMultiplier.value,
       timeBonus: selectedBonus.value === OptionalTimeBonus.NONE ? null : selectedBonus.value,
@@ -129,14 +129,14 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
             />
           </label>
           <label className="setting-item">
-            <span>Track Duration (sec)</span>
+            <span>Guess Time (sec)</span>
             <input
               type="number"
-              id="duration-input"
+              id="guess-time-input"
               min="10"
               max="120"
-              value={trackDuration.value}
-              onInput={e => (trackDuration.value = e.currentTarget.valueAsNumber)}
+              value={maxGuessTime.value}
+              onInput={e => (maxGuessTime.value = e.currentTarget.valueAsNumber)}
             />
           </label>
 

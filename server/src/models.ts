@@ -9,14 +9,14 @@ import {
   Joker,
   MAX_TIME_MULTIPLIER,
   MIN_TIME_MULTIPLIER,
+  type PlayerTimeBonusPoint,
   PointsBonus,
   STATIC_FILES_DIR,
+  type Tag,
   TEMP_FILES_DIR,
   TimeBonus,
-  type TimeBonusSummary,
   type TimeBonusPoint,
-  type PlayerTimeBonusPoint,
-  type Tag,
+  type TimeBonusSummary,
   type Track,
   type TrackInfo,
 } from '@yasq/shared';
@@ -60,7 +60,7 @@ export class GameInstance {
   public setupGame(settings: GameSettings<Set<Joker>>): void {
     this.settings = {
       ...settings,
-      trackDuration: settings.trackDuration * 1000,
+      maxGuessTime: settings.maxGuessTime * 1000,
       enabledJokers: new Set(settings.enabledJokers),
     };
     this.state = GameState.LOBBY;
@@ -84,7 +84,7 @@ export class GameInstance {
       this.guesses[this.currentRound] = {};
     }
 
-    const timeTaken = this.trackInfo ? Date.now() - this.trackInfo.startTime : this.settings.trackDuration;
+    const timeTaken = this.trackInfo ? Date.now() - this.trackInfo.startTime : this.settings.maxGuessTime;
 
     this.guesses[this.currentRound]![userId] = new UserGuess(guessText, timeTaken);
     const totalPlayers = Array.from(this.registeredUsers).filter(userId => !this.isHost(userId)).length;
@@ -194,7 +194,7 @@ export class GameInstance {
           pointsEarned,
           data?.scoreValue || 0.0,
           isFirst,
-          data ? (data.timeTaken / 1000).toFixed(1) : (this.settings.trackDuration / 1000).toFixed(1),
+          data ? (data.timeTaken / 1000).toFixed(1) : (this.settings.maxGuessTime / 1000).toFixed(1),
           awardedBonuses
         )
       );
@@ -245,7 +245,7 @@ export class GameInstance {
     const samples = 200; // number of evenly spaced samples to calculate to draw the time bonus curve
     const curvePoints: TimeBonusPoint[] = [];
     for (let i = 0; i <= samples; i++) {
-      const time = (i / samples) * this.settings.trackDuration;
+      const time = (i / samples) * this.settings.maxGuessTime;
       const multiplier = this.calculateTimeMultiplier(time, firstPartiallyCorrectTime);
       curvePoints.push({ time: time, multiplier: multiplier });
     }
@@ -254,7 +254,7 @@ export class GameInstance {
       .filter(userId => !this.isHost(userId))
       .map(userId => {
         const scoreValue = roundGuesses[userId]?.scoreValue || 0.0;
-        const timeTaken = roundGuesses[userId]?.timeTaken || this.settings.trackDuration;
+        const timeTaken = roundGuesses[userId]?.timeTaken || this.settings.maxGuessTime;
         const timeBonusMultiplier =
           scoreValue > 0 ? this.calculateTimeMultiplier(timeTaken, firstPartiallyCorrectTime) : null;
 
@@ -267,7 +267,7 @@ export class GameInstance {
       });
 
     return {
-      totalTime: this.settings.trackDuration,
+      totalTime: this.settings.maxGuessTime,
       curvePoints: curvePoints,
       playerGuessTimes: playerTimePoints,
     };
@@ -276,7 +276,7 @@ export class GameInstance {
   public calculateTimeMultiplier(evaluationTime: number, firstSuccessTime: number): number {
     if (this.settings.timeBonus === null) return 0.0; // apply no time bonus
 
-    const totalTime = this.settings.trackDuration;
+    const totalTime = this.settings.maxGuessTime;
 
     // Stay constant at MAX until the first successful answer
     if (evaluationTime <= firstSuccessTime || evaluationTime <= 0) {
@@ -313,7 +313,7 @@ export class GameInstance {
 
   public async playTrack(track: Track, roundFinishedCallback: () => void): Promise<void> {
     const startTime = Date.now() + COUNTDOWN_DURATION;
-    const endTime = startTime + this.settings.trackDuration;
+    const endTime = startTime + this.settings.maxGuessTime;
 
     this.trackInfo = {
       url: `/music/${track.audio}`,
@@ -332,9 +332,9 @@ export class GameInstance {
       await this.generateBlurredImage(track.cover);
     }
 
-    const totalWaitTime = COUNTDOWN_DURATION + this.settings.trackDuration;
+    const totalWaitTime = COUNTDOWN_DURATION + this.settings.maxGuessTime;
 
-    // Set a timer to automatically transition to HOST_REVIEW after trackDuration
+    // Set a timer to automatically transition to HOST_REVIEW after maxGuessTime
     setTimeout(() => {
       if (this.state === GameState.PLAYING && this.currentRound === roundAtStart && this.currentGame === gameAtStart) {
         this.state = GameState.HOST_REVIEW;
@@ -513,12 +513,12 @@ export class GameInstance {
 
 /**
  * Mathematical function representing the time bonus decay over time. In particular, this function computes a time bonus
- * multiplier at a given evaluation time based on the time of the first successful player and the total round duration.<br/>
+ * multiplier at a given evaluation time based on the time of the first successful player and the maximum possible guess time.<br/>
  * The function must return a **bonus factor** in the range `[0.0, 1.0]`, indicating
  * how much of the maximum time bonus remains at the given evaluationTime.
  * @param evaluationTime - Time at which the multiplier shall be calculated.
  * @param firstSuccessTime - Time when the first player answered partially correctly.
- * @param totalTime - Total duration of the round.
+ * @param totalTime - Latest possible guess time as per the game settings.
  * @returns bonusFraction - Fraction of the time bonus at evaluationTime.
  */
 type TimeMultiplierFunction = (evaluationTime: number, firstSuccessTime: number, totalTime: number) => number;

@@ -8,7 +8,7 @@ export class LobbyPage extends BasePage {
   readonly editBtn: Locator;
 
   readonly roundsDisplay: Locator;
-  readonly durationDisplay: Locator;
+  readonly guessTimeDisplay: Locator;
   readonly jokersContainer: Locator;
   readonly timeBonusDisplay: Locator;
   readonly firstBonusDisplay: Locator;
@@ -23,7 +23,7 @@ export class LobbyPage extends BasePage {
     this.editBtn = page.locator('button[title="Edit Game Settings"]');
 
     this.roundsDisplay = page.locator('#settings-rounds');
-    this.durationDisplay = page.locator('#settings-duration');
+    this.guessTimeDisplay = page.locator('#settings-guess-time');
     this.jokersContainer = page.locator('#settings-jokers');
     this.timeBonusDisplay = page.locator('#settings-time-bonus');
     this.firstBonusDisplay = page.locator('#settings-first-bonus');

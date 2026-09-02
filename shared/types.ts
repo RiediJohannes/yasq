@@ -2,10 +2,10 @@ import {
   BonusType,
   DEFAULT_ENABLED_JOKERS,
   DEFAULT_FIRST_BONUS_MULTIPLIER,
+  DEFAULT_MAX_GUESS_TIME,
   DEFAULT_ROUNDS,
   DEFAULT_STREAK_BONUS_MULTIPLIER,
   DEFAULT_TIME_BONUS,
-  DEFAULT_TRACK_DURATION,
   FirstBonusMultiplier,
   Joker,
   StreakBonusMultiplier,
@@ -48,7 +48,7 @@ export interface Playlist {
 
 export interface GameSettingsOptions<T extends Iterable<Joker>> {
   rounds?: number;
-  trackDuration?: number;
+  maxGuessTime?: number;
   enabledJokers?: T;
   firstBonusMultiplier?: FirstBonusMultiplier;
   timeBonus?: TimeBonus | null;
@@ -57,7 +57,7 @@ export interface GameSettingsOptions<T extends Iterable<Joker>> {
 
 export class GameSettings<T extends Iterable<Joker>> {
   public rounds: number;
-  public trackDuration: number;
+  public maxGuessTime: number;
   public enabledJokers: T;
   public firstBonusMultiplier: FirstBonusMultiplier;
   public timeBonus: TimeBonus | null;
@@ -65,7 +65,7 @@ export class GameSettings<T extends Iterable<Joker>> {
 
   private constructor(options: GameSettingsOptions<T> = {}) {
     this.rounds = options.rounds ?? DEFAULT_ROUNDS;
-    this.trackDuration = options.trackDuration ?? DEFAULT_TRACK_DURATION;
+    this.maxGuessTime = options.maxGuessTime ?? DEFAULT_MAX_GUESS_TIME;
     this.enabledJokers = options.enabledJokers as T;
     this.firstBonusMultiplier = options.firstBonusMultiplier ?? DEFAULT_FIRST_BONUS_MULTIPLIER;
     this.timeBonus = options.timeBonus ?? DEFAULT_TIME_BONUS;

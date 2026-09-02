@@ -25,7 +25,7 @@ export function generateSampleTimeBonusSummary(bonusType: TimeBonus): TimeBonusS
 
   const game = new GameInstance(INSTANCE_ID, HOST_ID);
   game.settings.timeBonus = bonusType;
-  game.settings.trackDuration = totalTime;
+  game.settings.maxGuessTime = totalTime;
 
   // Precompute time bonus curve samples
   const samples = 200;

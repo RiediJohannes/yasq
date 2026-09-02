@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, afterEach } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { assignNewHost, playTrack, setBaseUrl, setupGame, submitGuess, useJoker } from '../../client/src/utils/backend';
 import { setupServer } from '../../server';
 import { FirstBonusMultiplier, GameState, Joker, StreakBonusMultiplier, TimeBonus } from '@yasq/shared';
@@ -117,7 +117,7 @@ describe('setupGame', () => {
   it('should return 200 OK when valid settings are provided', async () => {
     const response = await setupGame(hostToken, currentInstanceId, {
       rounds: 5,
-      trackDuration: 60,
+      maxGuessTime: 60,
       enabledJokers: [],
       firstBonusMultiplier: FirstBonusMultiplier.OFF,
       timeBonus: TimeBonus.LINEAR,
@@ -132,7 +132,7 @@ describe('setupGame', () => {
   it('should return 400 Bad Request when rounds are set to 0', async () => {
     const response = await setupGame(hostToken, currentInstanceId, {
       rounds: 0,
-      trackDuration: 60,
+      maxGuessTime: 60,
       enabledJokers: [],
       firstBonusMultiplier: FirstBonusMultiplier.OFF,
       timeBonus: TimeBonus.LINEAR,
@@ -141,13 +141,13 @@ describe('setupGame', () => {
     const body = await response.json();
 
     expect(response.status).toBe(400);
-    expect(body.error).toContain('Rounds and track duration must be greater than 0.');
+    expect(body.error).toContain('Rounds and guess time must be greater than 0.');
   });
 
-  it('should return 400 Bad Request when track duration exceeds the maximum allowed value', async () => {
+  it('should return 400 Bad Request when guess time exceeds the maximum allowed value', async () => {
     const response = await setupGame(hostToken, currentInstanceId, {
       rounds: 5,
-      trackDuration: 999999999,
+      maxGuessTime: 999999999,
       enabledJokers: [],
       firstBonusMultiplier: FirstBonusMultiplier.OFF,
       timeBonus: TimeBonus.LINEAR,
@@ -156,13 +156,13 @@ describe('setupGame', () => {
     const body = await response.json();
 
     expect(response.status).toBe(400);
-    expect(body.error).toContain('Track duration must not exceed');
+    expect(body.error).toContain('Guess time must not exceed');
   });
 
   it('should return 403 Forbidden when non-host player tries to setup game', async () => {
     const response = await setupGame(player1Token, currentInstanceId, {
       rounds: 5,
-      trackDuration: 60,
+      maxGuessTime: 60,
       enabledJokers: [],
       firstBonusMultiplier: FirstBonusMultiplier.OFF,
       timeBonus: TimeBonus.LINEAR,
@@ -278,7 +278,7 @@ describe('useJoker', () => {
       GameState.PLAYING,
       {
         settings: {
-          trackDuration: 60_000,
+          maxGuessTime: 60_000,
         },
         trackInfo: {
           url: 'some url',

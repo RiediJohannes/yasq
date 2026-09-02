@@ -6,7 +6,7 @@ export class SetupPage extends BasePage {
   readonly hostSettings: Locator;
   readonly advancedSettings: Locator;
   readonly roundsInput: Locator;
-  readonly trackDurationInput: Locator;
+  readonly maxGuessTimeInput: Locator;
   readonly hostTransferDropdownBtn: Locator;
   readonly hostTransferList: Locator;
   readonly hostTransferConfirmBtn: Locator;
@@ -24,7 +24,7 @@ export class SetupPage extends BasePage {
     this.hostSettings = page.locator('#host-settings');
     this.advancedSettings = page.locator('#advanced-settings');
     this.roundsInput = page.locator('#rounds-input');
-    this.trackDurationInput = page.locator('#duration-input');
+    this.maxGuessTimeInput = page.locator('#guess-time-input');
     this.hostTransferDropdownBtn = page.locator('#host-transfer-dropdown .dropdown-header');
     this.hostTransferList = page.locator('#dropdown-list');
     this.hostTransferConfirmBtn = page.locator('#btn-confirm-transfer');

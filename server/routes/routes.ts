@@ -108,14 +108,14 @@ export const setupRoutes = (
   router.post('/setup-game', authenticateUser, fetchGame, isHost, async (req, res) => {
     const { instanceId, settings } = req.body;
     const game = req.game!;
-    const maxAllowedDuration: number = Math.floor(INT32_MAX_VALUE / 1000) - COUNTDOWN_DURATION;
+    const maxAllowedGuessTime: number = Math.floor(INT32_MAX_VALUE / 1000) - COUNTDOWN_DURATION;
 
-    if (settings.rounds <= 0 || settings.trackDuration <= 0) {
-      return res.status(400).send({ error: 'Rounds and track duration must be greater than 0.' });
+    if (settings.rounds <= 0 || settings.maxGuessTime <= 0) {
+      return res.status(400).send({ error: 'Rounds and guess time must be greater than 0.' });
     }
-    if (settings.trackDuration > maxAllowedDuration) {
+    if (settings.maxGuessTime > maxAllowedGuessTime) {
       return res.status(400).send({
-        error: `Track duration must not exceed ${maxAllowedDuration}.`,
+        error: `Guess time must not exceed ${maxAllowedGuessTime}.`,
       });
     }
 
