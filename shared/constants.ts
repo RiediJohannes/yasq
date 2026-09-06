@@ -102,6 +102,8 @@ export const INT32_MAX_VALUE: number = 2 ** 31 - 1;
 
 export const WS_JOIN_INSTANCE_EVENT: string = 'join_instance';
 export const WS_GAME_STATUS_UPDATE_EVENT: string = 'game_status_update';
+export const TRACKS_UPDATED_EVENT: string = 'tracks-updated';
+export const PLAYLISTS_UPDATED_EVENT: string = 'playlists-updated';
 
 export const UI_UPDATES_DELAY_IN_E2E: number = 1000;
 

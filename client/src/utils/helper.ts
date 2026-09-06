@@ -1,4 +1,5 @@
 import { Participant } from '@yasq/shared';
+import { AuthenticationResult } from './connections';
 
 const userCache = new Map<string, Participant>();
 
@@ -15,7 +16,7 @@ export function findUser(participants: Participant[], userId: string): Participa
   return userCache.get(userId) || { id: '0', username: 'Unknown' };
 }
 
-export function getUserId(auth: any) {
+export function getUserId(auth: AuthenticationResult) {
   if (!auth || !auth.user) {
     return null;
   }
@@ -59,3 +60,25 @@ export const isTouchDevice = (): boolean => {
 
   return isCoarsePointer || hasTouchEvents;
 };
+
+/**
+ * Blocks on a promise with a maximum timeout for waiting for a result.
+ * If the promise finishes before the timeout, its return value is transparently passed on (both in the case of a
+ * successful value or an error).
+ * If the waiting time exceeds the timeout, the promise is automatically rejected with a timeout error, indicated by
+ * the custom `timeoutMessage`.
+ */
+export function withTimeout<T>(promise: Promise<T>, millis: number, timeoutMessage: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(timeoutMessage)), millis);
+    promise
+      .then(value => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch(err => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+}

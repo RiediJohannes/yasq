@@ -2,11 +2,11 @@ import { useSignal } from '@preact/signals';
 import { TargetedEvent } from 'preact';
 
 import * as backend from '../utils/backend';
-import { auth, discordSdk, gameState } from '../main';
+import { discordSdk, gameState, useAuth } from '../main';
 import { ALL_JOKER_ICONS } from '../components/Icons';
 import {
-  AchievementBonusType,
   AchievementBonuses,
+  AchievementBonusType,
   DEFAULT_ENABLED_JOKERS,
   DEFAULT_MAX_GUESS_TIME,
   DEFAULT_ROUNDS,
@@ -36,6 +36,7 @@ const HOST_TIME_BONUS_LABELS: Record<TOptionalTimeBonus, string> = {
 };
 
 export const SetupView = ({ isHost }: { isHost: boolean }) => {
+  const auth = useAuth();
   const roundCount = useSignal(gameState.value.gameSettings.rounds || DEFAULT_ROUNDS);
   const maxGuessTime = useSignal(
     gameState.value.gameSettings.maxGuessTime
@@ -106,11 +107,12 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
     };
 
     try {
-      await backend.setupGame(auth.value.access_token, discordSdk.instanceId, currentSettings);
+      await backend.setupGame(auth.access_token, discordSdk.instanceId, currentSettings);
     } catch (e) {
       console.error('Setup failed:', e);
-      isSubmitting.value = false;
     }
+
+    isSubmitting.value = false;
   };
 
   return (

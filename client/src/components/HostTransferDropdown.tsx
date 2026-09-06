@@ -1,12 +1,13 @@
 import { useSignal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 
-import { auth, discordSdk, gameState, participants } from '../main';
+import { discordSdk, gameState, participants, useAuth } from '../main';
 import * as backend from '../utils/backend';
 import { getAvatarUrl, getDisplayName } from '@yasq/shared';
 import { DiscordAvatar } from './DiscordAvatar';
 
 export const HostTransferDropdown = () => {
+  const auth = useAuth();
   const isOpen = useSignal(false);
   const selectedPlayer = useSignal<{
     id: string;
@@ -29,7 +30,7 @@ export const HostTransferDropdown = () => {
     if (!selectedPlayer.value) return;
     isTransferring.value = true;
     try {
-      await backend.assignNewHost(auth.value.access_token, discordSdk.instanceId, selectedPlayer.value.id);
+      await backend.assignNewHost(auth.access_token, discordSdk.instanceId, selectedPlayer.value.id);
     } catch (e) {
       console.error(e);
     }

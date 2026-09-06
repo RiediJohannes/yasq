@@ -1,5 +1,5 @@
 import * as backend from '../utils/backend';
-import { auth, discordSdk, gameState, participants } from '../main';
+import { discordSdk, gameState, participants, useAuth } from '../main';
 import { capitalize, formatBonusMultiplier } from '../utils/helper';
 import { ALL_JOKER_ICONS, InfoIcon } from '../components/Icons';
 import { OptionalTimeBonus, TOptionalTimeBonus } from '../utils/types';
@@ -20,6 +20,7 @@ export const PLAYER_TIME_BONUS_LABELS: Record<TOptionalTimeBonus, string> = {
 };
 
 export const LobbyView = ({ isHost }: { isHost: boolean }) => {
+  const auth = useAuth();
   const jokers = gameState.value.gameSettings.enabledJokers;
   const achievementBonuses = gameState.value.gameSettings.achievementBonuses;
 
@@ -30,11 +31,11 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
   const allPlayersAreReady = playersExcludingHost.length > 0 && readyUsers === playersExcludingHost.length;
 
   const handleStart = async () => {
-    await backend.startGame(auth.value.access_token, discordSdk.instanceId);
+    await backend.startGame(auth.access_token, discordSdk.instanceId);
   };
 
   const handleEditSettings = async () => {
-    await backend.restartGame(auth.value.access_token, discordSdk.instanceId);
+    await backend.restartGame(auth.access_token, discordSdk.instanceId);
   };
 
   const currentTimeBonusName = gameState.value.gameSettings.timeBonus?.replace('_', '') ?? 'None';

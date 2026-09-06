@@ -1,7 +1,7 @@
 import { computed, signal, useSignal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 
-import { auth, discordSdk, socket } from '../main';
+import { discordSdk, useAuth } from '../main';
 import * as backend from '../utils/backend';
 import { Track } from '../utils/types';
 import { NonDraggableImg } from '../components/NonDraggableImg';
@@ -15,8 +15,9 @@ import {
   getReachableTags,
   SortOption,
 } from '../utils/trackFiltering';
-import { Playlist } from '@yasq/shared';
+import { Playlist, PLAYLISTS_UPDATED_EVENT, TRACKS_UPDATED_EVENT } from '@yasq/shared';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { onGameEvent } from '../utils/connections';
 
 const selectedPlaylistName = signal<string>('All playlists');
 const selectedTags = signal<Record<string, string[]>>({});
@@ -25,11 +26,12 @@ const hidePlayed = signal(false);
 const sortOrder = signal<SortOption>('Default Order');
 
 export const TrackSelectionView = ({ isHost }: { isHost: boolean }) => {
+  const auth = useAuth();
   const tracks = useSignal<Track[] | null>(null);
   const playlists = useSignal<Playlist[]>([]);
 
   const fetchTracksAndPlaylists = () => {
-    backend.getTrackList(auth.value.access_token, discordSdk.instanceId).then(data => {
+    backend.getTrackList(auth.access_token, discordSdk.instanceId).then(data => {
       tracks.value = data.tracks.map((t: Track, i: number) => ({
         ...t,
         originalIndex: i,
@@ -44,14 +46,14 @@ export const TrackSelectionView = ({ isHost }: { isHost: boolean }) => {
     // Initial fetch
     fetchTracksAndPlaylists();
 
-    // Setup socket listeners
-    socket.on('tracks-updated', fetchTracksAndPlaylists);
-    socket.on('playlists-updated', fetchTracksAndPlaylists);
+    // Set up event listeners
+    const unsubTracks = onGameEvent(TRACKS_UPDATED_EVENT, fetchTracksAndPlaylists);
+    const unsubPlaylists = onGameEvent(PLAYLISTS_UPDATED_EVENT, fetchTracksAndPlaylists);
 
     // Cleanup
     return () => {
-      socket.off('tracks-updated', fetchTracksAndPlaylists);
-      socket.off('playlists-updated', fetchTracksAndPlaylists);
+      unsubTracks();
+      unsubPlaylists();
     };
   }, [isHost]);
 
@@ -75,7 +77,7 @@ export const TrackSelectionView = ({ isHost }: { isHost: boolean }) => {
     const randomTrack = getRandomEligibleTrack(filteredTracks.value);
     if (!randomTrack) return;
 
-    await backend.playTrack(auth.value.access_token, randomTrack.audio, discordSdk.instanceId);
+    await backend.playTrack(auth.access_token, randomTrack.audio, discordSdk.instanceId);
   };
 
   const availableTagsByType = computed(() => getAvailableTagsByType(tracks.value));
@@ -221,7 +223,7 @@ export const TrackSelectionView = ({ isHost }: { isHost: boolean }) => {
                   // The button becomes disabled because tracks.value will update
                   // or the state will change to 'PLAYING' via the backend call.
                   (e.currentTarget as HTMLButtonElement).disabled = true;
-                  await backend.playTrack(auth.value.access_token, track.audio, discordSdk.instanceId);
+                  await backend.playTrack(auth.access_token, track.audio, discordSdk.instanceId);
                 }}
               >
                 {track.played ? 'Already Played' : 'Select Track'}

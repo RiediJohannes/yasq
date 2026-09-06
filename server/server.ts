@@ -6,15 +6,13 @@ import { fileURLToPath } from 'url';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 
-import { GameInstance } from './src/models/game_instance.js';
-
 import { setupRoutes } from './routes/routes.js';
 import { setMockState, setupMockRoutes } from './routes/mockRoutes.js';
+import { GameInstance } from './src/models/game_instance.js';
 import {
   getDataSourceDir,
   getFilePath,
   getGameStatusPayload,
-  invalidateToken,
   isMockMode,
   setupTempDir,
   userDataCache,
@@ -22,15 +20,19 @@ import {
 } from './src/helper.js';
 import {
   type Playlist,
+  PLAYLISTS_UPDATED_EVENT,
   SAMPLE_DATA_DIR,
   STATIC_FILES_DIR,
   TEMP_FILES_DIR,
   type Track,
+  TRACKS_UPDATED_EVENT,
   WS_GAME_STATUS_UPDATE_EVENT,
   WS_JOIN_INSTANCE_EVENT,
 } from '@yasq/shared';
 import { LogCategory, logger } from './src/utils/logger.js';
 import { loadPermissions } from './src/access_control.js';
+
+const DISCONNECTION_GRACE_MILLIS: number = 20_000;
 
 dotenv.config({ path: '../.env' });
 
@@ -164,7 +166,7 @@ export function setupServer() {
     tracksPath,
     () => {
       cachedTracks = loadTracks(tracksPath);
-      server.emit('tracks-updated');
+      server.emit(TRACKS_UPDATED_EVENT);
     },
     'Tracks'
   );
@@ -173,15 +175,22 @@ export function setupServer() {
     playlistsPath,
     () => {
       cachedPlaylists = loadPlaylists(playlistsPath);
-      server.emit('playlists-updated');
+      server.emit(PLAYLISTS_UPDATED_EVENT);
     },
     'Playlists'
   );
 
-  const app = express();
+  const disconnectTimeouts = new Map();
 
+  const app = express();
   const httpServer = createServer(app);
-  const server = new Server(httpServer, { cors: { origin: '*' } });
+  const server = new Server(httpServer, {
+    pingInterval: 4000,
+    pingTimeout: 4000,
+    cors: {
+      origin: '*',
+    },
+  });
 
   server.use(async (socket, next) => {
     const token = socket.handshake.auth.token;
@@ -197,12 +206,29 @@ export function setupServer() {
   });
 
   server.on('connection', socket => {
-    socket.on(WS_JOIN_INSTANCE_EVENT, ({ instanceId }) => {
-      socket.join(instanceId);
+    socket.on(WS_JOIN_INSTANCE_EVENT, async ({ instanceId }) => {
+      const userId = socket.data.userId;
       socket.data.instanceId = instanceId;
 
-      // Use userId from the middleware
-      const userId = socket.data.userId;
+      // Find and disconnect any other existing sockets for this user in the same instance
+      const sockets = await server.in(instanceId).fetchSockets();
+      for (const s of sockets) {
+        if (s.data.userId === userId && s.id !== socket.id) {
+          s.disconnect(true);
+        }
+      }
+
+      socket.join(instanceId);
+
+      // If the user reconnected within grace period, cancel their timeout for removal
+      const timeoutKey = `${instanceId}:${userId}`;
+      const isReconnecting = disconnectTimeouts.has(timeoutKey);
+
+      if (isReconnecting) {
+        clearTimeout(disconnectTimeouts.get(timeoutKey));
+        disconnectTimeouts.delete(timeoutKey);
+        logger.debug(instanceId, `User ${userId} reconnected within grace period`, LogCategory.GAME);
+      }
 
       // If no one has registered for this instance yet, this user is the host
       if (!instances[instanceId]) {
@@ -210,36 +236,56 @@ export function setupServer() {
       }
 
       const game = instances[instanceId];
-
       game.registeredUsers.add(userId);
-      logger.debug(instanceId, `Player ${userId} joined the game`, LogCategory.GENERAL);
 
+      if (!isReconnecting) {
+        logger.debug(
+          instanceId,
+          `User ${userId} joined the game (role: ${game.isHost(userId) ? 'Host' : 'Player'})`,
+          LogCategory.GAME
+        );
+      }
+
+      // Broadcast updated state to everyone in this game instance
       server.to(instanceId).emit(WS_GAME_STATUS_UPDATE_EVENT, getGameStatusPayload(game));
     });
 
     socket.on('disconnect', () => {
       const { userId, instanceId } = socket.data;
-      if (!userId || !instanceId) return;
+      if (!userId || !instanceId || !instances[instanceId]) return;
 
-      const game = instances[instanceId];
-      if (!game) return;
+      logger.debug(instanceId, `User ${userId} disconnected from server -> Starting grace period`, LogCategory.GAME);
+      const timeoutKey = `${instanceId}:${userId}`;
 
-      game.registeredUsers.delete(userId);
-      logger.debug(instanceId, `Player ${userId} left the game`, LogCategory.GENERAL);
-
-      invalidateToken(socket.handshake.auth.token);
-
-      if (game.isHost(userId) && !isMockMode()) {
-        const isGameActive = game.pickNewHost();
-
-        if (!isGameActive) {
-          logger.debug(instanceId, `Terminating empty instance`, LogCategory.GENERAL);
-          game.dispose();
-          delete instances[instanceId];
-        }
+      // Clear any existing timeout
+      if (disconnectTimeouts.has(timeoutKey)) {
+        clearTimeout(disconnectTimeouts.get(timeoutKey));
       }
 
-      server.to(instanceId).emit(WS_GAME_STATUS_UPDATE_EVENT, getGameStatusPayload(game));
+      // Give the client a grace period to reconnect before stripping their host/player status
+      const disconnectTimeout = setTimeout(() => {
+        disconnectTimeouts.delete(timeoutKey);
+
+        const currentGame = instances[instanceId];
+        if (!currentGame) return;
+
+        currentGame.registeredUsers.delete(userId);
+        logger.debug(instanceId, `User ${userId}: Grace period expired -> Removing user from game`, LogCategory.GAME);
+
+        if (currentGame.isHost(userId) && !isMockMode()) {
+          const isGameActive = currentGame.pickNewHost();
+
+          if (!isGameActive) {
+            logger.debug(instanceId, 'Terminating empty game instance', LogCategory.GAME);
+            currentGame.dispose();
+            delete instances[instanceId];
+          }
+        }
+
+        server.to(instanceId).emit(WS_GAME_STATUS_UPDATE_EVENT, getGameStatusPayload(currentGame));
+      }, DISCONNECTION_GRACE_MILLIS);
+
+      disconnectTimeouts.set(timeoutKey, disconnectTimeout);
     });
   });
 

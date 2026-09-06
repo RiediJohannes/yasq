@@ -2,7 +2,7 @@ import { useSignal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 
 import * as backend from '../utils/backend';
-import { auth, discordSdk, gameState, participants } from '../main';
+import { discordSdk, gameState, participants, useAuth } from '../main';
 import { capitalize, findUser, getUserId } from '../utils/helper';
 import { NonDraggableImg } from '../components/NonDraggableImg';
 import { getAvatarUrl, getDisplayName, Participant, Tag } from '@yasq/shared';
@@ -16,6 +16,7 @@ import { TooltipDiv } from '../components/Tooltip';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
 export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
+  const auth = useAuth();
   const roundData = useSignal<any>(null);
   const isPointsDetailsOpen = useSignal(false);
 
@@ -24,7 +25,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
 
   useEffect(() => {
     backend
-      .getRoundResults(discordSdk.instanceId, getUserId(auth.value))
+      .getRoundResults(discordSdk.instanceId, getUserId(auth)!)
       .then(data => {
         roundData.value = data;
       })
@@ -36,13 +37,13 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
   // Logic for the Host's "Next Round" button
   const playersExcludingHost = participants.value.filter(p => p.id !== gameState.value.hostId);
   const participantLookup = new Map(participants.value.map(p => [p.id, p]));
-  const currentPlayer = participantLookup.get(getUserId(auth.value)) ?? null;
+  const currentPlayer = participantLookup.get(getUserId(auth)!) ?? null;
   const readyCount = gameState.value.readyUsers.length;
   const allPlayersReady =
     playersExcludingHost.length > 0 && playersExcludingHost.every(p => gameState.value.readyUsers.includes(p.id));
 
   const handleNextRound = async () => {
-    await backend.startNextRound(auth.value.access_token, discordSdk.instanceId);
+    await backend.startNextRound(auth.access_token, discordSdk.instanceId);
   };
 
   if (!roundData.value) {

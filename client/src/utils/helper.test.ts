@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { Participant } from '@yasq/shared';
-import { findUser, getUserId, capitalize, formatBonusMultiplier, getActionKeyLabel, getGameDuration } from './helper';
+import { capitalize, findUser, formatBonusMultiplier, getActionKeyLabel, getGameDuration, getUserId } from './helper';
+import { AuthenticationResult } from './connections';
 
 const mockParticipants: Participant[] = [
   { id: '1', username: 'MockPlayer1' },
@@ -30,17 +31,17 @@ describe('findUser', () => {
 
 describe('getUserId', () => {
   it('should return null if auth is null or undefined', () => {
-    expect(getUserId(null)).toBeNull();
-    expect(getUserId(undefined)).toBeNull();
+    expect(getUserId(null!)).toBeNull();
+    expect(getUserId(undefined!)).toBeNull();
   });
 
   it('should return null if auth.user is missing', () => {
-    expect(getUserId({})).toBeNull();
+    expect(getUserId({} as AuthenticationResult)).toBeNull();
   });
 
   it('should return user id when present', () => {
     const auth = { user: { id: '1' } };
-    expect(getUserId(auth)).toBe('1');
+    expect(getUserId(auth as AuthenticationResult)).toBe('1');
   });
 });
 

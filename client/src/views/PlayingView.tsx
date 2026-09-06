@@ -2,10 +2,10 @@ import { useSignal } from '@preact/signals';
 import { useEffect, useRef } from 'preact/hooks';
 
 import * as backend from '../utils/backend';
-import { audioPlayer, auth, discordSdk, gameState, isMac, participants } from '../main';
+import { audioPlayer, discordSdk, gameState, isMac, participants, useAuth } from '../main';
 import { getAvatarUrl, getDisplayName, Joker, MAX_GUESS_LENGTH, POLLING_INTERVAL, Tag } from '@yasq/shared';
 import { ALL_JOKER_ICONS } from '../components/Icons';
-import { capitalize, findUser, getActionKeyLabel } from '../utils/helper';
+import { capitalize, findUser, getActionKeyLabel, getUserId } from '../utils/helper';
 import { NonDraggableImg } from '../components/NonDraggableImg';
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
 import { DiscordAvatar } from '../components/DiscordAvatar';
@@ -117,6 +117,7 @@ const renderJokerHint = (activeHint: JokerHint, submit: SubmitFunction) => {
 };
 
 export const PlayingView = ({ isHost }: { isHost: boolean }) => {
+  const auth = useAuth();
   const hasSubmitted = useSignal(false);
   const jokerError = useSignal<string | null>(null);
   const countdown = useSignal<number | null>(3);
@@ -128,7 +129,7 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
 
   useEffect(() => {
     if (isHost) return;
-    backend.getAvailableJokers(auth.value.access_token, discordSdk.instanceId).then(data => {
+    backend.getAvailableJokers(auth.access_token, discordSdk.instanceId).then(data => {
       availableJokers.value = data.available;
     });
   }, [gameState.value.currentRound]);
@@ -140,7 +141,7 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
     }
 
     try {
-      const response = await backend.useJoker(auth.value.access_token, discordSdk.instanceId, jokerType, targetId);
+      const response = await backend.useJoker(auth.access_token, discordSdk.instanceId, jokerType, targetId);
       const payload = await response.json();
       if (response.status === 200) {
         activeHint.value = {
@@ -167,7 +168,7 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
   const submitGuess = async (guess: string) => {
     hasSubmitted.value = true;
 
-    await backend.submitGuess(auth.value.access_token, discordSdk.instanceId, guess);
+    await backend.submitGuess(auth.access_token, discordSdk.instanceId, guess);
   };
 
   useEffect(() => {
@@ -183,7 +184,7 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
     const sync = async () => {
       try {
         const { url, startTime, endTime, ...hostData } = await backend.getCurrentTrack(
-          auth.value.access_token,
+          auth.access_token,
           discordSdk.instanceId
         );
         if (!url) return;
@@ -313,7 +314,7 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
               <h2>Pick a player to spy on:</h2>
               <hr className="divider" />
               <div className="spy-hint-player-list">
-                {gameState.value.guessedPlayers.filter(id => id !== auth.value.userId).length === 0 ? (
+                {gameState.value.guessedPlayers.filter(id => id !== getUserId(auth)).length === 0 ? (
                   <p className="no-results">No player has submitted a guess yet.</p>
                 ) : (
                   gameState.value.guessedPlayers.map(targetId => {

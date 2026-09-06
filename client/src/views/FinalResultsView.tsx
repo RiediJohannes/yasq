@@ -2,7 +2,7 @@ import { useSignal } from '@preact/signals';
 import { useEffect, useState } from 'preact/hooks';
 
 import * as backend from '../utils/backend';
-import { auth, discordSdk, gameState, participants } from '../main';
+import { discordSdk, gameState, participants, useAuth } from '../main';
 import { findUser } from '../utils/helper';
 import { ACHIEVEMENT_BONUS_POINTS, getAvatarUrl, getDisplayName } from '@yasq/shared';
 import { RoundBubblesGroup } from '../components/RoundBubble';
@@ -13,6 +13,7 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { TooltipDiv } from '../components/Tooltip';
 
 export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
+  const auth = useAuth();
   const leaderboard = useSignal<any[]>([]);
   const gameStats = useSignal<any>({});
   const [canExport, setCanExport] = useState(false);
@@ -40,7 +41,7 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
     setIsPosting(true);
     try {
       const response = await backend.postResultsToDiscordChannel(
-        auth.value.access_token,
+        auth.access_token,
         discordSdk.instanceId,
         selectedChannel
       );
@@ -61,7 +62,7 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
     if (!isHost) return;
 
     backend
-      .getDiscordChannels(auth.value.access_token, discordSdk.instanceId, discordSdk.guildId!)
+      .getDiscordChannels(auth.access_token, discordSdk.instanceId, discordSdk.guildId!)
       .then(data => setChannels(data));
   }, [isHost]);
 
@@ -73,7 +74,7 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
   const handleRestart = async (e: MouseEvent) => {
     const btn = e.currentTarget as HTMLButtonElement;
     btn.disabled = true;
-    await backend.restartGame(auth.value.access_token, discordSdk.instanceId);
+    await backend.restartGame(auth.access_token, discordSdk.instanceId);
   };
 
   const totalPlayers = leaderboard.value.length;

@@ -1,20 +1,21 @@
 import { useState } from 'preact/hooks';
-import { auth, discordSdk, gameState, isMac } from '../main';
+import { discordSdk, gameState, isMac, useAuth } from '../main';
 import * as backend from '../utils/backend';
 import { getActionKeyLabel, getUserId } from '../utils/helper';
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
 
 // Custom hook to inform the backend about the user's ready status
 export const useReadyButtonLogic = () => {
+  const auth = useAuth();
   const [hasInteracted, setHasInteracted] = useState(false);
 
   const handleReady = async () => {
     setHasInteracted(true);
 
     await backend.updateReadyStatus(
-      auth.value.access_token,
+      auth.access_token,
       discordSdk.instanceId,
-      !gameState.value.readyUsers.includes(getUserId(auth.value))
+      !gameState.value.readyUsers.includes(getUserId(auth)!)
     );
   };
 
@@ -27,9 +28,10 @@ interface ReadyButtonProps {
 }
 
 export const ReadyButton = ({ promptText }: ReadyButtonProps) => {
+  const auth = useAuth();
   const { hasInteracted, handleReady } = useReadyButtonLogic();
 
-  const userId = getUserId(auth.value);
+  const userId = getUserId(auth)!;
   const isReady = gameState.value.readyUsers.includes(userId);
   const isFinalRound = gameState.value.currentRound >= gameState.value.gameSettings.rounds;
 
