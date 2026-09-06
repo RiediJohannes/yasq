@@ -29,9 +29,26 @@ import { RoundResultsView } from './views/RoundResultsView';
 import { FinalResultsView } from './views/FinalResultsView';
 
 import './style.css';
+import { socketSignal } from './utils/reconnector';
+import { DisconnectBanner } from './components/DisconnectBanner';
 
 const isMockMode = import.meta.env.VITE_MOCK_MODE === 'true';
-export const discordSdk = isMockMode ? mockDiscordSdk : new DiscordSDK(import.meta.env.VITE_DISCORD_CLIENT_ID);
+
+// 🛠️ HMR SURVIVAL: Prevent Vite from instantiating multiple SDKs and sending duplicate handshakes
+let sdkInstance: any;
+if (isMockMode) {
+  sdkInstance = mockDiscordSdk;
+} else if ((window as any).__DISCORD_SDK__) {
+  // If Vite HMR re-evaluates this file, use the existing SDK bridge!
+  console.log('[DEV] Restoring existing DiscordSDK instance from window...');
+  sdkInstance = (window as any).__DISCORD_SDK__;
+} else {
+  // First time boot
+  sdkInstance = new DiscordSDK(import.meta.env.VITE_DISCORD_CLIENT_ID);
+  (window as any).__DISCORD_SDK__ = sdkInstance;
+}
+
+export const discordSdk = sdkInstance;
 
 export const auth = signal<any | null>(null);
 export const gameState = signal<GameStatus>({
@@ -60,8 +77,44 @@ gainNode.gain.value = DEFAULT_VOLUME_SLIDER_VAL * MAX_VOLUME;
 export const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
 export let socket: Socket;
 
+// function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+//   return new Promise((resolve, reject) => {
+//     const timer = setTimeout(() => reject(new Error(message)), ms);
+//     promise
+//       .then((value) => {
+//         clearTimeout(timer);
+//         resolve(value);
+//       })
+//       .catch((err) => {
+//         clearTimeout(timer);
+//         reject(err);
+//       });
+//   });
+// // }
+//
+export const isInitializing = signal<boolean>(true);
+export const initError = signal<string | null>(null);
+
 const App = () => {
-  if (!auth.value) return <div className="centered">Authenticating...</div>;
+  if (!auth.value)
+    return (
+      <>
+        <DisconnectBanner />
+        <div
+          className="centered"
+          style={{ textAlign: 'center' }}
+        >
+          {initError.value ? (
+            <div>
+              <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>Connection Failed</p>
+              <small style={{ color: '#ff6b6b' }}>{initError.value}</small>
+            </div>
+          ) : (
+            'Authenticating...'
+          )}
+        </div>
+      </>
+    );
 
   if (gameState.value.hostId === null) {
     return <div className="centered">Starting Game...</div>;
@@ -74,6 +127,7 @@ const App = () => {
       <div className="container">
         <div className="game-column">
           <GameHeader />
+          <DisconnectBanner />
           <main
             className="game-area"
             key={`view-${isHost}-${gameState.value.state}`}
@@ -111,41 +165,144 @@ const renderView = (isHost: boolean) => {
 
 render(<App />, document.getElementById('app')!);
 
-(async () => {
-  await discordSdk.ready();
-  console.log('Discord SDK is ready');
+// ==========================================
+// 🛠️ DIAGNOSTIC HARNESS & INIT FLOW
+// ==========================================
 
-  // Authorize with Discord Client
-  const { code } = await discordSdk.commands.authorize({
-    client_id: import.meta.env.VITE_DISCORD_CLIENT_ID,
-    response_type: 'code',
-    state: '',
-    prompt: 'none',
-    scope: ['identify', 'guilds', 'applications.commands'],
+// export const isInitializing = signal<boolean>(true);
+// export const initError = signal<string | null>(null);
+
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    promise
+      .then(value => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch(err => {
+        clearTimeout(timer);
+        reject(err);
+      });
   });
+}
 
-  // Retrieve an access_token from your activity's server
-  const { access_token } = await backend.getToken(code);
-
-  // Authenticate with Discord client (using the access_token)
-  auth.value = await discordSdk.commands.authenticate({ access_token });
-
-  if (auth.value == null) {
-    throw new Error('Authenticate command failed');
+// A diagnostic function to probe if the IPC bridge to the parent client is actually responding
+const probeDiscordIPC = async (): Promise<boolean> => {
+  console.log('[DIAGNOSTICS] Probing Discord IPC Bridge...');
+  try {
+    // We use a harmless command to check if the parent window responds
+    await withTimeout(discordSdk.commands.getInstanceConnectedParticipants(), 3000, 'IPC_PROBE_TIMEOUT');
+    console.log('[DIAGNOSTICS] IPC Bridge is ALIVE.');
+    return true;
+  } catch (error: any) {
+    console.warn(`[DIAGNOSTICS] IPC Bridge check failed: ${error.message}`);
+    return false;
   }
+};
 
-  // Establish a websocket communication for continuous game state updates
-  socket = io({ auth: { token: auth.value.access_token } });
-  // Register this client-socket with the current quiz instance
-  socket.emit(WS_JOIN_INSTANCE_EVENT, { instanceId: discordSdk.instanceId });
+export const initializeAppFlow = async (isReconnect = false) => {
+  isInitializing.value = true;
+  initError.value = null;
+  console.log(`\n=== STARTING FLOW (Reconnect: ${isReconnect}) ===`);
 
-  // Update the client-side game state whenever the server pushes an update
-  socket.on(WS_GAME_STATUS_UPDATE_EVENT, updatedState => {
-    gameState.value = updatedState;
-  });
+  try {
+    // 1. Attempt to recover the FULL auth payload from memory
+    const cachedAuth = (window as any).__DISCORD_AUTH__;
 
-  participants.value = (await discordSdk.commands.getInstanceConnectedParticipants()).participants;
-  discordSdk.subscribe('ACTIVITY_INSTANCE_PARTICIPANTS_UPDATE', (e: any) => (participants.value = e.participants));
+    // if (!cachedAuth) {
+    //   const sessionAuthStr = sessionStorage.getItem('discord_auth_payload');
+    //   if (sessionAuthStr) {
+    //     cachedAuth = JSON.parse(sessionAuthStr);
+    //   }
+    // }
 
-  render(<App />, document.getElementById('app')!);
-})();
+    if (cachedAuth) {
+      console.log('[FLOW] Using cached auth payload from window/session. Bypassing SDK Auth.');
+
+      // Restore the full object so getUserId() can find the user's ID
+      auth.value = cachedAuth;
+    } else {
+      console.log('[FLOW] No token found in memory. Starting full Discord SDK handshake...');
+
+      await withTimeout(discordSdk.ready(), 10000, 'Discord SDK ready timeout');
+
+      const { code } = await withTimeout<any>(
+        discordSdk.commands.authorize({
+          client_id: import.meta.env.VITE_DISCORD_CLIENT_ID,
+          response_type: 'code',
+          state: '',
+          prompt: 'none',
+          scope: ['identify', 'guilds', 'applications.commands'],
+        }),
+        10000,
+        'Authorize timeout'
+      );
+
+      const { access_token } = await backend.getToken(code);
+
+      // Fetch the full payload from Discord
+      const authResult = await withTimeout<any>(
+        discordSdk.commands.authenticate({ access_token }),
+        10000,
+        'Authenticate timeout'
+      );
+
+      // 🛠️ HMR SURVIVAL: Save the entire payload (JSON for storage, object for memory)
+      sessionStorage.setItem('discord_auth_payload', JSON.stringify(authResult));
+      (window as any).__DISCORD_AUTH__ = authResult;
+
+      auth.value = authResult;
+
+      console.log('[FLOW] Authentication complete. Token cached.');
+    }
+
+    // Now we extract the token safely for the Socket logic
+    const currentToken = auth.value.access_token;
+    const isIpcAlive = isReconnect ? await probeDiscordIPC() : true;
+
+    // STEP 2: WEBSOCKET RECOVERY
+    console.log('[FLOW] Establishing WebSocket...');
+    if (socketSignal.value) {
+      socketSignal.value.disconnect();
+    }
+    const socket = io({ auth: { token: currentToken } });
+    socketSignal.value = socket;
+
+    socket.on('connect', () => {
+      console.log('[FLOW] Socket connected! Emitting WS_JOIN_INSTANCE_EVENT');
+      socket.emit(WS_JOIN_INSTANCE_EVENT, { instanceId: discordSdk.instanceId });
+    });
+    socket.on(WS_GAME_STATUS_UPDATE_EVENT, updatedState => {
+      console.log('[FLOW] Received WS_GAME_STATUS_UPDATE_EVENT from backend.');
+      gameState.value = updatedState;
+      // DIAGNOSTIC: Check if backend is sending participants
+      if (updatedState.participants) {
+        console.log('[DIAGNOSTICS] Backend provided participant list!');
+        participants.value = updatedState.participants;
+      }
+    });
+
+    socket.on('disconnect', reason => {
+      console.warn(`[DIAGNOSTICS] Socket disconnected. Reason: ${reason}`);
+    });
+    // STEP 3: PARTICIPANT SYNC
+    if (isIpcAlive) {
+      console.log('[FLOW] Syncing participants via Discord SDK...');
+      const participantData = await discordSdk.commands.getInstanceConnectedParticipants();
+      participants.value = participantData.participants;
+      discordSdk.subscribe('ACTIVITY_INSTANCE_PARTICIPANTS_UPDATE', (e: any) => (participants.value = e.participants));
+    } else {
+      console.warn('[FLOW] IPC dead. Relying entirely on backend for participant sync.');
+    }
+  } catch (error: any) {
+    console.error('[FLOW] Initialization / Reconnection Failed:', error);
+    initError.value = error.message || 'An unknown error occurred.';
+  } finally {
+    isInitializing.value = false;
+    console.log('=== FLOW COMPLETE ===\n');
+  }
+};
+
+// Initial boot
+void initializeAppFlow();

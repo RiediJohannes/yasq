@@ -14,7 +14,6 @@ import {
   getDataSourceDir,
   getFilePath,
   getGameStatusPayload,
-  invalidateToken,
   isMockMode,
   setupTempDir,
   validateToken,
@@ -177,6 +176,9 @@ export function setupServer() {
     'Playlists'
   );
 
+  // Track pending disconnect timeouts to allow grace periods for reconnections
+  const disconnectTimeouts = new Map(); // Key: `${instanceId}:${userId}`
+
   const app = express();
 
   const httpServer = createServer(app);
@@ -200,8 +202,19 @@ export function setupServer() {
       socket.join(instanceId);
       socket.data.instanceId = instanceId;
 
-      // Use userId from the middleware
       const userId = socket.data.userId;
+      const timeoutKey = `${instanceId}:${userId}`;
+
+      // If the user reconnected quickly, cancel their pending removal!
+      if (disconnectTimeouts.has(timeoutKey)) {
+        clearTimeout(disconnectTimeouts.get(timeoutKey));
+        disconnectTimeouts.delete(timeoutKey);
+        logger.debug(
+          instanceId,
+          `Player ${userId} reconnected within grace period. Restoring session.`,
+          LogCategory.GENERAL
+        );
+      }
 
       // If no one has registered for this instance yet, this user is the host
       if (!instances[instanceId]) {
@@ -211,8 +224,9 @@ export function setupServer() {
       const game = instances[instanceId];
 
       game.registeredUsers.add(userId);
-      logger.debug(instanceId, `Player ${userId} joined the game`, LogCategory.GENERAL);
+      logger.debug(instanceId, `Player ${userId} joined the game instance`, LogCategory.GENERAL);
 
+      // Broadcast updated state to everyone
       server.to(instanceId).emit(WS_GAME_STATUS_UPDATE_EVENT, getGameStatusPayload(game));
     });
 
@@ -223,22 +237,42 @@ export function setupServer() {
       const game = instances[instanceId];
       if (!game) return;
 
-      game.registeredUsers.delete(userId);
-      logger.debug(instanceId, `Player ${userId} left the game`, LogCategory.GENERAL);
+      logger.debug(instanceId, `Player ${userId} socket disconnected. Starting 5s grace period.`, LogCategory.GENERAL);
 
-      invalidateToken(socket.handshake.auth.token);
+      // NOTE: DO NOT call invalidateToken here! Network drops are not explicit logouts.
 
-      if (game.isHost(userId)) {
-        const isGameActive = game.pickNewHost();
+      const timeoutKey = `${instanceId}:${userId}`;
 
-        if (!isGameActive) {
-          logger.debug(instanceId, `Terminating empty instance`, LogCategory.GENERAL);
-          game.dispose();
-          delete instances[instanceId];
-        }
+      // Clear any existing timeout just in case
+      if (disconnectTimeouts.has(timeoutKey)) {
+        clearTimeout(disconnectTimeouts.get(timeoutKey));
       }
 
-      server.to(instanceId).emit(WS_GAME_STATUS_UPDATE_EVENT, getGameStatusPayload(game));
+      // Give the client 5 seconds to reconnect before stripping their host/participant status
+      const disconnectTimer = setTimeout(() => {
+        disconnectTimeouts.delete(timeoutKey);
+
+        // Verify game still exists
+        const currentGame = instances[instanceId];
+        if (!currentGame) return;
+
+        currentGame.registeredUsers.delete(userId);
+        logger.debug(instanceId, `Player ${userId} grace period expired. Removing from game.`, LogCategory.GENERAL);
+
+        if (currentGame.isHost(userId)) {
+          const isGameActive = currentGame.pickNewHost();
+
+          if (!isGameActive) {
+            logger.debug(instanceId, `Terminating empty instance`, LogCategory.GENERAL);
+            currentGame.dispose();
+            delete instances[instanceId];
+          }
+        }
+
+        server.to(instanceId).emit(WS_GAME_STATUS_UPDATE_EVENT, getGameStatusPayload(currentGame));
+      }, 20000); // 20-second grace window
+
+      disconnectTimeouts.set(timeoutKey, disconnectTimer);
     });
   });
 
