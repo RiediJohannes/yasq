@@ -10,6 +10,7 @@
   },
   "scripts": {
     "dev": "cross-env NODE_ENV=development tsx watch main.ts",
+    "prod": "cross-env NODE_ENV=production tsx main.ts",
     "test": "cross-env NODE_ENV=test vitest"
   },
   "dependencies": {
