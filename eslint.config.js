@@ -7,7 +7,8 @@ export default [
   {
     ignores: [
       'node_modules',
-      'dist',
+      '**/node_modules',
+      '**/dist',
       'build',
       'data/temp',
       'coverage',

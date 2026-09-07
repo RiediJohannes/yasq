@@ -1,11 +1,11 @@
 import { signal } from '@preact/signals';
 import { Socket } from 'socket.io-client';
-import { initializeAppFlow, isInitializing } from '../main';
-// import { auth, initializeAppFlow, isInitializing } from '../main'; // Adjust path as necessary
-//
-// // Hold the socket instance globally
+import { discordSdk, initializeAppFlow, isInitializing } from '../main';
+import { withTimeout } from './helper';
+
+// Hold the socket instance globally
 export const socketSignal = signal<Socket | null>(null);
-//
+
 // export const handleManualReconnect = async () => {
 //   if (isInitializing.value) return;
 //
@@ -36,4 +36,18 @@ export const handleManualReconnect = async () => {
 
   console.log('Manual Reconnect Triggered!');
   await initializeAppFlow(true); // Pass true to trigger the diagnostic probes
+};
+
+// A diagnostic function to probe if the IPC bridge to the parent client is actually responding
+export const probeDiscordIPC = async (): Promise<boolean> => {
+  console.log('[DIAGNOSTICS] Probing Discord IPC Bridge...');
+  try {
+    // We use a harmless command to check if the parent window responds
+    await withTimeout(discordSdk.commands.getInstanceConnectedParticipants(), 3000, 'IPC_PROBE_TIMEOUT');
+    console.log('[DIAGNOSTICS] IPC Bridge is ALIVE.');
+    return true;
+  } catch (error: any) {
+    console.warn(`[DIAGNOSTICS] IPC Bridge check failed: ${error.message}`);
+    return false;
+  }
 };

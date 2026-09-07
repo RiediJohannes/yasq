@@ -93,8 +93,9 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
       await backend.setupGame(auth.value.access_token, discordSdk.instanceId, currentSettings);
     } catch (e) {
       console.error('Setup failed:', e);
-      isSubmitting.value = false;
     }
+
+    isSubmitting.value = false;
   };
 
   return (

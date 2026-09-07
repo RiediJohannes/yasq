@@ -39,7 +39,7 @@ export async function assignNewHost(access_token: string, instanceId: string, ne
 }
 
 export async function setupGame(access_token: string, instanceId: string, settings: GameSettings<Joker[]>) {
-  return fetch(`${baseUrl}/api/setup-game`, {
+  const response = await fetch(`${baseUrl}/api/setup-game`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -53,6 +53,12 @@ export async function setupGame(access_token: string, instanceId: string, settin
       },
     }),
   });
+
+  if (!response.ok) {
+    throw new Error(`Status ${response.status}: ${response.statusText}`);
+  }
+
+  return response;
 }
 
 export async function startGame(access_token: string, instanceId: string) {

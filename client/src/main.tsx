@@ -4,7 +4,7 @@ import { DiscordSDK } from '@discord/embedded-app-sdk';
 import { io, Socket } from 'socket.io-client';
 
 import * as backend from './utils/backend';
-import { getUserId } from './utils/helper';
+import { getUserId, withTimeout } from './utils/helper';
 import { GameStatus } from './utils/types';
 import {
   DEFAULT_VOLUME_SLIDER_VAL,
@@ -29,26 +29,24 @@ import { RoundResultsView } from './views/RoundResultsView';
 import { FinalResultsView } from './views/FinalResultsView';
 
 import './style.css';
-import { socketSignal } from './utils/reconnector';
+import { probeDiscordIPC, socketSignal } from './utils/reconnector';
 import { DisconnectBanner } from './components/DisconnectBanner';
 
 const isMockMode = import.meta.env.VITE_MOCK_MODE === 'true';
 
 // 🛠️ HMR SURVIVAL: Prevent Vite from instantiating multiple SDKs and sending duplicate handshakes
-let sdkInstance: any;
+export let discordSdk: DiscordSDK | typeof mockDiscordSdk;
 if (isMockMode) {
-  sdkInstance = mockDiscordSdk;
+  discordSdk = mockDiscordSdk;
 } else if ((window as any).__DISCORD_SDK__) {
   // If Vite HMR re-evaluates this file, use the existing SDK bridge!
   console.log('[DEV] Restoring existing DiscordSDK instance from window...');
-  sdkInstance = (window as any).__DISCORD_SDK__;
+  discordSdk = (window as any).__DISCORD_SDK__;
 } else {
   // First time boot
-  sdkInstance = new DiscordSDK(import.meta.env.VITE_DISCORD_CLIENT_ID);
-  (window as any).__DISCORD_SDK__ = sdkInstance;
+  discordSdk = new DiscordSDK(import.meta.env.VITE_DISCORD_CLIENT_ID);
+  (window as any).__DISCORD_SDK__ = discordSdk;
 }
-
-export const discordSdk = sdkInstance;
 
 export const auth = signal<any | null>(null);
 export const gameState = signal<GameStatus>({
@@ -69,6 +67,7 @@ export const audioPlayer = new Audio();
 audioPlayer.loop = true;
 const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
 const source = audioContext.createMediaElementSource(audioPlayer);
+
 export const gainNode = audioContext.createGain();
 source.connect(gainNode);
 gainNode.connect(audioContext.destination);
@@ -77,21 +76,6 @@ gainNode.gain.value = DEFAULT_VOLUME_SLIDER_VAL * MAX_VOLUME;
 export const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
 export let socket: Socket;
 
-// function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
-//   return new Promise((resolve, reject) => {
-//     const timer = setTimeout(() => reject(new Error(message)), ms);
-//     promise
-//       .then((value) => {
-//         clearTimeout(timer);
-//         resolve(value);
-//       })
-//       .catch((err) => {
-//         clearTimeout(timer);
-//         reject(err);
-//       });
-//   });
-// // }
-//
 export const isInitializing = signal<boolean>(true);
 export const initError = signal<string | null>(null);
 
@@ -117,7 +101,12 @@ const App = () => {
     );
 
   if (gameState.value.hostId === null) {
-    return <div className="centered">Starting Game...</div>;
+    return (
+      <>
+        <DisconnectBanner />
+        <div className="centered">Starting Game...</div>
+      </>
+    );
   }
 
   const isHost = String(getUserId(auth.value)) === String(gameState.value.hostId);
@@ -165,42 +154,6 @@ const renderView = (isHost: boolean) => {
 
 render(<App />, document.getElementById('app')!);
 
-// ==========================================
-// 🛠️ DIAGNOSTIC HARNESS & INIT FLOW
-// ==========================================
-
-// export const isInitializing = signal<boolean>(true);
-// export const initError = signal<string | null>(null);
-
-function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(message)), ms);
-    promise
-      .then(value => {
-        clearTimeout(timer);
-        resolve(value);
-      })
-      .catch(err => {
-        clearTimeout(timer);
-        reject(err);
-      });
-  });
-}
-
-// A diagnostic function to probe if the IPC bridge to the parent client is actually responding
-const probeDiscordIPC = async (): Promise<boolean> => {
-  console.log('[DIAGNOSTICS] Probing Discord IPC Bridge...');
-  try {
-    // We use a harmless command to check if the parent window responds
-    await withTimeout(discordSdk.commands.getInstanceConnectedParticipants(), 3000, 'IPC_PROBE_TIMEOUT');
-    console.log('[DIAGNOSTICS] IPC Bridge is ALIVE.');
-    return true;
-  } catch (error: any) {
-    console.warn(`[DIAGNOSTICS] IPC Bridge check failed: ${error.message}`);
-    return false;
-  }
-};
-
 export const initializeAppFlow = async (isReconnect = false) => {
   isInitializing.value = true;
   initError.value = null;
@@ -220,7 +173,7 @@ export const initializeAppFlow = async (isReconnect = false) => {
     if (cachedAuth) {
       console.log('[FLOW] Using cached auth payload from window/session. Bypassing SDK Auth.');
 
-      // Restore the full object so getUserId() can find the user's ID
+      // Restore the full auth object
       auth.value = cachedAuth;
     } else {
       console.log('[FLOW] No token found in memory. Starting full Discord SDK handshake...');
@@ -236,7 +189,7 @@ export const initializeAppFlow = async (isReconnect = false) => {
           scope: ['identify', 'guilds', 'applications.commands'],
         }),
         10000,
-        'Authorize timeout'
+        'Authorize timed out'
       );
 
       const { access_token } = await backend.getToken(code);
@@ -245,11 +198,11 @@ export const initializeAppFlow = async (isReconnect = false) => {
       const authResult = await withTimeout<any>(
         discordSdk.commands.authenticate({ access_token }),
         10000,
-        'Authenticate timeout'
+        'Authenticate timed out'
       );
 
       // 🛠️ HMR SURVIVAL: Save the entire payload (JSON for storage, object for memory)
-      sessionStorage.setItem('discord_auth_payload', JSON.stringify(authResult));
+      // sessionStorage.setItem('discord_auth_payload', JSON.stringify(authResult));
       (window as any).__DISCORD_AUTH__ = authResult;
 
       auth.value = authResult;
