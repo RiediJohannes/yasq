@@ -5,6 +5,19 @@ import { withTimeout } from './helper';
 
 // Hold the socket instance globally
 export const socketSignal = signal<Socket | null>(null);
+export const socketConnected = signal<boolean>(false);
+
+export const trackSocketConnection = (socket: Socket) => {
+  socketConnected.value = socket.connected;
+
+  socket.on('connect', () => (socketConnected.value = true));
+  socket.on('disconnect', () => (socketConnected.value = false));
+  socket.on('connect_error', () => (socketConnected.value = false));
+
+  socket.io.on('reconnect', _attempt => (socketConnected.value = true));
+  socket.io.on('reconnect_attempt', _attempt => (socketConnected.value = false));
+  socket.io.on('reconnect_failed', () => (socketConnected.value = false));
+};
 
 // export const handleManualReconnect = async () => {
 //   if (isInitializing.value) return;

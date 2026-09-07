@@ -182,7 +182,13 @@ export function setupServer() {
   const app = express();
 
   const httpServer = createServer(app);
-  const server = new Server(httpServer, { cors: { origin: '*' } });
+  const server = new Server(httpServer, {
+    pingInterval: 4000,
+    pingTimeout: 4000,
+    cors: {
+      origin: '*',
+    },
+  });
 
   server.use(async (socket, next) => {
     const token = socket.handshake.auth.token;
@@ -237,7 +243,7 @@ export function setupServer() {
       const game = instances[instanceId];
       if (!game) return;
 
-      logger.debug(instanceId, `Player ${userId} socket disconnected. Starting 5s grace period.`, LogCategory.GENERAL);
+      logger.debug(instanceId, `Player ${userId} socket disconnected. Starting grace period.`, LogCategory.GENERAL);
 
       // NOTE: DO NOT call invalidateToken here! Network drops are not explicit logouts.
 

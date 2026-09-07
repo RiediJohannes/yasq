@@ -29,7 +29,7 @@ import { RoundResultsView } from './views/RoundResultsView';
 import { FinalResultsView } from './views/FinalResultsView';
 
 import './style.css';
-import { probeDiscordIPC, socketSignal } from './utils/reconnector';
+import { probeDiscordIPC, socketConnected, socketSignal, trackSocketConnection } from './utils/reconnector';
 import { DisconnectBanner } from './components/DisconnectBanner';
 
 const isMockMode = import.meta.env.VITE_MOCK_MODE === 'true';
@@ -221,11 +221,20 @@ export const initializeAppFlow = async (isReconnect = false) => {
     }
     const socket = io({ auth: { token: currentToken } });
     socketSignal.value = socket;
+    trackSocketConnection(socketSignal.value);
 
     socket.on('connect', () => {
       console.log('[FLOW] Socket connected! Emitting WS_JOIN_INSTANCE_EVENT');
       socket.emit(WS_JOIN_INSTANCE_EVENT, { instanceId: discordSdk.instanceId });
     });
+    socket.io.on('reconnect', attempt => {
+      console.log(`[FLOW] Socket reconnected successfully on attempt ${attempt}...`);
+      socket.emit(WS_JOIN_INSTANCE_EVENT, { instanceId: discordSdk.instanceId });
+    });
+    socket.on('disconnect', reason => {
+      console.warn(`[DIAGNOSTICS] Socket disconnected. Reason: ${reason}`);
+    });
+
     socket.on(WS_GAME_STATUS_UPDATE_EVENT, updatedState => {
       console.log('[FLOW] Received WS_GAME_STATUS_UPDATE_EVENT from backend.');
       gameState.value = updatedState;
@@ -236,9 +245,18 @@ export const initializeAppFlow = async (isReconnect = false) => {
       }
     });
 
-    socket.on('disconnect', reason => {
-      console.warn(`[DIAGNOSTICS] Socket disconnected. Reason: ${reason}`);
+    window.addEventListener('offline', () => {
+      console.warn('[NETWORK] Browser went offline.');
+      socketConnected.value = false;
     });
+    window.addEventListener('online', () => {
+      console.log('[NETWORK] Browser back online. Triggering reconnect...');
+      // Trigger manual reconnect if socket hasn't reconnected automatically
+      if (socketSignal.value && !socketSignal.value.connected) {
+        socketSignal.value.connect();
+      }
+    });
+
     // STEP 3: PARTICIPANT SYNC
     if (isIpcAlive) {
       console.log('[FLOW] Syncing participants via Discord SDK...');
