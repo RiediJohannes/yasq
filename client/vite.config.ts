@@ -10,6 +10,15 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [preact()],
+    build: {
+      rolldownOptions: {
+        output: {
+          entryFileNames: `assets/[name].js`,
+          chunkFileNames: `assets/[name].js`,
+          assetFileNames: `assets/[name].[ext]`,
+        },
+      },
+    },
     envDir: '../',
     define: {
       'import.meta.env.VERSION': JSON.stringify(pkg.version),

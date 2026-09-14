@@ -1,7 +1,7 @@
 import { Locator, Page } from '@playwright/test';
 import { BasePage } from './BasePage';
 
-export class ResultsPage extends BasePage {
+export class RoundResultsPage extends BasePage {
   readonly playerResults: Locator;
   readonly resultsContainer: Locator;
   readonly correctPlayersContainer: Locator;

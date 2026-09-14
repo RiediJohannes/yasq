@@ -4,8 +4,6 @@ import { useContext } from 'preact/hooks';
 
 import { GameStatus } from './utils/types';
 import { getUserId } from './utils/helper';
-import { showKeyboardHints } from './utils/showKeyboardHints';
-import { themePreference, ThemePreference } from './utils/switchTheme';
 import {
   AbstractDiscordSdk,
   authenticateWithDiscord,
@@ -17,9 +15,10 @@ import {
 import { useKeyboardShortcut } from './hooks/useKeyboardShortcut';
 import { DEFAULT_VOLUME_SLIDER_VAL, GameSettings, GameState, MAX_VOLUME, Participant } from '@yasq/shared';
 
-import { GameHeader, isLocalSettingsOpen } from './components/GameHeader';
+import { GameHeader, isHowToPlayOpen, isLocalSettingsOpen } from './components/GameHeader';
+import { HowToPlay } from './components/HowToPlay';
+import { LocalSettings } from './components/LocalSettings';
 import { Modal } from './components/Modal';
-import { RadioGroup } from './components/RadioGroup';
 import { Sidebar } from './components/Sidebar';
 import { LoadingState } from './components/LoadingSpinner';
 
@@ -109,6 +108,7 @@ const App = () => {
       <div className="container">
         <div className="game-column">
           <GameHeader />
+
           <main
             className="game-area"
             key={`view-${isHost}-${gameState.value.state}`}
@@ -116,42 +116,23 @@ const App = () => {
           >
             {renderView(isHost)}
           </main>
+
           <Modal
-            isOpen={isLocalSettingsOpen.value}
-            onClose={() => (isLocalSettingsOpen.value = false)}
+            id="local-settings-modal"
+            isOpen={isLocalSettingsOpen}
             title="Local Settings"
             width="400px"
           >
-            <div className="local-settings">
-              <div className="setting-item">
-                <span>Colour Scheme</span>
-                <RadioGroup<ThemePreference>
-                  groupId="theme-group"
-                  name="theme"
-                  options={[
-                    { label: 'Auto', value: 'auto' },
-                    { label: 'Dark', value: 'dark' },
-                    { label: 'Light', value: 'light' },
-                  ]}
-                  value={themePreference.value}
-                  onChange={val => (themePreference.value = val)}
-                />
-              </div>
+            <LocalSettings />
+          </Modal>
 
-              <div className="setting-item shortcut-badge-settings">
-                <span>Keyboard Hints</span>
-                <RadioGroup<boolean>
-                  groupId="keyboard-hints-group"
-                  name="keyboard-hints"
-                  options={[
-                    { label: 'Show', value: true },
-                    { label: 'Hide', value: false },
-                  ]}
-                  value={showKeyboardHints.value}
-                  onChange={val => (showKeyboardHints.value = val)}
-                />
-              </div>
-            </div>
+          <Modal
+            id="how-to-play-modal"
+            isOpen={isHowToPlayOpen}
+            title="How to Play"
+            width="1000px"
+          >
+            <HowToPlay isHost={isHost} />
           </Modal>
         </div>
         <Sidebar />

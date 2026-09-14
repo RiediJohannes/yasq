@@ -11,12 +11,12 @@ test.use({
 });
 
 test.describe('Player UI', () => {
-  test('should display final leaderboard with correct scores and round history', async ({ gameFinishedPage }) => {
+  test('should display final leaderboard with correct scores and round history', async ({ finalResultsPage }) => {
     // Verify total count
-    await expect(gameFinishedPage.playerCards).toHaveCount(3);
+    await expect(finalResultsPage.playerCards).toHaveCount(3);
 
     // Check the Last Entry (Rank #3)
-    const thirdPlace = gameFinishedPage.getPlayerCard(2);
+    const thirdPlace = finalResultsPage.getPlayerCard(2);
     await expect(thirdPlace.card).not.toHaveClass(/winner/);
     await expect(thirdPlace.rank).toHaveText('#3');
     await expect(thirdPlace.name).toContainText('MockPlayer3');
@@ -25,14 +25,14 @@ test.describe('Player UI', () => {
     await expect(thirdPlace.bubbles.first()).toContainText('0');
 
     // Check the Middle Entry (Rank #2)
-    const secondPlace = gameFinishedPage.getPlayerCard(1);
+    const secondPlace = finalResultsPage.getPlayerCard(1);
     await expect(secondPlace.card).not.toHaveClass(/winner/);
     await expect(secondPlace.rank).toHaveText('#2');
     await expect(secondPlace.name).toContainText('MockPlayer2');
     await expect(secondPlace.score).toContainText('578 pts');
 
     // Check the Winner (Rank #1)
-    const firstPlace = gameFinishedPage.getPlayerCard(0);
+    const firstPlace = finalResultsPage.getPlayerCard(0);
     await expect(firstPlace.card).toHaveClass(/winner/);
     await expect(firstPlace.rank).toHaveText('#1');
     await expect(firstPlace.name).toContainText('MockPlayer1');
@@ -45,40 +45,40 @@ test.describe('Player UI', () => {
     await expect(firstPlace.bubbles.nth(2)).not.toHaveClass(/first/);
 
     // Verify UI visibility
-    await expect(gameFinishedPage.readyBtn).toBeVisible();
-    await expect(gameFinishedPage.restartBtn).toBeHidden();
+    await expect(finalResultsPage.readyBtn).toBeVisible();
+    await expect(finalResultsPage.restartBtn).toBeHidden();
   });
 
-  test('should properly display game stats summary and values', async ({ gameFinishedPage }) => {
-    await expect(gameFinishedPage.gameStats).toBeVisible();
-    await expect(gameFinishedPage.statItems).toHaveCount(5);
+  test('should properly display game stats summary and values', async ({ finalResultsPage }) => {
+    await expect(finalResultsPage.gameStats).toBeVisible();
+    await expect(finalResultsPage.statItems).toHaveCount(5);
 
     // 1. Duration
-    const durationItem = gameFinishedPage.getStatItem(0);
+    const durationItem = finalResultsPage.getStatItem(0);
     await expect(durationItem.label).toHaveText('Duration');
     await expect(durationItem.value).toHaveText('5m 0s');
 
     // 2. Best Round
-    const bestRoundItem = gameFinishedPage.getStatItem(1);
+    const bestRoundItem = finalResultsPage.getStatItem(1);
     await expect(bestRoundItem.label).toHaveText('Best Round');
     await expect(bestRoundItem.value).toHaveText('Round 3');
     await expect(bestRoundItem.subValue).not.toBeEmpty();
 
     // 3. Least Round
-    const leastRoundItem = gameFinishedPage.getStatItem(2);
+    const leastRoundItem = finalResultsPage.getStatItem(2);
     await expect(leastRoundItem.label).toHaveText('Least Round');
     await expect(leastRoundItem.value).toHaveText('Round 1');
     await expect(leastRoundItem.subValue).not.toBeEmpty();
 
     // 4. Highest Streak
-    const streakItem = gameFinishedPage.getStatItem(3);
+    const streakItem = finalResultsPage.getStatItem(3);
     await expect(streakItem.label).toHaveText('Highest Streak');
     await expect(streakItem.value).toContainText('MockPlayer1');
     await expect(streakItem.subValue).toContainText('3');
     await expect(streakItem.avatar).toBeVisible();
 
     // 5. Fastest Correct Guess
-    const fastestItem = gameFinishedPage.getStatItem(4);
+    const fastestItem = finalResultsPage.getStatItem(4);
     await expect(fastestItem.label).toHaveText('Fastest Correct Guess');
     await expect(fastestItem.value).toContainText('MockPlayer2');
     await expect(fastestItem.subValue).toHaveText('0.5s (Round 3)');
@@ -91,10 +91,10 @@ test.describe('Player UI', () => {
   });
 
   test('should not have any automatically detectable accessibility issues', async ({
-    gameFinishedPage,
+    finalResultsPage,
     page,
   }, testInfo) => {
-    await gameFinishedPage.waitForLoaded();
+    await finalResultsPage.waitForLoaded();
 
     const accessibilityScanResults = await new AxeBuilder({ page })
       .disableRules(['color-contrast', 'page-has-heading-one'])

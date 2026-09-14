@@ -3,7 +3,7 @@ import { useEffect } from 'preact/hooks';
 
 import * as backend from '../utils/backend';
 import { discordSdk, participants, useAuth } from '../main';
-import { findUser } from '../utils/helper';
+import { capitalize, findUser } from '../utils/helper';
 import { ALL_JOKER_ICONS } from '../components/Icons';
 import { ReviewData } from '../utils/types';
 import { getAvatarUrl, getDisplayName } from '@yasq/shared';
@@ -83,7 +83,8 @@ export const HostReviewView = ({ isHost }: { isHost: boolean }) => {
                     const JokerIcon = ALL_JOKER_ICONS.find(icon => icon.jokerType === guess.joker);
                     return JokerIcon ? (
                       <TooltipDiv
-                        text={JokerIcon?.description}
+                        text={capitalize(JokerIcon?.jokerType)}
+                        id={guess.joker.toLowerCase()}
                         className="joker-indicator"
                         role="img"
                       >

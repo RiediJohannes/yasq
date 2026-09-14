@@ -1,9 +1,10 @@
 import { Locator, Page } from '@playwright/test';
 import { BasePage } from './BasePage';
+import { Joker } from '@yasq/shared';
 
 type ResultType = 'correct' | 'partial' | 'wrong';
 
-export class RoundCompletedPage extends BasePage {
+export class HostReviewPage extends BasePage {
   readonly guessList: Locator;
   readonly resultsTitle: Locator;
   readonly resultsTrackName: Locator;
@@ -33,9 +34,9 @@ export class RoundCompletedPage extends BasePage {
     await this.page.locator(`label[for="${result}-${playerId}"]`).click();
   }
 
-  getJokerIndicator(username: string, tooltip?: string): Locator {
-    if (tooltip) {
-      return this.getGuessItem(username).locator(`.joker-indicator[data-tooltip="${tooltip}"]`);
+  getJokerIndicator(username: string, jokerType?: Joker): Locator {
+    if (jokerType) {
+      return this.getGuessItem(username).locator(`.joker-indicator#${jokerType.toLowerCase()}`);
     }
     return this.getGuessItem(username).locator('.joker-indicator');
   }

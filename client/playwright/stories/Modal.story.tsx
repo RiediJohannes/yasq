@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
 import { Modal } from '../../src/components/Modal';
+import { useSignal } from '@preact/signals';
 
 interface BasicModalProps {
   startOpen: boolean;
@@ -8,11 +9,11 @@ interface BasicModalProps {
 }
 
 const Basic = ({ startOpen, hasBigCloseButton, title = 'Custom Title' }: BasicModalProps) => {
-  const [isOpen, setIsOpen] = useState(startOpen);
+  const isOpen = useSignal<boolean>(startOpen);
   const [closeCount, setCloseCount] = useState<number>(0);
 
   const handleClose = () => {
-    setIsOpen(false);
+    isOpen.value = false;
     setCloseCount(current => current + 1);
   };
 
@@ -23,7 +24,7 @@ const Basic = ({ startOpen, hasBigCloseButton, title = 'Custom Title' }: BasicMo
     >
       <button
         id="open-btn"
-        onClick={() => setIsOpen(true)}
+        onClick={() => (isOpen.value = true)}
       >
         Open Modal
       </button>

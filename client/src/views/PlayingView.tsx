@@ -394,11 +394,7 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
                     const hasUsedJokerThisRound = activeHint.value !== null;
 
                     // Format name: MULTIPLE_CHOICE -> Multiple Choice
-                    const jokerName = Icon.jokerType
-                      .toLowerCase()
-                      .split('_')
-                      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                      .join(' ');
+                    const jokerName = capitalize(Icon.jokerType);
 
                     // Construct the tooltip text
                     const tooltipText = isAvailable ? jokerName : `${jokerName} (Already Used)`;

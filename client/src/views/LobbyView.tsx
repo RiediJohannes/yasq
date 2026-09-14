@@ -54,9 +54,6 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
   const openTimeBonusDialog = () => {
     showTimeBonusDialog.value = true;
   };
-  const closeTimeBonusDialog = () => {
-    showTimeBonusDialog.value = false;
-  };
 
   return (
     <div
@@ -130,8 +127,7 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
             <Modal
               title={`Time Bonus Calculation - ${capitalize(currentTimeBonusName)} Decay`}
               width="650px"
-              isOpen={showTimeBonusDialog.value}
-              onClose={closeTimeBonusDialog}
+              isOpen={showTimeBonusDialog}
             >
               <p>
                 The time bonus you earn always depends on your <span className="highlight">answer speed</span> in
@@ -180,14 +176,11 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
               ) : achievementBonuses.mode === 'random' ? (
                 <span className="achievement-text-name">Random ({achievementBonuses.randomCount})</span>
               ) : (
-                achievementBonuses.enabledTypes.map((achievementType: AchievementBonusType) => (
-                  <span
-                    key={achievementType}
-                    className="achievement-text-name"
-                  >
-                    {capitalize(achievementType)}
-                  </span>
-                ))
+                <ul className="achievement-list">
+                  {achievementBonuses.enabledTypes.map((achievementType: AchievementBonusType) => (
+                    <li key={achievementType}>{capitalize(achievementType)}</li>
+                  ))}
+                </ul>
               )}
             </div>
           </dd>

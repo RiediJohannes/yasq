@@ -1,7 +1,7 @@
 import { Locator, Page } from '@playwright/test';
 import { BasePage } from './BasePage';
 
-export class GameFinishedPage extends BasePage {
+export class FinalResultsPage extends BasePage {
   readonly playerCards: Locator;
   readonly readyBtn: Locator;
   readonly restartBtn: Locator;

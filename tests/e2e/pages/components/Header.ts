@@ -6,6 +6,6 @@ export class Header extends BasePage {
 
   constructor(page: Page) {
     super(page);
-    this.settingsButton = page.locator('.local-settings-btn');
+    this.settingsButton = page.locator('#local-settings-btn');
   }
 }

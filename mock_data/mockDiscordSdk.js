@@ -1,6 +1,6 @@
 const urlParams = new window.URLSearchParams(window.location.search);
-const urlUserId = urlParams.get('userId');
-const urlUserName = urlParams.get('userName');
+const urlUserId = urlParams.get('user_id');
+const urlUserName = urlParams.get('user_name');
 
 const activeUserId = window.__MOCK_USER_ID__ || urlUserId || '0';
 const activeUserName = window.__MOCK_USER_NAME__ || urlUserName || `MockPlayer${activeUserId}`;

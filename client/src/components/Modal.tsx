@@ -3,9 +3,11 @@ import { useEffect, useRef } from 'preact/hooks';
 import { CrossIcon } from './Icons';
 import { CommonCSSProperties } from '../utils/types';
 import { isTouchDevice } from '../utils/helper';
+import { Signal } from '@preact/signals';
 
 export interface BaseModalProps {
-  isOpen: boolean;
+  id?: string;
+  isOpen: Signal<boolean>;
   onClose?: () => void;
   title?: string;
   width?: string;
@@ -18,11 +20,12 @@ export type ModalProps = BaseModalProps & CommonCSSProperties;
 
 /**
  * Generic modal (dialog window) that accepts arbitrary HTML content.
- * The modal appears in front of the page content whenever isOpen evaluates to true.
+ * The modal appears in front of the page content whenever the `isOpen` signal evaluates to true.
  */
 export const Modal = ({
+  id,
   isOpen,
-  onClose,
+  onClose = () => (isOpen.value = false),
   title,
   width,
   height,
@@ -33,31 +36,33 @@ export const Modal = ({
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
 
+  const showModal = isOpen.value;
+
   const onCloseRef = useRef(onClose);
   useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
 
-  // Update modal state based on the isOpen condition
+  // Update modal state based on the showModal condition
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
 
-    if (isOpen && !dialog.open) {
+    if (showModal && !dialog.open) {
       dialog.showModal();
       dialog.focus();
-    } else if (!isOpen && dialog.open) {
+    } else if (!showModal && dialog.open) {
       dialog.close();
     }
-  }, [isOpen]);
+  }, [showModal]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!showModal) return;
 
     document.body.style.overflow = 'hidden'; // prevent scrolling in the background
 
     return () => (document.body.style.overflow = ''); // always restore scrolling on clean-up
-  }, [isOpen]);
+  }, [showModal]);
 
   // Attach onClose event handler on load
   useEffect(() => {
@@ -94,6 +99,7 @@ export const Modal = ({
 
   return (
     <dialog
+      id={id}
       ref={dialogRef}
       className="modal-dialog"
       style={modalStyle}

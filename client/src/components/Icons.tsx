@@ -51,7 +51,7 @@ const TriviaIcon = ({ size = 24, className = '' }) => (
   </svg>
 );
 TriviaIcon.jokerType = Joker.TRIVIA;
-TriviaIcon.description = 'Reveals metadata about the game';
+TriviaIcon.description = 'Reveals metadata about the game, e.g. platform and release year';
 
 const MultipleChoiceIcon = ({ size = 24, className = '' }) => (
   <svg

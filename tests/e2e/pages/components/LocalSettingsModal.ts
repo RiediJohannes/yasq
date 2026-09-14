@@ -11,7 +11,7 @@ export class LocalSettingsModal extends BasePage {
   constructor(page: Page) {
     super(page);
 
-    this.modal = page.locator('dialog');
+    this.modal = page.locator('#local-settings-modal');
     this.closeBtn = this.modal.locator('.modal-close-cross');
 
     this.themeGroup = page.locator('#theme-group');

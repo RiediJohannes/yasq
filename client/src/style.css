@@ -229,6 +229,16 @@ img {
   letter-spacing: +2%;
 }
 
+.highlight.correct {
+  color: var(--green);
+}
+.highlight.partial {
+  color: var(--yellow);
+}
+.highlight.wrong {
+  color: var(--red);
+}
+
 @media (prefers-color-scheme: dark) {
   .highlight {
     color: color-mix(in srgb, var(--blurple), white 10%);
@@ -463,20 +473,24 @@ select:disabled option {
   background-color: var(--bg-input);
   aspect-ratio: 1 / 1;
   height: 35px;
-  cursor: help;
   outline: none;
 }
 
-.joker-indicator:hover,
-.joker-indicator:focus-visible {
+.joker-indicator:not(.joker-list-item *):hover,
+.joker-indicator:not(.joker-list-item *):focus-visible {
   background-color: var(--bg-sidebar-card);
   border: 1pt solid var(--blurple);
   box-shadow: 0 0 12px rgba(88, 101, 242, 0.3);
+  cursor: help;
 }
 
 .joker-text-name {
   color: var(--text-main);
   font-size: 1rem;
+}
+
+.achievement-list {
+  padding-inline-start: var(--space-large);
 }
 
 .card-container h2,
@@ -553,9 +567,14 @@ select:disabled option {
   transform: translateX(calc(-1 * var(--space-large)));
 }
 
-.local-settings-btn {
+.header-buttons {
+  display: flex;
+  gap: var(--space-tiny);
   position: absolute;
   right: 0;
+}
+
+.header-btn {
   width: 36px;
   height: 36px;
   padding: 0;
@@ -568,6 +587,49 @@ select:disabled option {
   display: flex;
   flex-flow: column;
   gap: var(--space-large);
+}
+
+.instructions-tab-content {
+  display: flex;
+  flex-flow: column;
+  margin-top: var(--space-large);
+  width: 100%;
+  gap: var(--space-large);
+}
+
+.instruction-step {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-large);
+  align-items: start;
+}
+
+.instruction-step h3 {
+  margin-top: 0;
+}
+
+.instruction-step img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: var(--border-radius-medium);
+}
+
+.instruction-step ul {
+  display: flex;
+  flex-flow: column;
+  gap: var(--space-large);
+}
+
+.instruction-step li div {
+  display: flex;
+  flex-direction: column;
+}
+
+.joker-list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
 }
 
 .game-area {
@@ -2846,6 +2908,10 @@ input[value='1']:checked + .btn-radio.correct {
 
   .round-indicator {
     transform: none;
+  }
+
+  .instruction-step {
+    grid-template-columns: 1fr;
   }
 
   .game-area {

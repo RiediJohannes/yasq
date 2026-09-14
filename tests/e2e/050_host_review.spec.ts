@@ -1,6 +1,7 @@
 import { expect, test } from './test_setup.js';
 import AxeBuilder from '@axe-core/playwright';
 import sessionData from '../../mock_data/fixtures/host_review.json';
+import { Joker } from '@yasq/shared';
 
 test.use({
   sessionConfig: {
@@ -11,56 +12,55 @@ test.use({
 });
 
 test.describe('Host UI', () => {
-  test('should allow host to correct guesses and submit', async ({ roundCompletedPage, session }) => {
+  test('should allow host to correct guesses and submit', async ({ hostReviewPage, session }) => {
     const players = session.players;
 
     // Verify host view elements
-    await expect(roundCompletedPage.guessList).toBeVisible();
-    await expect(roundCompletedPage.resultsTitle).toContainText('Results');
-    await expect(roundCompletedPage.resultsTrackName).toHaveText(/Game A/i);
+    await expect(hostReviewPage.guessList).toBeVisible();
+    await expect(hostReviewPage.resultsTitle).toContainText('Results');
+    await expect(hostReviewPage.resultsTrackName).toHaveText(/Game A/i);
 
     // Verify guesses correctly displayed
-    await expect(roundCompletedPage.getGuessItem(players[1].username)).toContainText('Game A');
-    await expect(roundCompletedPage.getGuessItem(players[2].username)).toContainText('Game A2');
+    await expect(hostReviewPage.getGuessItem(players[1].username)).toContainText('Game A');
+    await expect(hostReviewPage.getGuessItem(players[2].username)).toContainText('Game A2');
 
     // Verify "Wrong" selected by default
-    await expect(roundCompletedPage.getCorrectionRadio(players[1].id, 'wrong')).toBeChecked();
-    await expect(roundCompletedPage.getCorrectionRadio(players[2].id, 'wrong')).toBeChecked();
+    await expect(hostReviewPage.getCorrectionRadio(players[1].id, 'wrong')).toBeChecked();
+    await expect(hostReviewPage.getCorrectionRadio(players[2].id, 'wrong')).toBeChecked();
 
     // Verify text that Player 4 has not submitted a guess is displayed correctly
-    await expect(roundCompletedPage.timedOutSection).toContainText(
+    await expect(hostReviewPage.timedOutSection).toContainText(
       new RegExp(`No Guess submitted:.*${players[3].username}`, 'i')
     );
 
     // Select "Correct" for Player 2
-    await roundCompletedPage.setGuessResult(players[1].id, 'correct');
-    await expect(roundCompletedPage.getCorrectionRadio(players[1].id, 'wrong')).not.toBeChecked();
+    await hostReviewPage.setGuessResult(players[1].id, 'correct');
+    await expect(hostReviewPage.getCorrectionRadio(players[1].id, 'wrong')).not.toBeChecked();
 
     // Select "Partially Correct" for Player 3
-    await roundCompletedPage.setGuessResult(players[2].id, 'partial');
-    await expect(roundCompletedPage.getCorrectionRadio(players[2].id, 'wrong')).not.toBeChecked();
+    await hostReviewPage.setGuessResult(players[2].id, 'partial');
+    await expect(hostReviewPage.getCorrectionRadio(players[2].id, 'wrong')).not.toBeChecked();
 
     // Verify submit button behavior
-    await expect(roundCompletedPage.submitReviewedBtn).toBeEnabled();
-    await roundCompletedPage.submitReviewedBtn.click();
-    await expect(roundCompletedPage.submitReviewedBtn).toBeDisabled();
+    await expect(hostReviewPage.submitReviewedBtn).toBeEnabled();
+    await hostReviewPage.submitReviewedBtn.click();
+    await expect(hostReviewPage.submitReviewedBtn).toBeDisabled();
   });
 
-  test('should display joker icon if used by player', async ({ roundCompletedPage, session }) => {
+  test('should display joker icon if used by player', async ({ hostReviewPage, session }) => {
     const players = session.players;
-    const triviaDescription = 'Reveals metadata about the game';
 
     // Verify player 1 has joker icon with correct tooltip
-    const joker = roundCompletedPage.getJokerIndicator(players[1].username, triviaDescription);
+    const joker = hostReviewPage.getJokerIndicator(players[1].username, Joker.TRIVIA);
     await expect(joker).toBeVisible();
     await expect(joker.locator('svg')).toBeVisible();
 
     // Verify player 2 has NO joker icon
-    await expect(roundCompletedPage.getJokerIndicator(players[2].username)).toHaveCount(0);
+    await expect(hostReviewPage.getJokerIndicator(players[2].username)).toHaveCount(0);
   });
 
   test('should update streak badges correctly when submitting corrections', async ({
-    roundCompletedPage,
+    hostReviewPage,
     sidebar,
     session,
   }) => {
@@ -72,9 +72,9 @@ test.describe('Host UI', () => {
     await expect(sidebar.getBadge(players[3].username, 'streak')).toContainText('🔥 1');
 
     // Correct results
-    await roundCompletedPage.setGuessResult(players[1].id, 'correct');
-    await roundCompletedPage.setGuessResult(players[2].id, 'partial');
-    await roundCompletedPage.submitReviewedBtn.click();
+    await hostReviewPage.setGuessResult(players[1].id, 'correct');
+    await hostReviewPage.setGuessResult(players[2].id, 'partial');
+    await hostReviewPage.submitReviewedBtn.click();
 
     // Verify updated streak badges
     await expect(sidebar.getBadge(players[1].username, 'streak')).toContainText('🔥 4'); // increase streak by 1
@@ -83,10 +83,10 @@ test.describe('Host UI', () => {
   });
 
   test('should not have any automatically detectable accessibility issues', async ({
-    roundCompletedPage,
+    hostReviewPage,
     page,
   }, testInfo) => {
-    await roundCompletedPage.waitForLoaded();
+    await hostReviewPage.waitForLoaded();
 
     const accessibilityScanResults = await new AxeBuilder({ page })
       .disableRules(['color-contrast', 'page-has-heading-one'])

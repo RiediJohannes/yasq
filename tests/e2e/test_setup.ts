@@ -5,9 +5,9 @@ import { SetupPage } from './pages/SetupPage';
 import { LobbyPage } from './pages/LobbyPage';
 import { TrackSelectionPage } from './pages/TrackSelectionPage';
 import { PlayingPage } from './pages/PlayingPage';
-import { RoundCompletedPage } from './pages/RoundCompletedPage';
-import { ResultsPage } from './pages/ResultsPage';
-import { GameFinishedPage } from './pages/GameFinishedPage';
+import { HostReviewPage } from './pages/HostReviewPage';
+import { RoundResultsPage } from './pages/RoundResultsPage';
+import { FinalResultsPage } from './pages/FinalResultsPage';
 import { Sidebar } from './pages/components/Sidebar';
 import { Header } from './pages/components/Header';
 import { LocalSettingsModal } from './pages/components/LocalSettingsModal';
@@ -26,9 +26,9 @@ type GameFixtures = {
   lobbyPage: LobbyPage;
   trackSelectionPage: TrackSelectionPage;
   playingPage: PlayingPage;
-  roundCompletedPage: RoundCompletedPage;
-  resultsPage: ResultsPage;
-  gameFinishedPage: GameFinishedPage;
+  hostReviewPage: HostReviewPage;
+  roundResultsPage: RoundResultsPage;
+  finalResultsPage: FinalResultsPage;
   sidebar: Sidebar;
   header: Header;
   localSettingsModal: LocalSettingsModal;
@@ -70,9 +70,9 @@ export const test = base.extend<GameOptions & GameFixtures>({
   lobbyPage: async ({ page }, use) => use(new LobbyPage(page)),
   trackSelectionPage: async ({ page }, use) => use(new TrackSelectionPage(page)),
   playingPage: async ({ page }, use) => use(new PlayingPage(page)),
-  roundCompletedPage: async ({ page }, use) => use(new RoundCompletedPage(page)),
-  resultsPage: async ({ page }, use) => use(new ResultsPage(page)),
-  gameFinishedPage: async ({ page }, use) => use(new GameFinishedPage(page)),
+  hostReviewPage: async ({ page }, use) => use(new HostReviewPage(page)),
+  roundResultsPage: async ({ page }, use) => use(new RoundResultsPage(page)),
+  finalResultsPage: async ({ page }, use) => use(new FinalResultsPage(page)),
   sidebar: async ({ page }, use) => use(new Sidebar(page)),
   header: async ({ page }, use) => use(new Header(page)),
   localSettingsModal: async ({ page }, use) => use(new LocalSettingsModal(page)),
