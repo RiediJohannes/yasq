@@ -84,9 +84,9 @@ export function getGameStatusPayload(game: GameInstance) {
   };
 }
 
-export function broadcastGameStatus(server: Server, instanceId: string, game: GameInstance) {
+export function broadcastGameStatus(server: Server, game: GameInstance) {
   const emitUpdate = () => {
-    server.to(instanceId).emit(WS_GAME_STATUS_UPDATE_EVENT, getGameStatusPayload(game));
+    server.to(game.instanceId).emit(WS_GAME_STATUS_UPDATE_EVENT, getGameStatusPayload(game));
   };
 
   if (process.env.UI_TEST_MODE === 'true') {

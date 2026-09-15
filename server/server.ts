@@ -6,10 +6,11 @@ import { fileURLToPath } from 'url';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 
-import { setupRoutes } from './routes/routes.js';
+import { setupCommonRoutes } from './routes/commonRoutes.js';
 import { setMockState, setupMockRoutes } from './routes/mockRoutes.js';
 import { GameInstance } from './src/models/game_instance.js';
 import {
+  broadcastGameStatus,
   getDataSourceDir,
   getFilePath,
   getGameStatusPayload,
@@ -19,11 +20,14 @@ import {
   validateToken,
 } from './src/helper.js';
 import {
+  API_ROOT,
+  HOST_PREFIX,
   type Playlist,
   PLAYLISTS_UPDATED_EVENT,
   SAMPLE_DATA_DIR,
   STATIC_FILES_DIR,
   TEMP_FILES_DIR,
+  TEST_PREFIX,
   type Track,
   TRACKS_UPDATED_EVENT,
   WS_GAME_STATUS_UPDATE_EVENT,
@@ -31,6 +35,7 @@ import {
 } from '@yasq/shared';
 import { LogCategory, logger } from './src/utils/logger.js';
 import { loadPermissions } from './src/access_control.js';
+import { setupHostRoutes } from './routes/hostRoutes.js';
 
 const DISCONNECTION_GRACE_MILLIS: number = 20_000;
 
@@ -141,6 +146,35 @@ function setupFileWatcher(filePath: string, onFileChange: () => void, fileName: 
   });
 }
 
+function loadMockState(instances: Record<string, GameInstance>) {
+  const stateFile = process.env.MOCK_STATE;
+  if (!stateFile) return;
+
+  try {
+    const absolutePath = path.resolve(process.cwd(), stateFile);
+    if (!fs.existsSync(absolutePath)) {
+      console.error(`Mock state file not found at ${absolutePath}`);
+      return;
+    }
+
+    const rawData = fs.readFileSync(absolutePath, 'utf-8');
+    const stateData = JSON.parse(rawData);
+
+    const game = setMockState(stateData);
+
+    userDataCache.clear();
+    for (const user of stateData.userData) {
+      userDataCache.set(user.id, user);
+    }
+
+    instances[game.instanceId] = game;
+
+    console.log(`[MOCK] Pre-loaded game state for instance: ${game.instanceId} from ${stateFile}`);
+  } catch (err) {
+    console.error(`Error loading mock game state:`, err);
+  }
+}
+
 export function setupServer() {
   const instances: Record<string, GameInstance> = {};
 
@@ -192,6 +226,8 @@ export function setupServer() {
     },
   });
 
+  const notifyGameSubscribers = (updatedGame: GameInstance) => broadcastGameStatus(server, updatedGame);
+
   server.use(async (socket, next) => {
     const token = socket.handshake.auth.token;
     if (!token) return next(new Error('Missing token'));
@@ -232,7 +268,9 @@ export function setupServer() {
 
       // If no one has registered for this instance yet, this user is the host
       if (!instances[instanceId]) {
-        instances[instanceId] = new GameInstance(instanceId, userId);
+        const game = new GameInstance(instanceId, userId);
+        game.onUpdate = notifyGameSubscribers;
+        instances[instanceId] = game;
       }
 
       const game = instances[instanceId];
@@ -303,11 +341,14 @@ export function setupServer() {
   app.use(`/${TEMP_FILES_DIR}`, express.static(tempDir));
 
   // Register routes for REST communication between clients and server
-  // Pass getter functions that return cached data
+  // Pass callbacks to retrieve cached data and trigger game update events
   app.use(
-    '/api',
-    setupRoutes(
-      server,
+    `/${API_ROOT}`,
+    setupCommonRoutes(instances, () => cachedTracks)
+  );
+  app.use(
+    `/${API_ROOT}/${HOST_PREFIX}`,
+    setupHostRoutes(
       instances,
       () => cachedTracks,
       () => cachedPlaylists
@@ -322,7 +363,7 @@ export function setupServer() {
   // Only register mock routes when server is started in mock mode
   if (isMockMode()) {
     console.log('[MODE] Server is running in mock mode');
-    app.use('/api/test', setupMockRoutes(server, instances));
+    app.use(`/${API_ROOT}/${TEST_PREFIX}`, setupMockRoutes(instances, notifyGameSubscribers));
   }
 
   loadPermissions(permissionsPath);
@@ -334,33 +375,4 @@ export function setupServer() {
   });
 
   return httpServer;
-}
-
-function loadMockState(instances: Record<string, GameInstance>) {
-  const stateFile = process.env.MOCK_STATE;
-  if (!stateFile) return;
-
-  try {
-    const absolutePath = path.resolve(process.cwd(), stateFile);
-    if (!fs.existsSync(absolutePath)) {
-      console.error(`Mock state file not found at ${absolutePath}`);
-      return;
-    }
-
-    const rawData = fs.readFileSync(absolutePath, 'utf-8');
-    const stateData = JSON.parse(rawData);
-
-    const game = setMockState(stateData);
-
-    userDataCache.clear();
-    for (const user of stateData.userData) {
-      userDataCache.set(user.id, user);
-    }
-
-    instances[game.instanceId] = game;
-
-    console.log(`[MOCK] Pre-loaded game state for instance: ${game.instanceId} from ${stateFile}`);
-  } catch (err) {
-    console.error(`Error loading mock game state:`, err);
-  }
 }
