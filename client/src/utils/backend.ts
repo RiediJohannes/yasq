@@ -1,5 +1,16 @@
-import { BonusType, GameSettings, Joker, Participant, PointsBonus, TimeBonus, TimeBonusSummary } from '@yasq/shared';
+import {
+  API_ROOT,
+  BonusType,
+  GameSettings,
+  HOST_PREFIX,
+  Joker,
+  Participant,
+  PointsBonus,
+  TimeBonus,
+  TimeBonusSummary,
+} from '@yasq/shared';
 import { RoundResult } from './types';
+import { LogLevel } from 'vite';
 
 let baseUrl = '';
 
@@ -7,94 +18,147 @@ export function setBaseUrl(url: string) {
   baseUrl = url;
 }
 
-export async function getToken(code: string) {
-  const response = await fetch(`${baseUrl}/api/token`, {
+interface ApiRequestPayload extends Omit<RequestInit, 'body'> {
+  token?: string;
+  body?: object | undefined;
+}
+
+/**
+ * Simple helper function to reduce boilerplate around sending HTTP API requests by automatically packaging the body
+ * as a JSON payload and adding the respective Authorization header when an auth token is passed.
+ *
+ * The HTTP request is sent to the server at {@link baseUrl} using the {@link API_ROOT} plus the given `path` as the
+ * target endpoint.
+ */
+async function apiFetch(path: string, payload: ApiRequestPayload = {}): Promise<Response> {
+  const { token, body, headers, ...customConfig } = payload;
+
+  const requestHeaders: Record<string, string> = {
+    ...(headers as Record<string, string>),
+  };
+
+  if (token) {
+    requestHeaders['Authorization'] = `Bearer ${token}`;
+  }
+
+  let requestBody: BodyInit | undefined;
+  if (body !== undefined) {
+    requestHeaders['Content-Type'] = 'application/json';
+    requestBody = JSON.stringify(body);
+  }
+
+  const trimmedPath = path.startsWith('/') ? path.slice(1).trim() : path.trim();
+  const url = `${baseUrl}/${API_ROOT}/${trimmedPath}`;
+
+  return fetch(url, {
+    ...customConfig,
+    headers: requestHeaders,
+    body: requestBody,
+  });
+}
+
+export async function requestAuthToken(code: string) {
+  const response = await apiFetch(`/auth/token`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code }),
+    body: { code },
   });
   return response.json();
 }
 
 export async function updateReadyStatus(access_token: string, instanceId: string, isReady: boolean) {
-  return fetch(`${baseUrl}/api/ready`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${access_token}`,
-    },
-    body: JSON.stringify({ instanceId, ready: isReady }),
+  return apiFetch(`/instance/${instanceId}/ready`, {
+    method: 'PATCH',
+    token: access_token,
+    body: { ready: isReady },
   });
 }
 
-export async function assignNewHost(access_token: string, instanceId: string, newHostId: string) {
-  return fetch(`${baseUrl}/api/assign-host`, {
+export async function transferHostRole(access_token: string, instanceId: string, newHostId: string) {
+  return apiFetch(`/${HOST_PREFIX}/instance/${instanceId}/transfer`, {
+    method: 'PUT',
+    token: access_token,
+    body: { newHostId },
+  });
+}
+
+export async function restartGame(access_token: string, instanceId: string) {
+  return apiFetch(`/${HOST_PREFIX}/instance/${instanceId}/new`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${access_token}`,
-    },
-    body: JSON.stringify({ instanceId, newHostId }),
+    token: access_token,
   });
 }
 
 export async function setupGame(access_token: string, instanceId: string, settings: GameSettings<Joker[]>) {
-  return fetch(`${baseUrl}/api/setup-game`, {
+  return apiFetch(`/${HOST_PREFIX}/instance/${instanceId}/setup`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${access_token}`,
-    },
-    body: JSON.stringify({
-      instanceId,
+    token: access_token,
+    body: {
       settings: {
         ...settings,
         enabledJokers: settings.enabledJokers ? [...settings.enabledJokers] : [],
       },
-    }),
+    },
   });
 }
 
 export async function startGame(access_token: string, instanceId: string) {
-  return fetch(`${baseUrl}/api/start-game`, {
+  return apiFetch(`/${HOST_PREFIX}/instance/${instanceId}/start`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${access_token}`,
-    },
-    body: JSON.stringify({ instanceId }),
+    token: access_token,
   });
 }
 
 export async function getTrackList(access_token: string, instanceId: string) {
-  const response = await fetch(`${baseUrl}/api/track-list?instanceId=${instanceId}`, {
-    headers: {
-      Authorization: `Bearer ${access_token}`,
-    },
+  const response = await apiFetch(`/${HOST_PREFIX}/instance/${instanceId}/tracks`, {
+    token: access_token,
   });
   return response.json();
 }
 
 export async function submitGuess(access_token: string, instanceId: string, guess: string) {
-  return fetch(`${baseUrl}/api/submit-guess`, {
+  return apiFetch(`/instance/${instanceId}/guesses`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${access_token}`,
-    },
-    body: JSON.stringify({
-      instanceId,
+    token: access_token,
+    body: {
       guess,
       clientTimestamp: Date.now(),
-    }),
+    },
   });
 }
 
 export async function getGuesses(access_token: string, instanceId: string) {
-  const response = await fetch(`${baseUrl}/api/get-guesses?instanceId=${instanceId}`, {
-    headers: {
-      Authorization: `Bearer ${access_token}`,
-    },
+  const response = await apiFetch(`/${HOST_PREFIX}/instance/${instanceId}/guesses`, {
+    token: access_token,
+  });
+  return response.json();
+}
+
+export async function getAvailableJokers(access_token: string, instanceId: string) {
+  const response = await apiFetch(`/instance/${instanceId}/available-jokers`, {
+    token: access_token,
+  });
+  return response.json();
+}
+
+export async function useJoker(access_token: string, instanceId: string, jokerType: Joker, targetId?: string) {
+  return apiFetch(`/instance/${instanceId}/jokers`, {
+    method: 'PATCH',
+    token: access_token,
+    body: { jokerType, targetId },
+  });
+}
+
+export async function playTrack(access_token: string, fileName: string, instanceId: string) {
+  return apiFetch(`/${HOST_PREFIX}/instance/${instanceId}/tracks/play`, {
+    method: 'POST',
+    token: access_token,
+    body: { fileName },
+  });
+}
+
+export async function getCurrentTrack(access_token: string, instanceId: string) {
+  const response = await apiFetch(`/instance/${instanceId}/current-track`, {
+    token: access_token,
   });
   return response.json();
 }
@@ -104,18 +168,15 @@ export async function submitRoundResults(
   instanceId: string,
   corrections: Record<string, number>
 ) {
-  return fetch(`${baseUrl}/api/submit-round-results`, {
+  return apiFetch(`/${HOST_PREFIX}/instance/${instanceId}/round-results`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${access_token}`,
-    },
-    body: JSON.stringify({ instanceId, corrections }),
+    token: access_token,
+    body: { corrections },
   });
 }
 
 export async function getRoundResults(instanceId: string, userId: string) {
-  const response = await fetch(`${baseUrl}/api/get-round-results?instanceId=${instanceId}&userId=${userId}`);
+  const response = await apiFetch(`/instance/${instanceId}/round-results?user_id=${userId}`);
 
   if (!response.ok) {
     const errorData = await response.json();
@@ -150,7 +211,7 @@ export async function getSampleTimeBonusSummary(bonusType: TimeBonus): Promise<T
     return sampleBonusCache.get(bonusType)!;
   }
 
-  const response = await fetch(`/api/get-sample-time-bonus-summary?type=${bonusType}`);
+  const response = await apiFetch(`//samples/time-bonus/${bonusType}/summary`);
 
   if (!response.ok) {
     const errorData = await response.json();
@@ -160,111 +221,54 @@ export async function getSampleTimeBonusSummary(bonusType: TimeBonus): Promise<T
   }
 
   const payload: TimeBonusPlotPayload = await response.json();
-  sampleBonusCache.set(bonusType, payload); // cache responses because they always yield the same data
+  sampleBonusCache.set(bonusType, payload);
 
   return payload;
 }
 
 export async function startNextRound(access_token: string, instanceId: string) {
-  return fetch(`${baseUrl}/api/start-next-round`, {
+  return apiFetch(`/${HOST_PREFIX}/instance/${instanceId}/rounds/next`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${access_token}`,
-    },
-    body: JSON.stringify({ instanceId }),
+    token: access_token,
   });
 }
 
 export async function getFinalResults(instanceId: string) {
-  const response = await fetch(`${baseUrl}/api/get-final-results?instanceId=${instanceId}`);
+  const response = await apiFetch(`/instance/${instanceId}/final-results`);
   return response.json();
-}
-
-export async function restartGame(access_token: string, instanceId: string) {
-  return fetch(`${baseUrl}/api/restart-game`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${access_token}`,
-    },
-    body: JSON.stringify({ instanceId }),
-  });
-}
-
-export async function getAvailableJokers(access_token: string, instanceId: string) {
-  const response = await fetch(`${baseUrl}/api/get-available-jokers?instanceId=${instanceId}`, {
-    headers: {
-      Authorization: `Bearer ${access_token}`,
-    },
-  });
-  return response.json();
-}
-
-export async function useJoker(access_token: string, instanceId: string, jokerType: Joker, targetId?: string) {
-  return await fetch(`${baseUrl}/api/use-joker`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${access_token}`,
-    },
-    body: JSON.stringify({ instanceId, jokerType, targetId }),
-  });
-}
-
-export async function playTrack(access_token: string, fileName: string, instanceId: string) {
-  return fetch(`${baseUrl}/api/play-track`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${access_token}`,
-    },
-    body: JSON.stringify({ fileName, instanceId }),
-  });
-}
-
-export async function getCurrentTrack(access_token: string, instanceId: string) {
-  const response = await fetch(`${baseUrl}/api/current-track?instanceId=${instanceId}`, {
-    headers: {
-      Authorization: `Bearer ${access_token}`,
-    },
-  });
-  return response.json();
-}
-
-export async function logToServer(message: string, username: string) {
-  return fetch(`${baseUrl}/api/log`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message, user: username }),
-  });
 }
 
 export async function downloadResultsImage(instanceId: string, discordSdk: any) {
   const base = typeof window !== 'undefined' ? window.location.origin : baseUrl;
-  const targetUrl = `${base}/api/download-results?instanceId=${instanceId}`;
+  const targetUrl = `${base}/${API_ROOT}/instance/${instanceId}/final-results?download`;
 
   discordSdk.commands
-    .openExternalLink({ url: targetUrl })
+    .openExternalLink({ headers: { 'Content-Disposition': 'attachment' }, url: targetUrl })
     .catch((err: any) => console.warn('Discord SDK prompt breakout error:', err));
 }
 
 export async function postResultsToDiscordChannel(access_token: string, instanceId: string, channelId: string) {
-  return fetch(`${baseUrl}/api/post-results-to-channel`, {
+  return apiFetch(`/${HOST_PREFIX}/instance/${instanceId}/results/send`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${access_token}`,
-    },
-    body: JSON.stringify({ instanceId, channelId }),
+    token: access_token,
+    body: { channelId },
   });
 }
 
 export async function getDiscordChannels(access_token: string, instanceId: string, guildId: string) {
-  const response = await fetch(`${baseUrl}/api/get-discord-channels?instanceId=${instanceId}&guildId=${guildId}`, {
-    headers: {
-      Authorization: `Bearer ${access_token}`,
-    },
+  const response = await apiFetch(`/${HOST_PREFIX}/instance/${instanceId}/guild/${guildId}/channels`, {
+    token: access_token,
   });
   return response.json();
+}
+
+export async function logToServer(level: LogLevel, message: string, username: string) {
+  return apiFetch(`/log`, {
+    method: 'POST',
+    body: {
+      level,
+      message,
+      user: username,
+    },
+  });
 }

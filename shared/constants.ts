@@ -68,6 +68,13 @@ export interface AchievementBonuses {
   randomCount: number;
 }
 
+export enum LogLevel {
+  DEBUG = 0,
+  INFO = 1,
+  WARN = 2,
+  ERROR = 3,
+}
+
 export const MAX_VOLUME: number = 0.25;
 export const DEFAULT_VOLUME_SLIDER_VAL: number = 0.5;
 export const POLLING_INTERVAL: number = 500;
@@ -99,6 +106,11 @@ export const DEFAULT_STREAK_BONUS_MULTIPLIER = StreakBonusMultiplier.MEDIUM;
 export const GLIMPSE_BLUR_INTENSITY: number = 25;
 
 export const INT32_MAX_VALUE: number = 2 ** 31 - 1;
+
+export const API_ROOT: string = 'api';
+export const HOST_PREFIX: string = 'host';
+export const TEST_PREFIX: string = 'test';
+export const INSTANCE_PATH: string = 'instance/:instanceId';
 
 export const WS_JOIN_INSTANCE_EVENT: string = 'join_instance';
 export const WS_GAME_STATUS_UPDATE_EVENT: string = 'game_status_update';

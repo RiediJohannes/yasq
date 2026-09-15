@@ -71,7 +71,7 @@ export async function authenticateWithDiscord(discordSdk: AbstractDiscordSdk): P
     'Discord Authorization reached timeout'
   );
 
-  const { access_token } = await backend.getToken(code);
+  const { access_token } = await backend.requestAuthToken(code);
 
   const authResult = await withTimeout<any>(
     discordSdk.commands.authenticate({ access_token }),

@@ -1,7 +1,15 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { assignNewHost, playTrack, setBaseUrl, setupGame, submitGuess, useJoker } from '../../client/src/utils/backend';
+import {
+  logToServer,
+  playTrack,
+  setBaseUrl,
+  setupGame,
+  submitGuess,
+  transferHostRole,
+  useJoker,
+} from '../../client/src/utils/backend';
 import { setupServer } from '../../server';
-import { FirstBonusMultiplier, GameState, Joker, StreakBonusMultiplier, TimeBonus } from '@yasq/shared';
+import { FirstBonusMultiplier, GameState, Joker, LogLevel, StreakBonusMultiplier, TimeBonus } from '@yasq/shared';
 import type { Server } from 'http';
 import { AddressInfo } from 'net';
 import { TestApi } from '../utils/api.js';
@@ -59,7 +67,7 @@ beforeEach(async context => {
   api = new TestApi(baseUrl, currentInstanceId, true);
 });
 
-describe('assignNewHost', () => {
+describe('transferHostRole', () => {
   beforeEach(async () => {
     await api.setupSession(
       [
@@ -75,7 +83,7 @@ describe('assignNewHost', () => {
   });
 
   it('should return 200 OK when host is assigned by current host', async () => {
-    const response = await assignNewHost(hostToken, currentInstanceId, '2');
+    const response = await transferHostRole(hostToken, currentInstanceId, '2');
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -83,7 +91,7 @@ describe('assignNewHost', () => {
   });
 
   it('should return 403 Forbidden when non-host player tries to assign host', async () => {
-    const response = await assignNewHost(player1Token, currentInstanceId, '2');
+    const response = await transferHostRole(player1Token, currentInstanceId, '2');
     const body = await response.json();
 
     expect(response.status).toBe(403);
@@ -91,7 +99,7 @@ describe('assignNewHost', () => {
   });
 
   it('should return 400 Bad Request when assigning host to non-registered player', async () => {
-    const response = await assignNewHost(hostToken, currentInstanceId, '3');
+    const response = await transferHostRole(hostToken, currentInstanceId, '3');
     const body = await response.json();
 
     expect(response.status).toBe(400);
@@ -399,5 +407,39 @@ describe('useJoker', () => {
 
     expect(response.status).toBe(403);
     expect(body.error).toContain('Joker already used');
+  });
+});
+
+describe('clientLogs', () => {
+  let consoleSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(async () => {
+    consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await api.setupSession(
+      [
+        { id: '1', username: 'Player1' },
+        { id: '2', username: 'Player2' },
+      ],
+      GameState.SETUP
+    );
+  });
+
+  afterEach(async () => {
+    await api.deleteSession();
+    consoleSpy.mockRestore();
+  });
+
+  // TODO Fix these tests
+  it("should display client logs with the client's username in the server's console", async () => {
+    const response = await logToServer(LogLevel.INFO, 'Connection established', 'Player1');
+
+    expect(response.status).toBe(200);
+    expect(consoleSpy).toHaveBeenCalledTimes(1);
+
+    const loggedMessage = consoleSpy.mock.calls[0][0];
+    expect(loggedMessage).toContain('CLIENT');
+    expect(loggedMessage).toContain('Player1');
+    expect(loggedMessage).toContain('Connection established');
   });
 });

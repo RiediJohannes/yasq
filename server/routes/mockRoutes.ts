@@ -1,40 +1,36 @@
 import express from 'express';
-import type { Server } from 'socket.io';
 
 import { GameInstance } from '../src/models/game_instance.js';
 import { Leaderboard } from '../src/models/leaderboard.js';
-import { broadcastGameStatus } from '../src/helper.js';
 import { logger } from '../src/utils/logger.js';
+import { INSTANCE_PATH } from '@yasq/shared';
+import { createGameMiddleware } from './middleware.js';
 
-export const setupMockRoutes = (server: Server, instances: Record<string, GameInstance>) => {
+export const setupMockRoutes = (
+  instances: Record<string, GameInstance>,
+  notifyGameSubscribers: (updatedGame: GameInstance) => void
+) => {
+  const fetchGame = createGameMiddleware(instances);
   const router = express.Router();
 
-  const triggerUpdate = (instanceId: string): void => {
-    const game = instances[instanceId];
-    if (game) {
-      broadcastGameStatus(server, instanceId, game);
-    }
-  };
-
-  router.post('/setup-session', (req, res) => {
-    const { instanceId } = req.body;
+  router.post(`/${INSTANCE_PATH}`, (req, res) => {
+    const instanceId = (req.params as { instanceId?: string })?.instanceId;
 
     if (!instanceId) {
       return res.status(400).send({ error: 'instanceId is required' });
     }
 
-    const game = setMockState(req.body);
+    const createdGame = setMockState(req.body);
+    createdGame.onUpdate = notifyGameSubscribers;
+    instances[instanceId] = createdGame;
 
-    instances[instanceId] = game;
+    createdGame.notifyUpdate();
 
-    triggerUpdate(instanceId);
-
-    res.status(200).send({ message: 'Mock data loaded', instance: instances[instanceId] });
+    res.status(200).send({ message: 'Mock data loaded', instance: createdGame });
   });
 
-  router.patch('/instance/:instanceId', (req, res) => {
-    const { instanceId } = req.params;
-    const game = instances[instanceId];
+  router.patch(`/${INSTANCE_PATH}`, fetchGame, (req, res) => {
+    const game = req.game!;
 
     if (!game) {
       return res.status(400).send({ error: 'Instance not found' });
@@ -88,21 +84,22 @@ export const setupMockRoutes = (server: Server, instances: Record<string, GameIn
       game.currentRoundLostStreaks = updates.currentRoundLostStreaks;
     }
 
-    triggerUpdate(instanceId);
+    game.notifyUpdate();
 
     res.status(200).send({ message: 'Instance updated', instance: game });
   });
 
-  router.delete('/instance/:instanceId', (req, res) => {
-    const { instanceId } = req.params;
+  router.delete(`/${INSTANCE_PATH}`, fetchGame, (req, res) => {
+    const game = req.game!;
+    const instanceId = game.instanceId;
 
     if (instances[instanceId]) {
+      game.dispose();
       delete instances[instanceId];
       logger.debug(instanceId, `Successfully deleted test instance`);
+
       return res.status(200).send({ message: `Instance ${instanceId} deleted` });
     }
-
-    triggerUpdate(instanceId);
 
     res.status(204).send();
   });

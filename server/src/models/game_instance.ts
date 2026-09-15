@@ -53,6 +53,8 @@ export class GameInstance {
   public gameStats: GameStats = new GameStats();
   public activeAchievementBonuses: AchievementBonusType[] = [];
 
+  public onUpdate?: (game: GameInstance) => void;
+
   constructor(instanceId: string, hostId: string) {
     this.instanceId = instanceId;
     this.hostId = hostId;
@@ -550,6 +552,10 @@ export class GameInstance {
         }
       }
     }
+  }
+
+  public notifyUpdate(): void {
+    this.onUpdate?.(this);
   }
 
   public dispose(): void {
