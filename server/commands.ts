@@ -19,6 +19,11 @@ const commands = [
     type: ApplicationCommandType.PrimaryEntryPoint,
     handler: EntryPointCommandHandlerType.DiscordLaunchActivity,
   },
+  {
+    name: 'test',
+    description: 'Test Command',
+    type: ApplicationCommandType.ChatInput,
+  },
 ];
 
 const rest = new REST({ version: '10' }).setToken(TOKEN);

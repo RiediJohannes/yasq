@@ -31,6 +31,7 @@ import { LogCategory, logger } from '../utils/logger.js';
 import { fileURLToPath } from 'url';
 import { Leaderboard, LeaderboardEntry, RoundResult, RoundSummary } from './leaderboard.js';
 import { GameStats } from './game_stats.js';
+import { saveLeaderboard } from '../../db.js';
 
 export class GameInstance {
   public instanceId: string;
@@ -336,6 +337,7 @@ export class GameInstance {
       this.leaderboard.sort();
       this.lastWinnerId = this.leaderboard.getWinnerId();
       this.gameStats.endTime = Date.now();
+      saveLeaderboard(this.leaderboard);
     } else {
       this.state = GameState.TRACK_SELECTION;
       this.currentRound += 1;
