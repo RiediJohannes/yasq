@@ -49,5 +49,21 @@ export const mockDiscordSdk = {
       }
       return { success: true };
     },
+
+    // Mock Opening Invite Dialog
+    openInviteDialog: async () => ({}),
+
+    // Mock Get Channel Permissions
+    getChannelPermissions: async () => {
+      const hasPermission = window.__MOCK_CAN_INVITE__ ?? true;
+
+      if (!hasPermission) {
+        throw { code: 4006, message: 'No invite permissions for mock channel' };
+      }
+
+      return {
+        permissions: window.__MOCK_PERMISSIONS__ || '1n',
+      };
+    },
   },
 };

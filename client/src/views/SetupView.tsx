@@ -1,9 +1,12 @@
 import { useSignal } from '@preact/signals';
 import { TargetedEvent } from 'preact';
 
-import * as backend from '../utils/backend';
 import { discordSdk, gameState, useAuth } from '../main';
-import { ALL_JOKER_ICONS } from '../components/Icons';
+
+import * as backend from '../utils/backend';
+import { HOST_TIME_BONUS_LABELS } from '../utils/constants';
+import { OptionalTimeBonus, TOptionalTimeBonus } from '../utils/types';
+
 import {
   AchievementBonuses,
   AchievementBonusType,
@@ -17,9 +20,9 @@ import {
   StreakBonusMultiplier,
   TimeBonus,
 } from '@yasq/shared';
+
+import { ALL_JOKER_ICONS } from '../components/Icons';
 import { NonDraggableImg } from '../components/NonDraggableImg';
-import { OptionalTimeBonus, TOptionalTimeBonus } from '../utils/types';
-import { PLAYER_TIME_BONUS_LABELS } from './LobbyView';
 import { HostTransferDropdown } from '../components/HostTransferDropdown';
 import { formatBonusMultiplier } from '../utils/helper';
 import { TimeBonusPlot } from '../components/TimeBonusPlot';
@@ -27,13 +30,6 @@ import { useTimeBonusSamples } from '../hooks/useTimeBonusSamples';
 import { WithTooltip } from '../components/Tooltip';
 import { RadioGroup } from '../components/RadioGroup';
 import { AchievementBonusSettingsPanel } from '../components/AchievementBonusSettings';
-
-const HOST_TIME_BONUS_LABELS: Record<TOptionalTimeBonus, string> = {
-  [TimeBonus.LINEAR]: PLAYER_TIME_BONUS_LABELS[TimeBonus.LINEAR] + ' (linear)',
-  [TimeBonus.EXPONENTIAL]: PLAYER_TIME_BONUS_LABELS[TimeBonus.EXPONENTIAL] + ' (exponential)',
-  [TimeBonus.LOGISTIC]: PLAYER_TIME_BONUS_LABELS[TimeBonus.LOGISTIC] + ' (logistic)',
-  NONE: '❌ No time bonus',
-};
 
 export const SetupView = ({ isHost }: { isHost: boolean }) => {
   const auth = useAuth();
@@ -72,8 +68,6 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
     selectedBonus.value !== OptionalTimeBonus.NONE
       ? timeBonusSamples.value.get(selectedBonus.value as TimeBonus)
       : null;
-
-  const sampleParticipants = new Map((activeTimeBonusSample?.participants || []).map(p => [p.id, p]));
 
   const toggleJoker = (type: Joker) => {
     const updatedJokerSet = new Set(activeJokers.value);
@@ -226,7 +220,7 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
                   ) : (
                     <TimeBonusPlot
                       currentPlayer={null}
-                      participants={sampleParticipants}
+                      participants={activeTimeBonusSample?.participants || []}
                       data={activeTimeBonusSample?.timeBonusSummary ?? null}
                     />
                   )}

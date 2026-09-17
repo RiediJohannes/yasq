@@ -36,8 +36,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
 
   // Logic for the Host's "Next Round" button
   const playersExcludingHost = participants.value.filter(p => p.id !== gameState.value.hostId);
-  const participantLookup = new Map(participants.value.map(p => [p.id, p]));
-  const currentPlayer = participantLookup.get(getUserId(auth)!) ?? null;
+  const currentPlayer = findUser(participants.value, getUserId(auth)!);
   const readyCount = gameState.value.readyUsers.length;
   const allPlayersReady =
     playersExcludingHost.length > 0 && playersExcludingHost.every(p => gameState.value.readyUsers.includes(p.id));
@@ -78,9 +77,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
   })();
 
   const correctPlayerIds = roundData.value?.correctPlayers || [];
-  const correctParticipants: Participant[] = correctPlayerIds
-    .map((id: string) => participantLookup.get(id))
-    .filter((p: any): p is Participant => !!p);
+  const correctParticipants: Participant[] = participants.value.filter(p => correctPlayerIds.includes(p.id));
 
   return (
     <div
@@ -170,7 +167,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
                   <div className="center-box">
                     <TimeBonusPlot
                       currentPlayer={currentPlayer}
-                      participants={participantLookup}
+                      participants={participants.value}
                       data={roundData.value.summary?.timeBonusSummary ?? null}
                     />
                   </div>
@@ -247,7 +244,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
                   <div className="center-box">
                     <TimeBonusPlot
                       currentPlayer={currentPlayer}
-                      participants={participantLookup}
+                      participants={participants.value}
                       data={roundData.value.summary?.timeBonusSummary ?? null}
                     />
                   </div>
@@ -287,7 +284,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
                         <div className="center-box">
                           <TimeBonusPlot
                             currentPlayer={currentPlayer}
-                            participants={participantLookup}
+                            participants={participants.value}
                             data={roundData.value.summary?.timeBonusSummary ?? null}
                           />
                         </div>

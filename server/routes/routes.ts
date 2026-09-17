@@ -503,11 +503,14 @@ export const setupRoutes = (
 
   router.get('/download-results', fetchGame, async (req, res) => {
     const { instanceId } = req.query as InstanceQuery;
+    const game = req.game!;
+
+    if (game.state !== GameState.FINAL_RESULTS) {
+      return res.status(400).send({ error: 'Game has not finished yet.' });
+    }
 
     const filePath = path.join(__dirname, '..', STATIC_FILES_DIR, TEMP_FILES_DIR, `${instanceId}/results.png`);
     if (!fs.existsSync(filePath)) {
-      const game = req.game!;
-      console.log(`userDataCache:`, userDataCache);
       await generateResultsImage(
         game.instanceId,
         game.temporaryDirectory(true),
@@ -515,7 +518,6 @@ export const setupRoutes = (
         userDataCache,
         game.gameStats
       );
-      // return res.status(404).json({ error: 'Results image has not been generated yet.' });
     }
 
     res.download(filePath, `yasq-results.png`, err => {
@@ -532,10 +534,19 @@ export const setupRoutes = (
     const { instanceId, channelId } = req.body;
     const game = req.game!;
 
-    const filePath = path.join(__dirname, '..', STATIC_FILES_DIR, TEMP_FILES_DIR, `${instanceId}/results.png`);
+    if (game.state !== GameState.FINAL_RESULTS) {
+      return res.status(400).send({ error: 'Game has not finished yet.' });
+    }
 
+    const filePath = path.join(__dirname, '..', STATIC_FILES_DIR, TEMP_FILES_DIR, `${instanceId}/results.png`);
     if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ error: 'Results image has not been generated yet.' });
+      await generateResultsImage(
+        game.instanceId,
+        game.temporaryDirectory(true),
+        game.leaderboard,
+        userDataCache,
+        game.gameStats
+      );
     }
 
     const winnerMention = `<@${game.lastWinnerId}>`;

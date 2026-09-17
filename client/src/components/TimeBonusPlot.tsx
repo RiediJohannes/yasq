@@ -8,6 +8,7 @@ import {
   PlayerTimeBonusPoint,
   TimeBonusSummary,
 } from '@yasq/shared';
+import { findUser } from '../utils/helper';
 
 enum DataPointType {
   CURVE = 'curve',
@@ -37,7 +38,7 @@ type HoverData = CurveHoverData | PlayerHoverData;
 
 interface TimeBonusPlotProps {
   currentPlayer: Participant | null;
-  participants: Map<string, Participant>;
+  participants: Participant[];
   data: TimeBonusSummary | null;
 }
 
@@ -192,7 +193,7 @@ export const TimeBonusPlot = ({ currentPlayer, participants, data }: TimeBonusPl
           fullyCorrect: pt.fullyCorrect,
         };
 
-        const player = participants.get(pt.playerId) ?? null;
+        const player = findUser(participants, pt.playerId);
         const playerName =
           pt.playerId === currentPlayer?.id ? 'You' : player !== null ? getDisplayName(player) : 'Unknown Player';
 
@@ -340,7 +341,7 @@ export const TimeBonusPlot = ({ currentPlayer, participants, data }: TimeBonusPl
           const playerX = getX(p.time);
           const isIncorrect = p.multiplier === null;
           const playerY = isIncorrect ? xAxisHeight : getY(p.multiplier!);
-          const participant = participants.get(p.playerId);
+          const player = findUser(participants, p.playerId);
           const isHovered = hoverData?.type === DataPointType.PLAYER && hoverData.player.playerId === p.playerId;
           const isCurrentPlayer = p.playerId === currentPlayer?.id;
 
@@ -392,9 +393,9 @@ export const TimeBonusPlot = ({ currentPlayer, participants, data }: TimeBonusPl
 
               {/* Player avatar at the bottom of the plot */}
               <g class="player-avatar-bundle">
-                {participant && (
+                {player && (
                   <image
-                    href={getAvatarUrl(participant)}
+                    href={getAvatarUrl(player)}
                     x={playerX - avatarRadius}
                     y={xAxisHeight + avatarTopOffset}
                     width={2 * avatarRadius}

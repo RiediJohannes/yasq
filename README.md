@@ -163,6 +163,17 @@ Within a given quiz directory (`quizDir`), data must be structured in the follow
    - `blacklist`: Everyone except users in `userIds` can see/play these files.
    - Default: Files not listed in any set are public to everyone.
 
+#### Entry Point Command (Optional)
+
+You can register an entry point command to allow players to launch the quiz directly from the chat interface.
+
+```bash
+cd server
+node commands.ts
+```
+
+This requires a valid `DISCORD_BOT_TOKEN` to be set in the `.env` file.
+
 ## Testing
 
 The project contains various unit tests for the client and the server using vitest, integration tests to verify client-server communication, as well as end-to-end (E2E) and component-specific tests using Playwright to test the full app including correct behaviour of the client UI. To run the tests, execute the respective `npm` script in the project root:

@@ -1,23 +1,23 @@
-import * as backend from '../utils/backend';
-import { discordSdk, gameState, participants, useAuth } from '../main';
-import { capitalize, formatBonusMultiplier } from '../utils/helper';
-import { ALL_JOKER_ICONS, InfoIcon } from '../components/Icons';
-import { OptionalTimeBonus, TOptionalTimeBonus } from '../utils/types';
-import { AchievementBonusType, Joker, TimeBonus } from '@yasq/shared';
-import { ReadyButton } from '../components/ReadyButton';
-import { TooltipDiv, WithTooltip } from '../components/Tooltip';
 import { useSignal } from '@preact/signals';
-import { TimeBonusPlot } from '../components/TimeBonusPlot';
-import { useTimeBonusSamples } from '../hooks/useTimeBonusSamples';
-import { Modal } from '../components/Modal';
-import { useRovingTabIndex } from '../hooks/useRovingTabIndex';
 
-export const PLAYER_TIME_BONUS_LABELS: Record<TOptionalTimeBonus, string> = {
-  [TimeBonus.LINEAR]: '⏳ Steady Pace',
-  [TimeBonus.EXPONENTIAL]: '🔥 Quick Fire',
-  [TimeBonus.LOGISTIC]: '⚖️ Balanced',
-  NONE: '❌ No time bonus',
-};
+import { discordSdk, gameState, participants, useAuth } from '../main';
+
+import * as backend from '../utils/backend';
+import { PLAYER_TIME_BONUS_LABELS } from '../utils/constants';
+import { capitalize, formatBonusMultiplier } from '../utils/helper';
+import { OptionalTimeBonus, TOptionalTimeBonus } from '../utils/types';
+
+import { AchievementBonusType, Joker } from '@yasq/shared';
+
+import { ALL_JOKER_ICONS, InfoIcon } from '../components/Icons';
+import { Modal } from '../components/Modal';
+import { ReadyButton } from '../components/ReadyButton';
+import { TimeBonusPlot } from '../components/TimeBonusPlot';
+import { TooltipDiv, WithTooltip } from '../components/Tooltip';
+
+import { useRovingTabIndex } from '../hooks/useRovingTabIndex';
+import { useTimeBonusSamples } from '../hooks/useTimeBonusSamples';
+import { InviteButton } from '../components/InviteButton';
 
 export const LobbyView = ({ isHost }: { isHost: boolean }) => {
   const auth = useAuth();
@@ -47,8 +47,6 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
     gameState.value.gameSettings.timeBonus !== null
       ? timeBonusSamples.value.get(gameState.value.gameSettings.timeBonus)
       : null;
-
-  const sampleParticipants = new Map((activeTimeBonusSample?.participants || []).map(p => [p.id, p]));
 
   const showTimeBonusDialog = useSignal<boolean>(false);
   const openTimeBonusDialog = () => {
@@ -153,7 +151,7 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
               ) : (
                 <TimeBonusPlot
                   currentPlayer={null}
-                  participants={sampleParticipants}
+                  participants={activeTimeBonusSample?.participants || []}
                   data={activeTimeBonusSample?.timeBonusSummary ?? null}
                 />
               )}
@@ -198,13 +196,16 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
 
       <div className="lobby-footer">
         {isHost ? (
-          <button
-            id="btn-start"
-            disabled={!allPlayersAreReady}
-            onClick={handleStart}
-          >
-            {allPlayersAreReady ? 'Start Game' : `Waiting... (${readyUsers}/${playersExcludingHost.length})`}
-          </button>
+          <>
+            <button
+              id="btn-start"
+              disabled={!allPlayersAreReady}
+              onClick={handleStart}
+            >
+              {allPlayersAreReady ? 'Start Game' : `Waiting... (${readyUsers}/${playersExcludingHost.length})`}
+            </button>
+            <InviteButton />
+          </>
         ) : (
           <ReadyButton promptText={'Ready Up'} />
         )}

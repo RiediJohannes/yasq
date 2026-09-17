@@ -493,6 +493,12 @@ select:disabled option {
   padding-inline-start: var(--space-large);
 }
 
+.lobby-footer {
+  display: flex;
+  flex-flow: column;
+  gap: var(--space-large);
+}
+
 .card-container h2,
 .hint-container h2,
 .game-stats h2 {
