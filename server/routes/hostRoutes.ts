@@ -22,6 +22,7 @@ import { LogCategory, logger } from '../src/utils/logger.js';
 import { authenticateUser, createGameMiddleware, isHost } from './middleware.js';
 import type { APIChannel } from 'discord-api-types/v10';
 import { getChannelsForGuild, postResultsToChannel } from '../src/utils/discord.js';
+import { ApiError } from './errors.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -69,12 +70,12 @@ export const setupHostRoutes = (
     const game = req.game!;
 
     if (!game.registeredUsers.has(newHostId)) {
-      return res.status(400).send({ error: 'New host must be a registered user' });
+      throw new ApiError(400, 'New host must be a registered user', req);
     }
 
     game.hostId = newHostId;
     game.readyUsers.delete(newHostId); // New host is not required to be ready
-    logger.debug(game.instanceId, `Host changed to user ${newHostId}`, LogCategory.GAME);
+    logger.debug(`Host changed to user ${newHostId}`, LogCategory.GAME, game.instanceId);
 
     game.notifyUpdate();
 
@@ -87,17 +88,14 @@ export const setupHostRoutes = (
     const maxAllowedGuessTime: number = Math.floor(INT32_MAX_VALUE / 1000) - COUNTDOWN_DURATION;
 
     if (settings.rounds <= 0 || settings.maxGuessTime <= 0) {
-      return res.status(400).send({ error: 'Rounds and guess time must be greater than 0.' });
+      throw new ApiError(400, 'Rounds and guess time must be greater than 0.', req);
     }
     if (settings.maxGuessTime > maxAllowedGuessTime) {
-      return res.status(400).send({
-        error: `Guess time must not exceed ${maxAllowedGuessTime}.`,
-      });
+      throw new ApiError(400, `Guess time must not exceed ${maxAllowedGuessTime}.`, req);
     }
 
     game.setupGame(settings);
     logger.debug(
-      game.instanceId,
       `Game settings have been set: ${JSON.stringify(
         {
           ...game.settings,
@@ -106,7 +104,8 @@ export const setupHostRoutes = (
         null,
         2
       )}`,
-      LogCategory.GAME
+      LogCategory.GAME,
+      game.instanceId
     );
 
     game.notifyUpdate();
@@ -118,7 +117,7 @@ export const setupHostRoutes = (
     const game = req.game!;
 
     game.restart();
-    logger.debug(game.instanceId, `Host has started new game #${game.currentGame}`, LogCategory.GAME);
+    logger.debug(`Host has started new game #${game.currentGame}`, LogCategory.GAME, game.instanceId);
 
     game.notifyUpdate();
 
@@ -129,7 +128,7 @@ export const setupHostRoutes = (
     const game = req.game!;
 
     game.startGame();
-    logger.info(game.instanceId, `Game started!`, LogCategory.GAME);
+    logger.info(`Game started!`, LogCategory.GAME, game.instanceId);
 
     game.notifyUpdate();
 
@@ -143,22 +142,20 @@ export const setupHostRoutes = (
 
     if (!isAllowed(userId, fileName)) {
       logger.warn(
-        game.instanceId,
         `User ${userId} attempted to play restricted track: ${fileName}`,
-        LogCategory.SECURITY
+        LogCategory.SECURITY,
+        game.instanceId
       );
-      return res.status(403).send({ error: 'You do not have permission to play this track.' });
+      throw new ApiError(403, 'You do not have permission to play this track.', req);
     }
 
     const track = getTracks().find((t: Track) => t.audio === fileName);
 
-    if (!track) {
-      return res.status(400).send({ error: 'Track not found.' });
-    }
+    if (!track) throw new ApiError(404, 'Track not found.', req);
 
     await game.playTrack(track, () => game.notifyUpdate());
 
-    logger.debug(game.instanceId, `Started playing ${fileName}`, LogCategory.GAME);
+    logger.debug(`Started playing ${fileName}`, LogCategory.GAME, game.instanceId);
 
     game.notifyUpdate();
 
@@ -189,9 +186,9 @@ export const setupHostRoutes = (
     const timedOutPlayers = game.getTimedOutPlayers();
     if (timedOutPlayers.length > 0) {
       logger.debug(
-        game.instanceId,
         `The following players have not submitted a guess in time: ${timedOutPlayers.join(', ')}`,
-        LogCategory.GAME
+        LogCategory.GAME,
+        game.instanceId
       );
     }
 
@@ -208,16 +205,16 @@ export const setupHostRoutes = (
     const game = req.game!;
 
     logger.debug(
-      game.instanceId,
       `Host submitted corrections: ${JSON.stringify(corrections, null, 2)}`,
-      LogCategory.GAME
+      LogCategory.GAME,
+      game.instanceId
     );
     game.submitResults(corrections);
 
     logger.debug(
-      game.instanceId,
       `Results calculated for round #${game.currentRound}: ${JSON.stringify(game.leaderboard.getRoundOverview(game.currentRound))}`,
-      LogCategory.GAME
+      LogCategory.GAME,
+      game.instanceId
     );
 
     game.notifyUpdate();
@@ -229,15 +226,13 @@ export const setupHostRoutes = (
     const game = req.game!;
 
     if (game.state !== GameState.ROUND_RESULTS) {
-      return res.status(403).send({
-        error: 'Can only start next round after round results are shown',
-      });
+      throw new ApiError(403, 'Can only start next round after round results have been shown', req);
     }
 
     const newState = game.advanceRound();
 
     if (newState === GameState.FINAL_RESULTS) {
-      logger.info(game.instanceId, `Game ended!`, LogCategory.GAME);
+      logger.info(`Game ended!`, LogCategory.GAME, game.instanceId);
       void generateResultsImage(
         game.instanceId,
         game.temporaryDirectory(true),
@@ -246,14 +241,14 @@ export const setupHostRoutes = (
         game.gameStats
       );
       logger.debug(
-        game.instanceId,
         `Final leaderboard: ${JSON.stringify(game.leaderboard.getAll(), null, 2)}`,
-        LogCategory.GAME
+        LogCategory.GAME,
+        game.instanceId
       );
     }
 
     if (newState === GameState.TRACK_SELECTION) {
-      logger.debug(game.instanceId, `Game has advanced to next round!`, LogCategory.GAME);
+      logger.debug(`Game has advanced to next round!`, LogCategory.GAME, game.instanceId);
     }
 
     game.notifyUpdate();
@@ -266,7 +261,7 @@ export const setupHostRoutes = (
     const game = req.game!;
 
     if (game.state !== GameState.FINAL_RESULTS) {
-      return res.status(400).send({ error: 'Game has not finished yet.' });
+      throw new ApiError(400, 'Game has not finished yet.', req);
     }
 
     const filePath = path.join(__dirname, '..', STATIC_FILES_DIR, TEMP_FILES_DIR, `${game.instanceId}/results.png`);
@@ -286,12 +281,12 @@ export const setupHostRoutes = (
     try {
       await postResultsToChannel(channelId, messageText, filePath, game.instanceId);
 
-      logger.debug(game.instanceId, `Results successfully posted to Discord channel ${channelId}`, LogCategory.DISCORD);
+      logger.debug(`Results successfully posted to Discord channel ${channelId}`, LogCategory.DISCORD, game.instanceId);
 
-      return res.status(200).json({ success: true });
-    } catch (error: any) {
-      logger.error(game.instanceId, `Discord API rejected request`, error.message, LogCategory.DISCORD);
-      return res.status(500).json({ error: 'Internal system operation processing failure.' });
+      return res.json({ success: true });
+    } catch (error: unknown) {
+      logger.error(`Discord API rejected request`, LogCategory.DISCORD, game.instanceId, error as Error);
+      throw new ApiError(500, 'Internal system operation processing failure.', req);
     }
   });
 
@@ -301,7 +296,7 @@ export const setupHostRoutes = (
 
     // Return empty list if bot token is not set
     if (!process.env.DISCORD_BOT_TOKEN) {
-      logger.warn(game.instanceId, `DISCORD_BOT_TOKEN not set, returning empty list`, LogCategory.DISCORD);
+      logger.warn(`DISCORD_BOT_TOKEN not set, returning empty list`, LogCategory.DISCORD, game.instanceId);
       return res.json([]);
     }
 
@@ -310,9 +305,9 @@ export const setupHostRoutes = (
       const textChannels = filterDiscordTextChannels(channels);
 
       res.json(textChannels);
-    } catch (err: any) {
-      logger.error(game.instanceId, `Discord API rejected request`, err.message, LogCategory.DISCORD);
-      res.status(500).json({ error: 'Could not fetch channels' });
+    } catch (err: unknown) {
+      logger.error(`Discord API rejected request`, LogCategory.DISCORD, game.instanceId, err as Error);
+      throw new ApiError(500, 'Could not fetch channels', req);
     }
   });
 

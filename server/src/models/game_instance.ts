@@ -373,7 +373,7 @@ export class GameInstance {
     setTimeout(() => {
       if (this.state === GameState.PLAYING && this.currentRound === roundAtStart && this.currentGame === gameAtStart) {
         this.state = GameState.HOST_REVIEW;
-        logger.debug(this.instanceId, `Timer for round ${roundAtStart} expired`, LogCategory.GAME);
+        logger.debug(`Timer for round ${roundAtStart} expired`, LogCategory.GAME, this.instanceId);
 
         roundFinishedCallback();
         this.removeTempFiles();
@@ -496,12 +496,12 @@ export class GameInstance {
         .blur(GLIMPSE_BLUR_INTENSITY)
         .jpeg()
         .toFile(outputPath);
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error(
-        this.instanceId,
         `Failed to generate Glimpse image from source '${coverImageFile}'`,
-        err.message,
-        LogCategory.GAME
+        LogCategory.GAME,
+        this.instanceId,
+        err as Error
       );
     }
   }

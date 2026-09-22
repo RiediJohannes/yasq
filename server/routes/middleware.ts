@@ -3,6 +3,7 @@ import type { NextFunction, Request, Response } from 'express';
 import { validateToken } from '../src/helper.js';
 import type { GameInstance } from '../src/models/game_instance.js';
 import { LogCategory, logger } from '../src/utils/logger.js';
+import { ApiError } from './errors.js';
 
 declare global {
   namespace Express {
@@ -20,13 +21,13 @@ declare global {
  */
 export const authenticateUser = async (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).send({ error: 'No token provided' });
+  if (!authHeader) throw new ApiError(401, 'No token provided', req);
 
   const token = authHeader.split(' ')[1] || '';
   const userId = await validateToken(token);
 
   if (!userId) {
-    return res.status(401).send({ error: 'Invalid Discord token' });
+    throw new ApiError(401, 'Invalid Discord token', req);
   }
 
   req.token = token;
@@ -41,8 +42,8 @@ export const isHost = (req: Request, res: Response, next: NextFunction) => {
   const userId = req.userId;
 
   if (!req.game?.isHost(userId!)) {
-    logger.warn(req.body.instanceId, `Unauthorized host attempt by user ${userId}`, LogCategory.SECURITY);
-    return res.status(403).json({ error: 'Only host can perform this action' });
+    logger.warn(`Unauthorized host attempt by user ${userId}`, LogCategory.SECURITY, req.body.instanceId);
+    throw new ApiError(403, 'Only host can perform this action', req);
   }
 
   next();
@@ -57,7 +58,7 @@ export const createGameMiddleware = (instances: Record<string, GameInstance>) =>
     const game = instances[instanceId!];
 
     if (!game) {
-      return res.status(400).send({ error: 'Instance not found' });
+      throw new ApiError(400, `Instance '${instanceId}' not found`, req);
     }
 
     req.game = game;

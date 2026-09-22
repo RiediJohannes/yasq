@@ -9,21 +9,39 @@ import {
   useJoker,
 } from '../../client/src/utils/backend';
 import { setupServer } from '../../server';
-import { FirstBonusMultiplier, GameState, Joker, LogLevel, StreakBonusMultiplier, TimeBonus } from '@yasq/shared';
+import {
+  deserializeError,
+  FirstBonusMultiplier,
+  GameState,
+  Joker,
+  LogLevel,
+  serializeError,
+  StreakBonusMultiplier,
+  TimeBonus,
+} from '@yasq/shared';
 import type { Server } from 'http';
 import { AddressInfo } from 'net';
 import { TestApi } from '../utils/api.js';
 import { exchangeCodeForToken, getDiscordUser } from '../../server/src/utils/discord';
+import { LogCategory, logger } from '@yasq/server/src/utils/logger';
+import { Player } from '../utils/helper';
 
 const hostToken = 'token_1';
 const player1Token = 'token_2';
 const player2Token = 'token_3';
 const nonRegisteredPlayerToken = 'token_4';
 
+const DEFAULT_PLAYERS: Player[] = [
+  { id: '1', username: 'Player1' },
+  { id: '2', username: 'Player2' },
+];
+const DEFAULT_SESSION: [Player[], GameState] = [DEFAULT_PLAYERS, GameState.SETUP];
+
 let httpServer: Server;
 let baseUrl: string;
 let currentInstanceId: string;
 let api: TestApi;
+let loggerSpy: ReturnType<typeof vi.spyOn>;
 
 vi.mock('../../server/src/utils/discord', () => ({
   exchangeCodeForToken: vi.fn(),
@@ -65,17 +83,16 @@ afterAll(async () => {
 beforeEach(async context => {
   currentInstanceId = `test-instance-${context.task.id}`;
   api = new TestApi(baseUrl, currentInstanceId, true);
+  loggerSpy = vi.spyOn(logger, 'log').mockImplementation(() => {});
+});
+
+afterEach(async () => {
+  loggerSpy.mockRestore();
 });
 
 describe('transferHostRole', () => {
   beforeEach(async () => {
-    await api.setupSession(
-      [
-        { id: '1', username: 'Player1' },
-        { id: '2', username: 'Player2' },
-      ],
-      GameState.SETUP
-    );
+    await api.setupSession(...DEFAULT_SESSION);
   });
 
   afterEach(async () => {
@@ -109,13 +126,7 @@ describe('transferHostRole', () => {
 
 describe('setupGame', () => {
   beforeEach(async () => {
-    await api.setupSession(
-      [
-        { id: '1', username: 'Player1' },
-        { id: '2', username: 'Player2' },
-      ],
-      GameState.SETUP
-    );
+    await api.setupSession(...DEFAULT_SESSION);
   });
 
   afterEach(async () => {
@@ -185,13 +196,7 @@ describe('setupGame', () => {
 
 describe('playTrack', () => {
   beforeEach(async () => {
-    await api.setupSession(
-      [
-        { id: '1', username: 'Player1' },
-        { id: '2', username: 'Player2' },
-      ],
-      GameState.TRACK_SELECTION
-    );
+    await api.setupSession(DEFAULT_PLAYERS, GameState.TRACK_SELECTION);
   });
 
   afterEach(async () => {
@@ -206,11 +211,11 @@ describe('playTrack', () => {
     expect(body.status).toContain('PLAYING');
   });
 
-  it('should return 400 Bad Request when invalid audio file is requested', async () => {
+  it('should return 404 Not Found when non-existent audio file is requested', async () => {
     const response = await playTrack(hostToken, 'bla.mp3', currentInstanceId);
     const body = await response.json();
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(404);
     expect(body.error).toContain('Track not found.');
   });
 
@@ -233,13 +238,7 @@ describe('playTrack', () => {
 
 describe('submitGuess', () => {
   beforeEach(async () => {
-    await api.setupSession(
-      [
-        { id: '1', username: 'Player1' },
-        { id: '2', username: 'Player2' },
-      ],
-      GameState.PLAYING
-    );
+    await api.setupSession(DEFAULT_PLAYERS, GameState.PLAYING);
   });
 
   afterEach(async () => {
@@ -259,7 +258,7 @@ describe('submitGuess', () => {
     const body = await response.json();
 
     expect(response.status).toBe(403);
-    expect(body.error).toContain('User not registered in this instance.');
+    expect(body.error).toContain('User 4 is not registered with this instance.');
   });
 
   it('should return 400 Bad Request when submitted guess is too long', async () => {
@@ -363,7 +362,7 @@ describe('useJoker', () => {
     const body = await response.json();
 
     expect(response.status).toBe(400);
-    expect(body.error).toContain('Spy Joker requires a targetId');
+    expect(body.error).toContain('Spy joker requires additional property: targetId');
   });
 
   it('should return 202 Accepted when SPY joker target has not submitted', async () => {
@@ -411,35 +410,109 @@ describe('useJoker', () => {
 });
 
 describe('clientLogs', () => {
-  let consoleSpy: ReturnType<typeof vi.spyOn>;
-
   beforeEach(async () => {
-    consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-
-    await api.setupSession(
-      [
-        { id: '1', username: 'Player1' },
-        { id: '2', username: 'Player2' },
-      ],
-      GameState.SETUP
-    );
+    await api.setupSession(...DEFAULT_SESSION);
   });
 
   afterEach(async () => {
     await api.deleteSession();
-    consoleSpy.mockRestore();
   });
 
-  // TODO Fix these tests
-  it("should display client logs with the client's username in the server's console", async () => {
-    const response = await logToServer(LogLevel.INFO, 'Connection established', 'Player1');
+  it("should parse and forward a valid client log to the server's logger", async () => {
+    const response = await logToServer(LogLevel.INFO, 'Connection established', '1');
 
     expect(response.status).toBe(200);
-    expect(consoleSpy).toHaveBeenCalledTimes(1);
+    expect(loggerSpy).toHaveBeenCalledTimes(1);
+    expect(loggerSpy).toHaveBeenCalledWith(
+      LogLevel.INFO,
+      'Connection established',
+      LogCategory.CLIENT,
+      expect.objectContaining({
+        clientUserId: '1',
+      })
+    );
+  });
 
-    const loggedMessage = consoleSpy.mock.calls[0][0];
-    expect(loggedMessage).toContain('CLIENT');
-    expect(loggedMessage).toContain('Player1');
-    expect(loggedMessage).toContain('Connection established');
+  it('should correctly (de)serialize and pass on full log context when provided', async () => {
+    const userId = '1';
+    const message = 'Audio playback failed';
+    const testInstance = 'TestInstance';
+
+    const testErrorMessage = 'File not found';
+    const testErrorObject = new Error(testErrorMessage);
+
+    const testErrors = [
+      [testErrorMessage, testErrorMessage],
+      [testErrorObject, deserializeError(serializeError(testErrorObject))],
+    ];
+
+    for (const [errorInputValue, expectedReceivedValue] of testErrors) {
+      const response = await logToServer(LogLevel.ERROR, message, userId, {
+        instanceId: testInstance,
+        error: errorInputValue,
+      });
+
+      expect(response.status).toBe(200);
+      expect(loggerSpy).toHaveBeenCalledWith(LogLevel.ERROR, message, LogCategory.CLIENT, {
+        instanceId: testInstance,
+        clientUserId: userId,
+        error: expectedReceivedValue,
+      });
+    }
+  });
+
+  it('should return 400 Bad Request when log message is missing', async () => {
+    const expectedStatusCode = 400;
+    const expectedMessage = 'Missing property: message';
+
+    const response = await logToServer(LogLevel.INFO, undefined, '1');
+
+    // Response includes the correct status code and error message
+    expect(response.status).toBe(expectedStatusCode);
+    const data = await response.json();
+    expect(data.error).toBe(expectedMessage);
+
+    // Additionally, a domain exception was logged on the server-side
+    expect(loggerSpy).toHaveBeenCalledTimes(1);
+    expect(loggerSpy).toHaveBeenCalledWith(
+      LogLevel.ERROR,
+      'Domain exception',
+      LogCategory.API,
+      expect.objectContaining({
+        error: expect.objectContaining({
+          name: 'ApiError',
+          message: expectedMessage,
+          statusCode: expectedStatusCode,
+        }),
+      })
+    );
+  });
+
+  it('should return 400 Bad Request when log level is invalid', async () => {
+    const expectedStatusCode = 400;
+    const invalidLogLevel = LogLevel.ERROR + 1;
+    const expectedMessage = `Unknown log level ${invalidLogLevel}`;
+
+    const response = await logToServer(invalidLogLevel as LogLevel, 'Test message', '1');
+
+    // Response includes the correct status code and error message
+    expect(response.status).toBe(expectedStatusCode);
+    const data = await response.json();
+    expect(data.error).toBe(expectedMessage);
+
+    // Additionally, a domain exception was logged on the server-side
+    expect(loggerSpy).toHaveBeenCalledTimes(1);
+    expect(loggerSpy).toHaveBeenCalledWith(
+      LogLevel.ERROR,
+      'Domain exception',
+      LogCategory.API,
+      expect.objectContaining({
+        error: expect.objectContaining({
+          name: 'ApiError',
+          message: expectedMessage,
+          statusCode: expectedStatusCode,
+        }),
+      })
+    );
   });
 });

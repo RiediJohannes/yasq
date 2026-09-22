@@ -7,6 +7,8 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 
 import { setupCommonRoutes } from './routes/commonRoutes.js';
+import { setupHostRoutes } from './routes/hostRoutes.js';
+import { handleErrors, handleNotFound } from './routes/errors.js';
 import { setMockState, setupMockRoutes } from './routes/mockRoutes.js';
 import { GameInstance } from './src/models/game_instance.js';
 import {
@@ -35,7 +37,6 @@ import {
 } from '@yasq/shared';
 import { LogCategory, logger } from './src/utils/logger.js';
 import { loadPermissions } from './src/access_control.js';
-import { setupHostRoutes } from './routes/hostRoutes.js';
 
 const DISCONNECTION_GRACE_MILLIS: number = 20_000;
 
@@ -263,7 +264,7 @@ export function setupServer() {
       if (isReconnecting) {
         clearTimeout(disconnectTimeouts.get(timeoutKey));
         disconnectTimeouts.delete(timeoutKey);
-        logger.debug(instanceId, `User ${userId} reconnected within grace period`, LogCategory.GAME);
+        logger.debug(`User ${userId} reconnected within grace period`, LogCategory.GAME, instanceId);
       }
 
       // If no one has registered for this instance yet, this user is the host
@@ -278,9 +279,9 @@ export function setupServer() {
 
       if (!isReconnecting) {
         logger.debug(
-          instanceId,
           `User ${userId} joined the game (role: ${game.isHost(userId) ? 'Host' : 'Player'})`,
-          LogCategory.GAME
+          LogCategory.GAME,
+          instanceId
         );
       }
 
@@ -292,7 +293,7 @@ export function setupServer() {
       const { userId, instanceId } = socket.data;
       if (!userId || !instanceId || !instances[instanceId]) return;
 
-      logger.debug(instanceId, `User ${userId} disconnected from server -> Starting grace period`, LogCategory.GAME);
+      logger.debug(`User ${userId} disconnected from server -> Starting grace period`, LogCategory.GAME, instanceId);
       const timeoutKey = `${instanceId}:${userId}`;
 
       // Clear any existing timeout
@@ -308,13 +309,13 @@ export function setupServer() {
         if (!currentGame) return;
 
         currentGame.registeredUsers.delete(userId);
-        logger.debug(instanceId, `User ${userId}: Grace period expired -> Removing user from game`, LogCategory.GAME);
+        logger.debug(`User ${userId}: Grace period expired -> Removing user from game`, LogCategory.GAME, instanceId);
 
         if (currentGame.isHost(userId) && !isMockMode()) {
           const isGameActive = currentGame.pickNewHost();
 
           if (!isGameActive) {
-            logger.debug(instanceId, 'Terminating empty game instance', LogCategory.GAME);
+            logger.debug('Terminating empty game instance', LogCategory.GAME, instanceId);
             currentGame.dispose();
             delete instances[instanceId];
           }
@@ -365,6 +366,10 @@ export function setupServer() {
     console.log('[MODE] Server is running in mock mode');
     app.use(`/${API_ROOT}/${TEST_PREFIX}`, setupMockRoutes(instances, notifyGameSubscribers));
   }
+
+  // These routes MUST be added last
+  app.use(handleNotFound);
+  app.use(handleErrors);
 
   loadPermissions(permissionsPath);
 

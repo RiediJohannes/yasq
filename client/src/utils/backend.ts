@@ -4,13 +4,14 @@ import {
   GameSettings,
   HOST_PREFIX,
   Joker,
+  LogLevel,
   Participant,
   PointsBonus,
+  serializeError,
   TimeBonus,
   TimeBonusSummary,
 } from '@yasq/shared';
 import { RoundResult } from './types';
-import { LogLevel } from 'vite';
 
 let baseUrl = '';
 
@@ -262,13 +263,22 @@ export async function getDiscordChannels(access_token: string, instanceId: strin
   return response.json();
 }
 
-export async function logToServer(level: LogLevel, message: string, username: string) {
-  return apiFetch(`/log`, {
+export interface LogParams {
+  instanceId?: string;
+  error?: Error | string;
+}
+
+export async function logToServer(level: LogLevel, message: string, userId?: string | null, context: LogParams = {}) {
+  const serializedError = context.error instanceof Error ? serializeError(context.error) : context.error;
+
+  return apiFetch('log', {
     method: 'POST',
     body: {
       level,
       message,
-      user: username,
+      userId,
+      instanceId: context.instanceId,
+      error: serializedError,
     },
   });
 }

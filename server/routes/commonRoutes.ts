@@ -5,9 +5,11 @@ import { fileURLToPath } from 'url';
 
 import { GameInstance } from '../src/models/game_instance.js';
 import {
+  deserializeError,
   GameState,
   INSTANCE_PATH,
   Joker,
+  LogLevel,
   MAX_GUESS_LENGTH,
   type Participant,
   STATIC_FILES_DIR,
@@ -18,10 +20,11 @@ import {
 } from '@yasq/shared';
 import { userDataCache } from '../src/helper.js';
 import { generateResultsImage, isPlaywrightExecutableInstalled } from '../src/export_results.js';
-import { LogCategory, logger } from '../src/utils/logger.js';
+import { LogCategory, type LogContext, logger } from '../src/utils/logger.js';
 import { authenticateUser, createGameMiddleware } from './middleware.js';
 import { exchangeCodeForToken } from '../src/utils/discord.js';
 import { generateSampleTimeBonusSummary, SAMPLE_PARTICIPANTS } from '../src/utils/samples.js';
+import { ApiError } from './errors.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,22 +40,36 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
     const { code } = req.body;
 
     if (!code) {
-      return res.status(400).send({ error: 'Missing code' });
+      throw new ApiError(400, 'Missing property: code', req);
     }
 
     try {
       const accessToken = await exchangeCodeForToken(code);
       res.send({ access_token: accessToken });
-    } catch (err: any) {
-      logger.error('SYSTEM', `OAuth2 token exchange failed`, err.message, LogCategory.AUTH);
-      res.status(500).send({ error: 'Authentication failed' });
+    } catch (err: unknown) {
+      logger.error(`OAuth2 token exchange failed`, LogCategory.AUTH, null, err as Error);
+      throw new ApiError(500, 'Authentication failed', req);
     }
   });
 
   router.post('/log', (req, res) => {
-    const { level, message, user } = req.body;
-    // TODO Improve this endpoint
-    console.log(`[CLIENT-${level}] User ${user}: ${message}`);
+    const { level, message, instanceId, userId, error } = req.body ?? {};
+
+    if (!message) {
+      throw new ApiError(400, 'Missing property: message', req);
+    }
+    if (typeof level !== 'number' || !(level in LogLevel)) {
+      throw new ApiError(400, `Unknown log level ${level}`, req);
+    }
+
+    const logContext: LogContext = {
+      instanceId,
+      clientUserId: userId,
+      error: deserializeError(error),
+    };
+
+    logger.log(level, message, LogCategory.CLIENT, logContext);
+
     res.sendStatus(200);
   });
 
@@ -120,11 +137,11 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
     const game = req.game!;
 
     if (!game.settings.enabledJokers.has(jokerType)) {
-      return res.status(403).send({ error: 'Joker not enabled for this game' });
+      throw new ApiError(403, 'Joker not enabled for this game', req);
     }
 
     if (!game.canUseJoker(userId, jokerType)) {
-      return res.status(403).send({ error: 'Joker already used' });
+      throw new ApiError(403, 'Joker already used', req);
     }
 
     let hint: any;
@@ -140,30 +157,26 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
         break;
       case Joker.SPY:
         if (!targetId) {
-          return res.status(400).send({ error: 'Spy Joker requires a targetId' });
+          throw new ApiError(400, 'Spy joker requires additional property: targetId', req);
         }
 
         hint = game.getSpyHint(targetId);
         if (hint === null) {
-          return res.status(202).send({
-            error: "Target hasn't submitted yet.\nJoker not consumed.",
-          });
+          throw new ApiError(202, "Target hasn't submitted yet.\nJoker not consumed.", req);
         }
         break;
       case Joker.GLIMPSE:
         hint = await game.getGlimpseHint();
         if (hint === null) {
-          return res.status(500).send({
-            error: 'Failed to generate blurred image.\nJoker not consumed.',
-          });
+          throw new ApiError(500, 'Failed to generate blurred image.\nJoker not consumed.', req);
         }
         break;
       default:
-        return res.status(400).send({ error: 'Invalid joker type' });
+        throw new ApiError(400, `Invalid joker type: ${jokerType}`, req);
     }
 
     game.markJokerUsed(userId, jokerType);
-    logger.debug(game.instanceId, `Player ${userId} has used Joker ${jokerType}`, LogCategory.GAME);
+    logger.debug(`Player ${userId} has used Joker ${jokerType}`, LogCategory.GAME, game.instanceId);
 
     game.notifyUpdate();
 
@@ -179,24 +192,22 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
     const game = req.game!;
 
     if (!game.registeredUsers.has(userId)) {
-      return res.status(403).send({ error: 'User not registered in this instance.' });
+      throw new ApiError(403, `User ${userId} is not registered with this instance.`, req);
     }
 
     if (guess.length > MAX_GUESS_LENGTH) {
-      return res.status(400).send({
-        error: `Guess must be between 1 and ${MAX_GUESS_LENGTH} characters.`,
-      });
+      throw new ApiError(400, `Guess must be between 1 and ${MAX_GUESS_LENGTH} characters.`, req);
     }
 
     const { current, total } = game.submitGuess(userId, guess);
     logger.debug(
-      game.instanceId,
       `Guess submitted by player ${userId}; ${current}/${total} players have guessed`,
-      LogCategory.GAME
+      LogCategory.GAME,
+      game.instanceId
     );
 
     if (game.state === GameState.HOST_REVIEW) {
-      logger.debug(game.instanceId, `Game moved to state: ${game.state}`, LogCategory.GAME);
+      logger.debug(`Game moved to state: ${game.state}`, LogCategory.GAME, game.instanceId);
     }
 
     game.notifyUpdate();
@@ -209,7 +220,7 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
     const game = req.game!;
 
     if (game?.state !== GameState.ROUND_RESULTS) {
-      return res.status(400).send({ error: 'Results not ready yet.' });
+      throw new ApiError(400, 'Results not ready yet.', req);
     }
 
     // Get the result for the current round of the requested user
@@ -239,7 +250,7 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
     const game = req.game!;
 
     if (game?.state !== GameState.FINAL_RESULTS) {
-      return res.status(400).send({ error: 'Game has not finished yet.' });
+      throw new ApiError(400, 'Game has not finished yet.', req);
     }
 
     // Download a screenshot of the final results instead of displaying them in the view
@@ -259,9 +270,9 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
 
       return res.download(filePath, `yasq-results.png`, err => {
         if (err) {
-          console.error('Error transferring file to client:', err);
+          logger.error('Error transferring file to client', LogCategory.GAME, game.instanceId, err);
           if (!res.headersSent) {
-            res.status(500).send('Could not download file.');
+            throw new ApiError(500, 'Failed to download file.', req);
           }
         }
       });

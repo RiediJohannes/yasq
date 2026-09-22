@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 
 import { ACHIEVEMENT_BONUS_POINTS, getAvatarUrl, getDisplayName, type Participant } from '@yasq/shared';
 import type { Leaderboard, LeaderboardEntry, RoundResult } from './models/leaderboard.js';
-import { logger } from './utils/logger.js';
+import { LogCategory, logger } from './utils/logger.js';
 import type { GameStats } from './models/game_stats.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -37,8 +37,9 @@ export async function generateResultsImage(
 ) {
   if (!isPlaywrightExecutableInstalled()) {
     logger.warn(
-      instanceId,
-      `Playwright Chromium executable not found. Skipping results image generation. Please run 'npx playwright install chromium'.`
+      `Playwright Chromium executable not found. Skipping results image generation. Please run 'npx playwright install chromium'.`,
+      LogCategory.GAME,
+      instanceId
     );
     return;
   }
@@ -48,8 +49,8 @@ export async function generateResultsImage(
   let cssContent = '';
   try {
     cssContent = fs.readFileSync(cssFilePath, 'utf8');
-  } catch (err) {
-    logger.error(instanceId, `Could not load client-side stylesheet`, err);
+  } catch (err: unknown) {
+    logger.error(`Could not load client-side stylesheet`, LogCategory.GAME, instanceId, err as Error);
   }
 
   const currentDateFormatted = new Intl.DateTimeFormat('en-GB', {
@@ -111,12 +112,12 @@ export async function generateResultsImage(
 
   const htmlContent = `
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
       <head>
         <meta charset="utf-8">
         <style>
           /* 1. Inject CSS rules */
-          ${cssContent}
+          ${cssContent};
 
           /* 2. Overwrite and flatten variables and animation nodes */
           body {
@@ -161,6 +162,7 @@ export async function generateResultsImage(
               .map((player: LeaderboardEntry, index: number) => {
                 const isWinner = index === 0;
                 const user = userData.get(player.userId);
+                const userName = user ? getDisplayName(user) : 'Anonymous';
                 const achievements = Array.from(player.achievementBonuses || []);
 
                 return `
@@ -168,8 +170,8 @@ export async function generateResultsImage(
                   <div class="player-card ${isWinner ? 'winner' : ''}">
                     <div class="player-main-info">
                       <div class="rank">#${index + 1}</div>
-                      <img src="${getAvatarUrl(user!)}" class="avatar-small" draggable="false" />
-                      <div class="name">${isWinner ? '👑 ' : ''}${getDisplayName(user!)}</div>
+                      <img src="${getAvatarUrl(user!)}" alt="Avatar of ${userName}" class="avatar-small" draggable="false" />
+                      <div class="name">${isWinner ? '👑 ' : ''}${userName}</div>
 
                       ${
                         achievements.length > 0
@@ -241,7 +243,7 @@ export async function generateResultsImage(
                               const displayValue = values[uIndex] || userName;
                               return `
                             <div class="game-stat-content">
-                              <img src="${avatarUrl}" class="avatar-small" draggable="false" style="width: 20px; height: 20px; border-radius: 50%;" />
+                              <img src="${avatarUrl}" alt="Avatar of ${userName}" class="avatar-small" draggable="false" style="width: 20px; height: 20px; border-radius: 50%;" />
                               <strong class="game-stat-value">${displayValue}</strong>
                             </div>
                           `;
@@ -282,7 +284,7 @@ export async function generateResultsImage(
 
     // Store image in local temp dir
     fs.writeFileSync(outputPath, imageBuffer);
-    logger.debug(instanceId, `Successfully stored image file to: ${outputPath}`);
+    logger.debug(`Successfully stored image file to: ${outputPath}`, LogCategory.GAME, instanceId);
   } finally {
     await browser.close();
   }

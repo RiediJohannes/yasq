@@ -2,6 +2,7 @@ import type { Server } from 'socket.io';
 import fs from 'fs';
 import path from 'path';
 import { type APIChannel, type APITextChannel, ChannelType } from 'discord-api-types/v10';
+import type { Request } from 'express';
 
 import type { GameInstance } from './models/game_instance.js';
 import {
@@ -79,7 +80,7 @@ export function getGameStatusPayload(game: GameInstance) {
     lostStreaks: game.currentRoundLostStreaks,
     gameSettings: {
       ...game.settings,
-      enabledJokers: [...game.settings.enabledJokers],
+      enabledJokers: game.settings.enabledJokers ? [...game.settings.enabledJokers] : [],
     },
   };
 }
@@ -151,3 +152,6 @@ export function getFilePath(fileName: string) {
     ? path.join(__dirname, '..', '..', 'mock_data', fileName)
     : path.join(__dirname, '..', STATIC_FILES_DIR, getDataSourceDir(), fileName);
 }
+
+export const hasQueryParams = (request: Request) => Object.keys(request.query).length > 0;
+export const hasPathParams = (request: Request) => Object.keys(request.params).length > 0;

@@ -2,9 +2,10 @@ import express from 'express';
 
 import { GameInstance } from '../src/models/game_instance.js';
 import { Leaderboard } from '../src/models/leaderboard.js';
-import { logger } from '../src/utils/logger.js';
+import { LogCategory, logger } from '../src/utils/logger.js';
 import { INSTANCE_PATH } from '@yasq/shared';
 import { createGameMiddleware } from './middleware.js';
+import { ApiError } from './errors.js';
 
 export const setupMockRoutes = (
   instances: Record<string, GameInstance>,
@@ -16,9 +17,7 @@ export const setupMockRoutes = (
   router.post(`/${INSTANCE_PATH}`, (req, res) => {
     const instanceId = (req.params as { instanceId?: string })?.instanceId;
 
-    if (!instanceId) {
-      return res.status(400).send({ error: 'instanceId is required' });
-    }
+    if (!instanceId) throw new ApiError(400, 'Missing property: instanceId', req);
 
     const createdGame = setMockState(req.body);
     createdGame.onUpdate = notifyGameSubscribers;
@@ -33,7 +32,7 @@ export const setupMockRoutes = (
     const game = req.game!;
 
     if (!game) {
-      return res.status(400).send({ error: 'Instance not found' });
+      throw new ApiError(404, 'Instance not found', req);
     }
 
     const updates = req.body;
@@ -96,7 +95,7 @@ export const setupMockRoutes = (
     if (instances[instanceId]) {
       game.dispose();
       delete instances[instanceId];
-      logger.debug(instanceId, `Successfully deleted test instance`);
+      logger.debug(`Successfully deleted test instance`, LogCategory.GENERAL, instanceId);
 
       return res.status(200).send({ message: `Instance ${instanceId} deleted` });
     }
