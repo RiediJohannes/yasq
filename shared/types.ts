@@ -1,6 +1,6 @@
 import {
+  type AchievementBonuses,
   AchievementBonusType,
-  AchievementBonuses,
   BonusType,
   DEFAULT_ENABLED_JOKERS,
   DEFAULT_FIRST_BONUS_MULTIPLIER,
