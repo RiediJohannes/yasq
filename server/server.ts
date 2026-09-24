@@ -23,17 +23,15 @@ import {
 } from './src/helper.js';
 import {
   API_ROOT,
+  COUNTDOWN_DURATION,
   HOST_PREFIX,
   type Playlist,
-  PLAYLISTS_UPDATED_EVENT,
   SAMPLE_DATA_DIR,
+  SocketEvent,
   STATIC_FILES_DIR,
   TEMP_FILES_DIR,
   TEST_PREFIX,
   type Track,
-  TRACKS_UPDATED_EVENT,
-  WS_GAME_STATUS_UPDATE_EVENT,
-  WS_JOIN_INSTANCE_EVENT,
 } from '@yasq/shared';
 import { LogCategory, logger } from './src/utils/logger.js';
 import { loadPermissions } from './src/access_control.js';
@@ -201,7 +199,7 @@ export function setupServer() {
     tracksPath,
     () => {
       cachedTracks = loadTracks(tracksPath);
-      server.emit(TRACKS_UPDATED_EVENT);
+      server.emit(SocketEvent.TRACKS_UPDATED);
     },
     'Tracks'
   );
@@ -210,12 +208,13 @@ export function setupServer() {
     playlistsPath,
     () => {
       cachedPlaylists = loadPlaylists(playlistsPath);
-      server.emit(PLAYLISTS_UPDATED_EVENT);
+      server.emit(SocketEvent.PLAYLISTS_UPDATED);
     },
     'Playlists'
   );
 
-  const disconnectTimeouts = new Map();
+  const disconnectTimeouts = new Map<string, NodeJS.Timeout>();
+  const clientLatencies = new Map<string, number>();
 
   const app = express();
   const httpServer = createServer(app);
@@ -228,6 +227,24 @@ export function setupServer() {
   });
 
   const notifyGameSubscribers = (updatedGame: GameInstance) => broadcastGameStatus(server, updatedGame);
+
+  const readyClientsMap = new Map<string, Set<string>>(); // instanceId -> Set of socketIds
+
+  function startRoundForInstance(game: GameInstance, maxSetupDuration: number) {
+    readyClientsMap.delete(game.instanceId);
+
+    const MIN_READY_DISPLAY_MILLIS = 1500;
+    const maxClientLatency = Math.max(...clientLatencies.values());
+    const minimumWaitingTime = MIN_READY_DISPLAY_MILLIS - maxSetupDuration;
+    const startTime = Date.now() + COUNTDOWN_DURATION + Math.max(minimumWaitingTime, maxClientLatency);
+    const endTime = startTime + game.settings.maxGuessTime;
+
+    // Broadcast round start event
+    server.to(game.instanceId).emit(SocketEvent.ROUND_STARTING, {
+      startTime,
+      endTime,
+    });
+  }
 
   server.use(async (socket, next) => {
     const token = socket.handshake.auth.token;
@@ -243,7 +260,59 @@ export function setupServer() {
   });
 
   server.on('connection', socket => {
-    socket.on(WS_JOIN_INSTANCE_EVENT, async ({ instanceId }) => {
+    socket.on(SocketEvent.REQUEST_TIME, (callback: (serverTime: number) => void) => {
+      if (typeof callback === 'function') {
+        callback(Date.now());
+      }
+    });
+
+    socket.on('disconnect', () => {
+      const { userId, instanceId } = socket.data;
+      if (!userId || !instanceId || !instances[instanceId]) return;
+
+      logger.debug(`User ${userId} disconnected from server -> Starting grace period`, LogCategory.GAME, instanceId);
+      const timeoutKey = `${instanceId}:${userId}`;
+
+      // Clear any existing timeout
+      if (disconnectTimeouts.has(timeoutKey)) {
+        clearTimeout(disconnectTimeouts.get(timeoutKey));
+      }
+
+      // Give the client a grace period to reconnect before stripping their host/player status
+      const disconnectTimeout = setTimeout(() => {
+        disconnectTimeouts.delete(timeoutKey);
+
+        const currentGame = instances[instanceId];
+        if (!currentGame) return;
+
+        currentGame.registeredUsers.delete(userId);
+        logger.debug(`User ${userId}: Grace period expired -> Removing user from game`, LogCategory.GAME, instanceId);
+
+        if (currentGame.isHost(userId) && !isMockMode()) {
+          const isGameActive = currentGame.pickNewHost();
+
+          if (!isGameActive) {
+            logger.debug('Terminating empty game instance', LogCategory.GAME, instanceId);
+            currentGame.dispose();
+            delete instances[instanceId];
+          }
+        }
+
+        server.to(instanceId).emit(SocketEvent.GAME_STATE_UPDATED, getGameStatusPayload(currentGame));
+      }, DISCONNECTION_GRACE_MILLIS);
+
+      disconnectTimeouts.set(timeoutKey, disconnectTimeout);
+    });
+
+    socket.on(SocketEvent.TIME_SYNCED, (determinedTimeOffset: number) => {
+      const userId = socket.data.userId;
+      if (userId) {
+        console.log(`Latency of user ${userId} is now ${determinedTimeOffset}ms`);
+        clientLatencies.set(userId, determinedTimeOffset);
+      }
+    });
+
+    socket.on(SocketEvent.JOIN_INSTANCE, async ({ instanceId }) => {
       const userId = socket.data.userId;
       socket.data.instanceId = instanceId;
 
@@ -286,45 +355,27 @@ export function setupServer() {
       }
 
       // Broadcast updated state to everyone in this game instance
-      server.to(instanceId).emit(WS_GAME_STATUS_UPDATE_EVENT, getGameStatusPayload(game));
+      server.to(instanceId).emit(SocketEvent.GAME_STATE_UPDATED, getGameStatusPayload(game));
     });
 
-    socket.on('disconnect', () => {
-      const { userId, instanceId } = socket.data;
-      if (!userId || !instanceId || !instances[instanceId]) return;
+    socket.on(SocketEvent.READY_TO_PLAY, ({ setupDuration }) => {
+      const instanceId = socket.data.instanceId;
+      const game = instances[instanceId];
+      if (!game) return;
 
-      logger.debug(`User ${userId} disconnected from server -> Starting grace period`, LogCategory.GAME, instanceId);
-      const timeoutKey = `${instanceId}:${userId}`;
-
-      // Clear any existing timeout
-      if (disconnectTimeouts.has(timeoutKey)) {
-        clearTimeout(disconnectTimeouts.get(timeoutKey));
+      // TODO Put this whole "readyForPlaying" logic INTO the game instance and ask game.allReady() below
+      if (!readyClientsMap.has(instanceId)) {
+        readyClientsMap.set(instanceId, new Set());
       }
 
-      // Give the client a grace period to reconnect before stripping their host/player status
-      const disconnectTimeout = setTimeout(() => {
-        disconnectTimeouts.delete(timeoutKey);
+      const readySet = readyClientsMap.get(instanceId)!;
+      readySet.add(socket.id);
 
-        const currentGame = instances[instanceId];
-        if (!currentGame) return;
-
-        currentGame.registeredUsers.delete(userId);
-        logger.debug(`User ${userId}: Grace period expired -> Removing user from game`, LogCategory.GAME, instanceId);
-
-        if (currentGame.isHost(userId) && !isMockMode()) {
-          const isGameActive = currentGame.pickNewHost();
-
-          if (!isGameActive) {
-            logger.debug('Terminating empty game instance', LogCategory.GAME, instanceId);
-            currentGame.dispose();
-            delete instances[instanceId];
-          }
-        }
-
-        server.to(instanceId).emit(WS_GAME_STATUS_UPDATE_EVENT, getGameStatusPayload(currentGame));
-      }, DISCONNECTION_GRACE_MILLIS);
-
-      disconnectTimeouts.set(timeoutKey, disconnectTimeout);
+      // Check if all participants in the instance are ready (or implement a max 4s fallback timeout)
+      const totalParticipants = game.getNumberOfParticipants();
+      if (readySet.size >= totalParticipants) {
+        startRoundForInstance(game, setupDuration);
+      }
     });
   });
 

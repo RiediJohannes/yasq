@@ -4,14 +4,19 @@ import { withTimeout } from './helper';
 import * as backend from './backend';
 import { gameState, participants } from '../main';
 import { io, Socket } from 'socket.io-client';
-import { Participant, WS_GAME_STATUS_UPDATE_EVENT, WS_JOIN_INSTANCE_EVENT } from '@yasq/shared';
+import { Participant, SocketEvent, TSocketEvent } from '@yasq/shared';
 import { Signal, signal } from '@preact/signals';
 
 const CONNECTION_TIMEOUT_MILLIS_LONG: number = 10_000;
 const CONNECTION_TIMEOUT_MILLIS_SHORT: number = 3000;
+const CLOCK_SYNC_INTERVAL_MILLIS: number = 30_000;
 
 const socketSignal = signal<Socket | null>(null);
 export const socketConnected = signal<boolean>(false);
+
+export function getSocket() {
+  return socketSignal.value;
+}
 
 export type AbstractDiscordSdk = DiscordSDK | typeof mockDiscordSdk;
 
@@ -96,25 +101,34 @@ export function establishServerConnection(instanceId: string, authToken: string)
   socketSignal.value = socket;
   trackConnectionStatus(socketSignal.value);
 
-  socket.on('connect', () => {
-    console.log('[DIAGNOSTICS] Socket connected! Emitting WS_JOIN_INSTANCE_EVENT');
-    socket.emit(WS_JOIN_INSTANCE_EVENT, { instanceId });
+  socket.on('connect', async () => {
+    console.log('[DIAGNOSTICS] Socket connected! Emitting JOIN_INSTANCE event');
+    socket.emit(SocketEvent.JOIN_INSTANCE, { instanceId });
+
+    await syncClockWithServer();
   });
-  socket.io.on('reconnect', attempt => {
+  socket.io.on('reconnect', async attempt => {
     console.log(`[DIAGNOSTICS] Socket reconnected successfully on attempt ${attempt}...`);
-    socket.emit(WS_JOIN_INSTANCE_EVENT, { instanceId });
+    socket.emit(SocketEvent.JOIN_INSTANCE, { instanceId });
+
+    await syncClockWithServer();
   });
   socket.on('disconnect', reason => {
     console.warn(`[DIAGNOSTICS] Socket disconnected. Reason: ${reason}`);
   });
 
-  socket.on(WS_GAME_STATUS_UPDATE_EVENT, updatedState => {
+  // Listen for game state updates
+  socket.on(SocketEvent.GAME_STATE_UPDATED, updatedState => {
     gameState.value = updatedState;
     if (updatedState.participants) {
       participants.value = updatedState.participants;
     }
   });
 
+  // Periodically re-sync local clock with the server's clock
+  setInterval(() => void syncClockWithServer(4), CLOCK_SYNC_INTERVAL_MILLIS);
+
+  // React to network (dis)connections
   window.addEventListener('offline', () => {
     console.warn('[NETWORK] Browser went offline.');
     socketConnected.value = false;
@@ -162,10 +176,67 @@ export async function syncParticipants(
   );
 }
 
+let serverClockOffset = 0; // (Server Time - Client Time) in milliseconds
+
+/**
+ * Returns the current timestamp synchronized with the server clock.
+ */
+export const getSyncedServerTime = (): number => {
+  return Date.now() + serverClockOffset;
+};
+
+/**
+ * Measures the offset of the client's device clock to the server's internal clock (accounting for both clock inaccuracy
+ * and network latency) in order to calculate a server-synced current time.
+ * **Hint:** Use {@link getSyncedServerTime} to obtain the server-synced time.
+ */
+export const syncClockWithServer = async (sampleCount = 8): Promise<number> => {
+  const socket = socketSignal.value;
+  if (!socket || !socket.connected) return serverClockOffset;
+
+  const samples: Array<{ clientOffset: number; roundTripTime: number }> = [];
+
+  // Cristian's Algorithm (https://en.wikipedia.org/wiki/Cristian%27s_algorithm)
+  for (let i = 0; i < sampleCount && socket.connected; i++) {
+    await new Promise<void>(resolve => {
+      const sendTime = Date.now();
+
+      socket.emit(SocketEvent.REQUEST_TIME, (serverTime: number) => {
+        const receiveTime = Date.now();
+        const roundTripTime = receiveTime - sendTime;
+
+        const estimatedServerTimeAtReceive = serverTime + roundTripTime / 2;
+        const offset = estimatedServerTimeAtReceive - receiveTime;
+
+        samples.push({ clientOffset: offset, roundTripTime });
+        resolve();
+      });
+    });
+
+    // Small delay between sampling pings
+    if (i < sampleCount - 1) {
+      await new Promise(r => setTimeout(r, 150));
+    }
+  }
+
+  // Sort by round-trip time (ascending)
+  samples.sort((a, b) => a.roundTripTime - b.roundTripTime);
+
+  // Use offset from the fastest packet exchange
+  serverClockOffset = samples[0]!.clientOffset;
+  console.log(
+    `[TimeSync] Clock synced. Offset: ${serverClockOffset.toFixed(2)}ms (Best RTT: ${samples[0]!.roundTripTime}ms)`
+  );
+
+  socket.emit(SocketEvent.TIME_SYNCED, -serverClockOffset);
+
+  return serverClockOffset;
+};
+
 /**
  * Subscribes a handler to the given game event and returns an unsubscribe function for clean-up.
  */
-export function onGameEvent<T = any>(event: string, callback: (data: T) => void): () => void {
+export function onGameEvent<T = any>(event: TSocketEvent, callback: (data: T) => void): () => void {
   const socket = socketSignal.value;
   if (!socket) return () => {};
 

@@ -2,7 +2,7 @@ import { useSignal } from '@preact/signals';
 import { useEffect, useState } from 'preact/hooks';
 
 import * as backend from '../utils/backend';
-import { discordSdk, gameState, participants, useAuth } from '../main';
+import { audioPlayer, discordSdk, gameState, participants, useAuth } from '../main';
 import { findUser } from '../utils/helper';
 import { ACHIEVEMENT_BONUS_POINTS, getAvatarUrl, getDisplayName } from '@yasq/shared';
 import { RoundBubblesGroup } from '../components/RoundBubble';
@@ -24,6 +24,10 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
   const [selectedChannel, setSelectedChannel] = useState('');
 
   useEffect(() => {
+    audioPlayer.pause();
+    audioPlayer.currentTime = 0;
+    audioPlayer.src = '';
+
     backend.getFinalResults(discordSdk.instanceId).then(data => {
       leaderboard.value = data.leaderboard;
       gameStats.value = data.gameStats;

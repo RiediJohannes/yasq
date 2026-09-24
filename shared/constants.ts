@@ -77,13 +77,12 @@ export enum LogLevel {
 
 export const MAX_VOLUME: number = 0.25;
 export const DEFAULT_VOLUME_SLIDER_VAL: number = 0.5;
-export const POLLING_INTERVAL: number = 500;
 
 export const STATIC_FILES_DIR: string = 'data';
 export const SAMPLE_DATA_DIR: string = 'sample';
 export const TEMP_FILES_DIR: string = 'temp';
 
-export const COUNTDOWN_DURATION: number = 4000;
+export const COUNTDOWN_DURATION: number = 3000;
 export const DEFAULT_MAX_GUESS_TIME: number = 60_000;
 export const DEFAULT_ROUNDS: number = 5;
 export const DEFAULT_ENABLED_JOKERS: Joker[] = [
@@ -106,19 +105,25 @@ export const DEFAULT_STREAK_BONUS_MULTIPLIER = StreakBonusMultiplier.MEDIUM;
 export const GLIMPSE_BLUR_INTENSITY: number = 25;
 
 export const INT32_MAX_VALUE: number = 2 ** 31 - 1;
+export const MAX_GUESS_LENGTH = 100;
 
 export const API_ROOT: string = 'api';
 export const HOST_PREFIX: string = 'host';
 export const TEST_PREFIX: string = 'test';
 export const INSTANCE_PATH: string = 'instance/:instanceId';
 
-export const WS_JOIN_INSTANCE_EVENT: string = 'join_instance';
-export const WS_GAME_STATUS_UPDATE_EVENT: string = 'game_status_update';
-export const TRACKS_UPDATED_EVENT: string = 'tracks-updated';
-export const PLAYLISTS_UPDATED_EVENT: string = 'playlists-updated';
+export const SocketEvent = {
+  JOIN_INSTANCE: 'join_instance',
+  REQUEST_TIME: 'request_time',
+  TIME_SYNCED: 'time_synced',
+  READY_TO_PLAY: 'ready_to_play',
+  ROUND_STARTING: 'round_starting',
+  GAME_STATE_UPDATED: 'game_status_update',
+  TRACKS_UPDATED: 'tracks-updated',
+  PLAYLISTS_UPDATED: 'playlists-updated',
+} as const;
+
+export type TSocketEvent = (typeof SocketEvent)[keyof typeof SocketEvent];
 
 export const UI_UPDATES_DELAY_IN_E2E: number = 1000;
-
-export const MAX_GUESS_LENGTH = 100;
-
 export const LONG_PRESS_MILLIS = 400;

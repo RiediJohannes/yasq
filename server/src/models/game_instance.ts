@@ -55,6 +55,8 @@ export class GameInstance {
 
   public onUpdate?: (game: GameInstance) => void;
 
+  private roundTimeout: NodeJS.Timeout | null = null;
+
   constructor(instanceId: string, hostId: string) {
     this.instanceId = instanceId;
     this.hostId = hostId;
@@ -62,6 +64,10 @@ export class GameInstance {
 
   public isHost(userId: string): boolean {
     return this.hostId === userId;
+  }
+
+  public getNumberOfParticipants(): number {
+    return this.registeredUsers.size;
   }
 
   public setupGame(settings: GameSettings<Set<Joker>>): void {
@@ -370,7 +376,7 @@ export class GameInstance {
     const totalWaitTime = COUNTDOWN_DURATION + this.settings.maxGuessTime;
 
     // Set a timer to automatically transition to HOST_REVIEW after maxGuessTime
-    setTimeout(() => {
+    this.roundTimeout = setTimeout(() => {
       if (this.state === GameState.PLAYING && this.currentRound === roundAtStart && this.currentGame === gameAtStart) {
         this.state = GameState.HOST_REVIEW;
         logger.debug(`Timer for round ${roundAtStart} expired`, LogCategory.GAME, this.instanceId);
@@ -559,6 +565,7 @@ export class GameInstance {
   }
 
   public dispose(): void {
+    this.roundTimeout?.close();
     this.removeTempFiles();
   }
 

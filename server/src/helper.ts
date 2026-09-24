@@ -8,10 +8,10 @@ import type { GameInstance } from './models/game_instance.js';
 import {
   type Participant,
   SAMPLE_DATA_DIR,
+  SocketEvent,
   STATIC_FILES_DIR,
   TEMP_FILES_DIR,
   UI_UPDATES_DELAY_IN_E2E,
-  WS_GAME_STATUS_UPDATE_EVENT,
 } from '@yasq/shared';
 import { getDiscordUser } from './utils/discord.js';
 import { fileURLToPath } from 'url';
@@ -87,7 +87,7 @@ export function getGameStatusPayload(game: GameInstance) {
 
 export function broadcastGameStatus(server: Server, game: GameInstance) {
   const emitUpdate = () => {
-    server.to(game.instanceId).emit(WS_GAME_STATUS_UPDATE_EVENT, getGameStatusPayload(game));
+    server.to(game.instanceId).emit(SocketEvent.GAME_STATE_UPDATED, getGameStatusPayload(game));
   };
 
   if (process.env.UI_TEST_MODE === 'true') {
