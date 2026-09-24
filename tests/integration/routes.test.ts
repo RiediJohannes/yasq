@@ -12,7 +12,7 @@ import { setupServer } from '../../server';
 import {
   deserializeError,
   FirstBonusMultiplier,
-  GameState,
+  GamePhase,
   Joker,
   LogLevel,
   serializeError,
@@ -21,7 +21,7 @@ import {
 } from '@yasq/shared';
 import type { Server } from 'http';
 import { AddressInfo } from 'net';
-import { TestApi } from '../utils/api.js';
+import { TestApi, TestGameState } from '../utils/api.js';
 import { exchangeCodeForToken, getDiscordUser } from '../../server/src/utils/discord';
 import { LogCategory, logger } from '@yasq/server/src/utils/logger';
 import { Player } from '../utils/helper';
@@ -35,7 +35,7 @@ const DEFAULT_PLAYERS: Player[] = [
   { id: '1', username: 'Player1' },
   { id: '2', username: 'Player2' },
 ];
-const DEFAULT_SESSION: [Player[], GameState] = [DEFAULT_PLAYERS, GameState.SETUP];
+const DEFAULT_SESSION: [Player[], TestGameState] = [DEFAULT_PLAYERS, { phase: GamePhase.SETUP }];
 
 let httpServer: Server;
 let baseUrl: string;
@@ -196,7 +196,7 @@ describe('setupGame', () => {
 
 describe('playTrack', () => {
   beforeEach(async () => {
-    await api.setupSession(DEFAULT_PLAYERS, GameState.TRACK_SELECTION);
+    await api.setupSession(DEFAULT_PLAYERS, { phase: GamePhase.TRACK_SELECTION });
   });
 
   afterEach(async () => {
@@ -238,7 +238,7 @@ describe('playTrack', () => {
 
 describe('submitGuess', () => {
   beforeEach(async () => {
-    await api.setupSession(DEFAULT_PLAYERS, GameState.PLAYING);
+    await api.setupSession(DEFAULT_PLAYERS, { phase: GamePhase.PLAYING });
   });
 
   afterEach(async () => {
@@ -282,7 +282,9 @@ describe('useJoker', () => {
         { id: '2', username: 'Player2' },
         { id: '3', username: 'Player3' },
       ],
-      GameState.PLAYING,
+      {
+        phase: GamePhase.PLAYING,
+      },
       {
         settings: {
           maxGuessTime: 60_000,
@@ -397,14 +399,14 @@ describe('useJoker', () => {
     expect(body.error).toContain('Joker not enabled for this game');
   });
 
-  it('should return 403 Forbidden when joker already used', async () => {
+  it('should return 410 Gone when joker already used', async () => {
     await api.patchEnabledJokers([Joker.OBFUSCATION]);
 
     await useJoker(player1Token, currentInstanceId, Joker.OBFUSCATION);
     const response = await useJoker(player1Token, currentInstanceId, Joker.OBFUSCATION);
     const body = await response.json();
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(410);
     expect(body.error).toContain('Joker already used');
   });
 });

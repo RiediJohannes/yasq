@@ -1,4 +1,4 @@
-import { GameState } from '@yasq/shared';
+import { GamePhase } from '@yasq/shared';
 import { expect, test } from './test_setup.js';
 import AxeBuilder from '@axe-core/playwright';
 
@@ -8,7 +8,7 @@ test.describe('Host UI', () => {
       playerCount: 3,
       userIndex: 0,
       sessionData: {
-        state: GameState.LOBBY,
+        state: { phase: GamePhase.LOBBY },
       },
     },
   });
@@ -80,7 +80,7 @@ test.describe('Player UI', () => {
       playerCount: 3,
       userIndex: 1,
       sessionData: {
-        state: GameState.LOBBY,
+        state: { phase: GamePhase.LOBBY },
       },
     },
   });

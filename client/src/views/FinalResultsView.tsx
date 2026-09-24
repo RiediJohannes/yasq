@@ -2,7 +2,7 @@ import { useSignal } from '@preact/signals';
 import { useEffect, useState } from 'preact/hooks';
 
 import * as backend from '../utils/backend';
-import { discordSdk, gameState, participants, useAuth } from '../main';
+import { audioPlayer, discordSdk, gameStatus, participants, useAuth } from '../main';
 import { findUser } from '../utils/helper';
 import { ACHIEVEMENT_BONUS_POINTS, getAvatarUrl, getDisplayName } from '@yasq/shared';
 import { RoundBubblesGroup } from '../components/RoundBubble';
@@ -24,6 +24,10 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
   const [selectedChannel, setSelectedChannel] = useState('');
 
   useEffect(() => {
+    audioPlayer.pause();
+    audioPlayer.currentTime = 0;
+    audioPlayer.src = '';
+
     backend.getFinalResults(discordSdk.instanceId).then(data => {
       leaderboard.value = data.leaderboard;
       gameStats.value = data.gameStats;
@@ -66,10 +70,10 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
       .then(data => setChannels(data));
   }, [isHost]);
 
-  const playersExcludingHost = participants.value.filter(p => p.id !== gameState.value.hostId);
-  const readyCount = gameState.value.readyUsers.length;
+  const playersExcludingHost = participants.value.filter(p => p.id !== gameStatus.value.hostId);
+  const readyCount = gameStatus.value.readyPlayers.length;
   const allPlayersReady =
-    playersExcludingHost.length > 0 && playersExcludingHost.every(p => gameState.value.readyUsers.includes(p.id));
+    playersExcludingHost.length > 0 && playersExcludingHost.every(p => gameStatus.value.readyPlayers.includes(p.id));
 
   const handleRestart = async (e: MouseEvent) => {
     const btn = e.currentTarget as HTMLButtonElement;

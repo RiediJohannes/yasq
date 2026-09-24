@@ -12,7 +12,7 @@ import {
   DEFAULT_FIRST_BONUS_MULTIPLIER,
   DEFAULT_STREAK_BONUS_MULTIPLIER,
   FirstBonusMultiplier,
-  GameState,
+  GamePhase,
   Joker,
   MAX_TIME_MULTIPLIER,
   MIN_TIME_MULTIPLIER,
@@ -47,8 +47,8 @@ describe('GameInstance - startGame', () => {
 
   beforeEach(() => {
     game = new GameInstance(INSTANCE_ID, HOST);
-    game.registeredUsers.add(HOST);
-    game.registeredUsers.add(PLAYER_1);
+    game.addUser(HOST);
+    game.addUser(PLAYER_1);
   });
 
   it('should initialize settings and transition state', () => {
@@ -64,8 +64,8 @@ describe('GameInstance - startGame', () => {
     game.startGame();
 
     // Assert state and current round
-    expect(game.state).toBe(GameState.TRACK_SELECTION);
-    expect(game.currentRound).toBe(1);
+    expect(game.state.phase).toBe(GamePhase.TRACK_SELECTION);
+    expect(game.state.round).toBe(1);
 
     // Assert settings (15s should become 15000ms)
     expect(game.settings.rounds).toBe(5);
@@ -105,25 +105,23 @@ describe('GameInstance - submitGuess', () => {
   beforeEach(() => {
     vi.useFakeTimers(); // Intercept Date.now()
     game = new GameInstance(INSTANCE_ID, HOST);
-    game.registeredUsers.add(PLAYER_1);
-    game.registeredUsers.add(PLAYER_2);
+    game.addUser(PLAYER_1);
+    game.addUser(PLAYER_2);
 
     // Simulate game already started and in selection state
-    game.currentRound = 1;
+    game.state.round = 1;
     const track = {
       game: GAME_A,
       title: 'Track A',
       audio: '',
       cover: '',
       tags: [],
-    } as Track;
+    } satisfies Track;
     game.trackInfo = {
       url: 'url',
-      startTime: Date.now(),
-      endTime: Date.now() + 10_000,
       track: track,
       gameCoverUrl: 'cover',
-    } as TrackInfo;
+    } satisfies TrackInfo;
   });
 
   afterEach(() => {
@@ -148,7 +146,7 @@ describe('GameInstance - submitGuess', () => {
     const progress1 = game.submitGuess(PLAYER_1, GAME_A);
     expect(progress1.current).toBe(1);
     expect(game.guessedPlayers.has(PLAYER_1)).toBe(true);
-    expect(game.state).not.toBe(GameState.HOST_REVIEW);
+    expect(game.state.phase).not.toBe(GamePhase.HOST_REVIEW);
 
     // Second (last) player guesses
     const progress2 = game.submitGuess(PLAYER_2, GAME_B);
@@ -157,15 +155,15 @@ describe('GameInstance - submitGuess', () => {
     expect(game.guessedPlayers.has(PLAYER_2)).toBe(true);
 
     // Check state transition
-    expect(game.state).toBe(GameState.HOST_REVIEW);
+    expect(game.state.phase).toBe(GamePhase.HOST_REVIEW);
   });
 });
 
 describe('GameInstance - getTimedOutPlayers', () => {
   it('should return list of players who have not submitted a guess', () => {
     const game = new GameInstance(INSTANCE_ID, HOST);
-    game.registeredUsers.add(PLAYER_1);
-    game.registeredUsers.add(PLAYER_2);
+    game.addUser(PLAYER_1);
+    game.addUser(PLAYER_2);
     game.submitGuess(PLAYER_1, GAME_A);
 
     const timedOutPlayers = game.getTimedOutPlayers();
@@ -182,9 +180,9 @@ describe('GameInstance - submitResults', () => {
 
   beforeEach(() => {
     game = new GameInstance(INSTANCE_ID, HOST);
-    game.registeredUsers.add(PLAYER_1);
-    game.registeredUsers.add(PLAYER_2);
-    game.registeredUsers.add(PLAYER_3);
+    game.addUser(PLAYER_1);
+    game.addUser(PLAYER_2);
+    game.addUser(PLAYER_3);
     game.setupGame({
       rounds: 10,
       maxGuessTime: 20, // 20s duration = 20000ms
@@ -536,7 +534,7 @@ describe('GameInstance - submitResults', () => {
 
     game.submitResults({});
 
-    expect(game.state).toBe(GameState.ROUND_RESULTS);
+    expect(game.state.phase).toBe(GamePhase.ROUND_RESULTS);
     expect(game.guessedPlayers.size).toBe(0);
   });
 });
@@ -717,8 +715,8 @@ describe('GameInstance - advanceRound', () => {
       streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
     });
     game.startGame();
-    game.readyUsers.add(PLAYER_1);
-    game.readyUsers.add(PLAYER_2);
+    game.readyPlayers.add(PLAYER_1);
+    game.readyPlayers.add(PLAYER_2);
 
     const entry1 = new LeaderboardEntry(PLAYER_1);
     entry1.totalScore = 500;
@@ -732,32 +730,30 @@ describe('GameInstance - advanceRound', () => {
     // We are on round 1 of 3
     const nextState = game.advanceRound();
 
-    expect(game.readyUsers.size).toBe(0);
-    expect(nextState).toBe(GameState.TRACK_SELECTION);
-    expect(game.currentRound).toBe(2);
-    expect(game.state).toBe(GameState.TRACK_SELECTION);
+    expect(game.readyPlayers.size).toBe(0);
+    expect(nextState).toBe(GamePhase.TRACK_SELECTION);
+    expect(game.state.round).toBe(2);
+    expect(game.state.phase).toBe(GamePhase.TRACK_SELECTION);
   });
 
   it('should finish the game and set lastWinnerId when final round is reached', () => {
     // Manually push to the final round (3 of 3)
-    game.currentRound = 3;
+    game.state.round = 3;
 
     const nextState = game.advanceRound();
 
-    expect(nextState).toBe(GameState.FINAL_RESULTS);
+    expect(nextState).toBe(GamePhase.FINAL_RESULTS);
     expect(game.lastWinnerId).toBe(PLAYER_2);
-    expect(game.state).toBe(GameState.FINAL_RESULTS);
+    expect(game.state.phase).toBe(GamePhase.FINAL_RESULTS);
   });
 });
 
+// TODO Make this a test of selectNextTrack
 describe('GameInstance - playTrack', () => {
   let game: GameInstance;
 
-  const mockCallback = vi.fn();
-
   beforeEach(() => {
     vi.useFakeTimers();
-    mockCallback.mockClear();
     game = new GameInstance(INSTANCE_ID, HOST);
     game.settings.maxGuessTime = 10_000; // 10 seconds
   });
@@ -766,23 +762,18 @@ describe('GameInstance - playTrack', () => {
     vi.useRealTimers();
   });
 
-  it('should set correct TrackInfo and transition to PLAYING', async () => {
+  it('should set correct TrackInfo', async () => {
     const track = {
       game: GAME_A,
       title: 'Track A',
       audio: 'file123',
       cover: '',
       tags: [],
-    } as Track;
+    } satisfies Track;
 
-    await game.playTrack(track, mockCallback);
+    await game.selectNextTrack(track);
 
-    const expectedStart = Date.now() + 4000; // now + countdown
-    const expectedEnd = expectedStart + 10_000; // start + maxGuessTime
-
-    expect(game.state).toBe(GameState.PLAYING);
-    expect(game.trackInfo?.startTime).toBe(expectedStart);
-    expect(game.trackInfo?.endTime).toBe(expectedEnd);
+    expect(game.state.phase).toBe(GamePhase.PLAYING);
     expect(game.trackHistory).toContain('file123');
   });
 
@@ -793,21 +784,20 @@ describe('GameInstance - playTrack', () => {
       audio: 'file123',
       cover: '',
       tags: [],
-    } as Track;
-    await game.playTrack(track, mockCallback);
+    } satisfies Track;
+    await game.selectNextTrack(track);
 
     // Verify we are still playing initially
-    expect(game.state).toBe(GameState.PLAYING);
+    expect(game.state.phase).toBe(GamePhase.PLAYING);
 
     // Fast-forward time by 13.9 seconds (countdown + maxGuessTime - 100ms)
     vi.advanceTimersByTime(13_900);
-    expect(game.state).toBe(GameState.PLAYING);
+    expect(game.state.phase).toBe(GamePhase.PLAYING);
 
     // Jump past the finish line (14.1 seconds total)
     vi.advanceTimersByTime(200);
 
-    expect(game.state).toBe(GameState.HOST_REVIEW);
-    expect(mockCallback).toHaveBeenCalled();
+    expect(game.state.phase).toBe(GamePhase.HOST_REVIEW);
   });
 
   it('should not transition if the round has already changed (Race Condition Check)', async () => {
@@ -817,19 +807,23 @@ describe('GameInstance - playTrack', () => {
       audio: 'file123',
       cover: '',
       tags: [],
-    } as Track;
-    await game.playTrack(track, mockCallback);
+    } satisfies Track;
+    await game.selectNextTrack(track);
 
     // Manually bump the round (simulating all players submitted guess before countdown ends)
-    game.currentRound = 2;
+    game.state.round = 2;
 
     // Fast-forward through the maximum guess time
     vi.advanceTimersByTime(15_000);
 
     // The state should NOT be HOST_REVIEW because the roundAtStart check fails
-    expect(game.state).not.toBe(GameState.HOST_REVIEW);
+    expect(game.state.phase).not.toBe(GamePhase.HOST_REVIEW);
   });
 });
+
+// TODO Add tests for new playNextTrack method
+
+// TODO Add tests for updateClientReadyStatus that check if the round is started correctly
 
 describe('GameInstance - canUseJoker', () => {
   let game: GameInstance;
@@ -853,8 +847,6 @@ describe('GameInstance - canUseJoker', () => {
 describe('GameInstance - getPartialHint', () => {
   let game: GameInstance;
 
-  const mockCallback = vi.fn();
-
   beforeEach(() => {
     game = new GameInstance(INSTANCE_ID, HOST);
   });
@@ -866,8 +858,8 @@ describe('GameInstance - getPartialHint', () => {
       audio: '',
       cover: '',
       tags: [],
-    } as Track;
-    await game.playTrack(track, mockCallback);
+    } satisfies Track;
+    await game.selectNextTrack(track);
     const hint = game.getPartialHint(0.5);
 
     expect(hint.length).toBe(GAME_LONG.length);
@@ -884,9 +876,9 @@ describe('GameInstance - getPartialHint', () => {
       audio: '',
       cover: '',
       tags: [],
-    } as Track;
+    } satisfies Track;
 
-    await game.playTrack(track, mockCallback);
+    await game.selectNextTrack(track);
 
     // run hint generation multiple times to be sure
     const probabilities = [0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0];
@@ -907,11 +899,11 @@ describe('GameInstance - getPartialHint', () => {
       audio: '',
       cover: '',
       tags: [],
-    } as Track;
+    } satisfies Track;
     const newGame = new GameInstance('NEW_' + INSTANCE_ID, HOST);
 
-    await game.playTrack(track, mockCallback);
-    await newGame.playTrack(track, mockCallback);
+    await game.selectNextTrack(track);
+    await newGame.selectNextTrack(track);
 
     const controlHint = game.getPartialHint(0.5);
     const differentHint = newGame.getPartialHint(0.5);
@@ -923,8 +915,6 @@ describe('GameInstance - getPartialHint', () => {
 
 describe('GameInstance - getTagHint', () => {
   let game: GameInstance;
-
-  const mockCallback = vi.fn();
 
   beforeEach(() => {
     game = new GameInstance(INSTANCE_ID, HOST);
@@ -945,9 +935,9 @@ describe('GameInstance - getTagHint', () => {
           type: 'release',
           value: '2026',
         },
-      ] as Tag[],
-    } as Track;
-    await game.playTrack(track, mockCallback);
+      ] satisfies Tag[],
+    } satisfies Track;
+    await game.selectNextTrack(track);
     const hint = game.getTagHint();
 
     expect(hint.length).toBe(2);
@@ -965,14 +955,13 @@ describe('GameInstance - getTagHint', () => {
 describe('GameInstance - getAnswersHint', () => {
   let game: GameInstance, gameSameId: GameInstance;
 
-  const mockCallback = vi.fn();
   const correctTrack = {
     game: GAME_A,
     title: 'Track A',
     audio: '1',
     cover: '',
     tags: [],
-  } as Track;
+  } satisfies Track;
   const wrongTracks = [
     {
       game: 'Game B',
@@ -1002,7 +991,7 @@ describe('GameInstance - getAnswersHint', () => {
       cover: '',
       tags: [],
     },
-  ] as Track[];
+  ] satisfies Track[];
   const allTracks = [correctTrack, ...wrongTracks];
 
   beforeEach(() => {
@@ -1011,7 +1000,7 @@ describe('GameInstance - getAnswersHint', () => {
   });
 
   it('should return a list of four answers (correct + three wrong)', async () => {
-    await game.playTrack(correctTrack, mockCallback);
+    await game.selectNextTrack(correctTrack);
     const hint = game.getMultipleChoiceHint(allTracks);
 
     expect(hint.length).toBe(4);
@@ -1032,8 +1021,8 @@ describe('GameInstance - getAnswersHint', () => {
   });
 
   it('should return the same list of answers for the same instance_id + solution combination', async () => {
-    await game.playTrack(correctTrack, mockCallback);
-    await gameSameId.playTrack(correctTrack, mockCallback);
+    await game.selectNextTrack(correctTrack);
+    await gameSameId.selectNextTrack(correctTrack);
 
     // run hint generation multiple times to be sure
     for (let i = 0; i < 10; i++) {
@@ -1052,7 +1041,6 @@ describe('GameInstance - getGlimpseHint', () => {
   const gameCoverDir: string = path.join(rootDir, STATIC_FILES_DIR, SAMPLE_DATA_DIR, 'game_covers');
   let testImagePath: string;
 
-  const mockCallback = vi.fn();
   const testCover = 'test.png';
   const track = {
     game: GAME_A,
@@ -1060,7 +1048,7 @@ describe('GameInstance - getGlimpseHint', () => {
     audio: 'test.mp3',
     cover: testCover,
     tags: [],
-  } as Track;
+  } satisfies Track;
 
   beforeEach(() => {
     game = new GameInstance(INSTANCE_ID, HOST);
@@ -1095,11 +1083,11 @@ describe('GameInstance - getGlimpseHint', () => {
     const instanceTempDir = path.join(rootDir, STATIC_FILES_DIR, TEMP_FILES_DIR, game.instanceId);
     // Instance temp dir is automatically created when needed
     expect(fs.existsSync(instanceTempDir)).toBeFalsy();
-    await game.playTrack(track, mockCallback);
+    await game.selectNextTrack(track);
     expect(fs.existsSync(instanceTempDir)).toBeTruthy();
 
     // Instance temp dir contains the modified image file with the expected name
-    const modifiedImgName = `glimpse_${game.currentRound}.jpg`;
+    const modifiedImgName = `glimpse_${game.state.round}.jpg`;
     expect(fs.readdirSync(instanceTempDir)).toContain(modifiedImgName);
 
     // Temp image is different from original image
@@ -1123,10 +1111,10 @@ describe('GameInstance - getGlimpseHint', () => {
     });
 
     const instanceTempDir = path.join(rootDir, STATIC_FILES_DIR, TEMP_FILES_DIR, game.instanceId);
-    await game.playTrack(track, mockCallback);
+    await game.selectNextTrack(track);
 
     expect(fs.existsSync(instanceTempDir)).toBeTruthy();
-    expect(fs.readdirSync(instanceTempDir)).toContain(`glimpse_${game.currentRound}.jpg`);
+    expect(fs.readdirSync(instanceTempDir)).toContain(`glimpse_${game.state.round}.jpg`);
 
     // Instance temp dir was removed after the round timer ran out
     vi.advanceTimersByTime(game.settings.maxGuessTime + COUNTDOWN_DURATION + 100);
@@ -1143,14 +1131,14 @@ describe('GameInstance - getGlimpseHint', () => {
       streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
     });
 
-    game.registeredUsers.add(PLAYER_1);
-    game.registeredUsers.add(PLAYER_2);
+    game.addUser(PLAYER_1);
+    game.addUser(PLAYER_2);
 
     const instanceTempDir = path.join(rootDir, STATIC_FILES_DIR, TEMP_FILES_DIR, game.instanceId);
-    await game.playTrack(track, mockCallback);
+    await game.selectNextTrack(track);
 
     expect(fs.existsSync(instanceTempDir)).toBeTruthy();
-    expect(fs.readdirSync(instanceTempDir)).toContain(`glimpse_${game.currentRound}.jpg`);
+    expect(fs.readdirSync(instanceTempDir)).toContain(`glimpse_${game.state.round}.jpg`);
 
     game.submitGuess(PLAYER_1, GAME_A);
     expect(fs.existsSync(instanceTempDir)).toBeTruthy(); // still there
@@ -1173,7 +1161,7 @@ describe('GameInstance - getGlimpseHint', () => {
     const instanceTempDir = path.join(rootDir, STATIC_FILES_DIR, TEMP_FILES_DIR, game.instanceId);
     expect(fs.existsSync(instanceTempDir)).toBeFalsy();
 
-    await game.playTrack(track, mockCallback);
+    await game.selectNextTrack(track);
     expect(fs.existsSync(instanceTempDir)).toBeFalsy();
   });
 });

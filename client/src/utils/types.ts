@@ -1,4 +1,4 @@
-import { GameSettings, Joker, PointsBonus, Tag, TimeBonus } from '@yasq/shared';
+import { Joker, PointsBonus, Tag, TimeBonus } from '@yasq/shared';
 import { CSSProperties } from 'preact';
 
 /** Extension of the {@link TimeBonus} enum for selection in the UI */
@@ -9,18 +9,6 @@ export const OptionalTimeBonus = {
 
 // Derive TypeScript type from the runtime object
 export type TOptionalTimeBonus = (typeof OptionalTimeBonus)[keyof typeof OptionalTimeBonus];
-
-export interface GameStatus {
-  state: string;
-  hostId: string | null;
-  readyUsers: string[];
-  guessedPlayers: string[];
-  currentRound: number;
-  lastWinnerId: string | null;
-  gameSettings: GameSettings<Joker[]>;
-  streaks: Record<string, number>;
-  lostStreaks: Record<string, number>;
-}
 
 export interface Track {
   game: string;

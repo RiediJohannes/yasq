@@ -6,12 +6,14 @@ import type { Request } from 'express';
 
 import type { GameInstance } from './models/game_instance.js';
 import {
+  GameEvent,
+  type GameStatus,
+  getDisplayName,
   type Participant,
   SAMPLE_DATA_DIR,
   STATIC_FILES_DIR,
   TEMP_FILES_DIR,
   UI_UPDATES_DELAY_IN_E2E,
-  WS_GAME_STATUS_UPDATE_EVENT,
 } from '@yasq/shared';
 import { getDiscordUser } from './utils/discord.js';
 import { fileURLToPath } from 'url';
@@ -58,6 +60,11 @@ export function invalidateToken(token: string) {
   return tokenCache.delete(token);
 }
 
+export function getCachedDisplayName(userId: string) {
+  const participant = userDataCache.get(userId);
+  return participant ? getDisplayName(participant) : 'Unknown';
+}
+
 export function hash(str: string): number {
   let h: number = 0;
   for (let i = 0; i < str.length; i++) {
@@ -67,27 +74,25 @@ export function hash(str: string): number {
   return h & 0xffffffff;
 }
 
-export function getGameStatusPayload(game: GameInstance) {
+export function getGameStatus(game: GameInstance) {
   return {
     state: game.state,
     hostId: game.hostId,
-    readyUsers: [...game.readyUsers],
+    readyPlayers: [...game.readyPlayers],
     guessedPlayers: [...game.guessedPlayers],
-    currentRound: game.currentRound,
-    currentGame: game.currentGame,
     lastWinnerId: game.lastWinnerId,
     streaks: game.streaks,
     lostStreaks: game.currentRoundLostStreaks,
-    gameSettings: {
+    settings: {
       ...game.settings,
       enabledJokers: game.settings.enabledJokers ? [...game.settings.enabledJokers] : [],
     },
-  };
+  } satisfies GameStatus;
 }
 
 export function broadcastGameStatus(server: Server, game: GameInstance) {
   const emitUpdate = () => {
-    server.to(game.instanceId).emit(WS_GAME_STATUS_UPDATE_EVENT, getGameStatusPayload(game));
+    server.to(game.instanceId).emit(GameEvent.GAME_STATE_UPDATED, getGameStatus(game));
   };
 
   if (process.env.UI_TEST_MODE === 'true') {

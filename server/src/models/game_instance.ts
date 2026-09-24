@@ -4,12 +4,13 @@ import {
   BonusType,
   COUNTDOWN_DURATION,
   EXPONENTIAL_DECAY_INTENSITY,
+  GamePhase,
   GameSettings,
-  GameState,
   GLIMPSE_BLUR_INTENSITY,
   Joker,
   MAX_TIME_MULTIPLIER,
   MIN_TIME_MULTIPLIER,
+  type Playback,
   type PlayerTimeBonusPoint,
   PointsBonus,
   STATIC_FILES_DIR,
@@ -22,7 +23,7 @@ import {
   type TrackInfo,
 } from '@yasq/shared';
 import MersenneTwister from 'mersenne-twister';
-import { getFilePath, hash } from '../helper.js';
+import { getCachedDisplayName, getFilePath, hash } from '../helper.js';
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
@@ -32,36 +33,54 @@ import { fileURLToPath } from 'url';
 import { Leaderboard, LeaderboardEntry, RoundResult, RoundSummary } from './leaderboard.js';
 import { GameStats } from './game_stats.js';
 
+type UserId = string;
+
 export class GameInstance {
   public instanceId: string;
-  public registeredUsers: Set<string> = new Set();
-  public hostId: string | null;
-  public state: string = GameState.SETUP;
-  public currentRound: number = 0;
-  public readyUsers: Set<string> = new Set();
-  public guessedPlayers: Set<string> = new Set();
+  public registeredUsers: Set<UserId> = new Set();
+  public clientLatencies: Map<UserId, number> = new Map();
+  public hostId: UserId | null;
+  public state: GameState = new GameState();
+  public readyPlayers: Set<UserId> = new Set();
+  public readyClients: Set<UserId> = new Set();
+  public guessedPlayers: Set<UserId> = new Set();
   public settings: GameSettings<Set<Joker>> = GameSettings.withJokerSet();
   public trackInfo: TrackInfo | null = null;
-  public guesses: Record<number, Record<string, UserGuess>> = {};
+  public guesses: Record<number, Record<UserId, UserGuess>> = {};
   public leaderboard: Leaderboard = new Leaderboard();
-  public currentGame: number = 1;
   public trackHistory: string[] = [];
-  public lastWinnerId: string | null = null;
-  public usedJokers: Record<string, Partial<Record<Joker, number>>> = {};
-  public streaks: Record<string, number> = {};
-  public currentRoundLostStreaks: Record<string, number> = {};
+  public lastWinnerId: UserId | null = null;
+  public usedJokers: Record<UserId, Partial<Record<Joker, number>>> = {};
+  public streaks: Record<UserId, number> = {};
+  public currentRoundLostStreaks: Record<UserId, number> = {};
   public gameStats: GameStats = new GameStats();
   public activeAchievementBonuses: AchievementBonusType[] = [];
 
   public onUpdate?: (game: GameInstance) => void;
 
-  constructor(instanceId: string, hostId: string) {
+  private roundStartTimeout: NodeJS.Timeout | null = null;
+  private roundEndTimeout: NodeJS.Timeout | null = null;
+
+  constructor(instanceId: string, hostId: UserId) {
     this.instanceId = instanceId;
     this.hostId = hostId;
   }
 
-  public isHost(userId: string): boolean {
+  public isHost(userId: UserId): boolean {
     return this.hostId === userId;
+  }
+
+  public addUser(userId: UserId) {
+    this.registeredUsers.add(userId);
+
+    if (!this.clientLatencies.has(userId)) {
+      this.clientLatencies.set(userId, 0);
+    }
+  }
+
+  public removeUser(userId: UserId) {
+    this.registeredUsers.delete(userId);
+    this.clientLatencies.delete(userId);
   }
 
   public setupGame(settings: GameSettings<Set<Joker>>): void {
@@ -70,20 +89,21 @@ export class GameInstance {
       maxGuessTime: settings.maxGuessTime * 1000,
       enabledJokers: new Set(settings.enabledJokers),
     };
-    this.state = GameState.LOBBY;
+    this.state.phase = GamePhase.LOBBY;
     this.removeTempFiles();
   }
 
   public startGame(): void {
-    this.readyUsers = new Set();
+    this.readyPlayers = new Set<UserId>();
+    this.readyClients = new Set<UserId>();
     this.registeredUsers.forEach(userId => {
       if (this.isHost(userId)) return; // Skip host
       if (!this.leaderboard.hasEntry(userId)) {
         this.leaderboard.addEntry(new LeaderboardEntry(userId));
       }
     });
-    this.state = GameState.TRACK_SELECTION;
-    this.currentRound = 1;
+    this.state.phase = GamePhase.TRACK_SELECTION;
+    this.state.round = 1;
     this.gameStats.startTime = Date.now();
     this.resolveActiveAchievementBonuses();
   }
@@ -103,19 +123,17 @@ export class GameInstance {
     }
   }
 
-  public submitGuess(userId: string, guessText: string): { current: number; total: number } {
-    if (!this.guesses[this.currentRound]) {
-      this.guesses[this.currentRound] = {};
-    }
+  public submitGuess(userId: UserId, guessText: string): { current: number; total: number } {
+    this.guesses[this.state.round] ??= {};
 
-    const timeTaken = this.trackInfo ? Date.now() - this.trackInfo.startTime : this.settings.maxGuessTime;
+    const timeTaken = this.state.playback ? Date.now() - this.state.playback.startTime : this.settings.maxGuessTime;
 
-    this.guesses[this.currentRound]![userId] = new UserGuess(guessText, timeTaken);
+    this.guesses[this.state.round]![userId] = new UserGuess(guessText, timeTaken);
     const totalPlayers = Array.from(this.registeredUsers).filter(userId => !this.isHost(userId)).length;
-    const guessersCount = Object.keys(this.guesses[this.currentRound] ?? {}).length;
+    const guessersCount = Object.keys(this.guesses[this.state.round] ?? {}).length;
 
     if (guessersCount >= totalPlayers) {
-      this.state = GameState.HOST_REVIEW;
+      this.state.phase = GamePhase.HOST_REVIEW;
       this.removeTempFiles();
     }
 
@@ -124,15 +142,15 @@ export class GameInstance {
     return { current: guessersCount, total: totalPlayers };
   }
 
-  public getTimedOutPlayers(): string[] {
-    const currentGuesses = this.guesses[this.currentRound] || {};
+  public getTimedOutPlayers(): UserId[] {
+    const currentGuesses = this.guesses[this.state.round] || {};
 
     // Convert Set to Array to use filter
     return Array.from(this.registeredUsers).filter(userId => !currentGuesses[userId] && !this.isHost(userId));
   }
 
-  public submitResults(corrections: Record<string, number>): void {
-    const roundGuesses = this.guesses[this.currentRound] || {};
+  public submitResults(corrections: Record<UserId, number>): void {
+    const roundGuesses = this.guesses[this.state.round] || {};
 
     // Assign a score value to each guess with respect to the host's corrections
     Object.entries(corrections).forEach(([userId, scoreValue]) => {
@@ -161,7 +179,7 @@ export class GameInstance {
     const totalLostStreaks = Object.values(this.currentRoundLostStreaks).reduce((sum, streak) => sum + streak, 0);
     const streakBreakerMultiplier = totalLostStreaks * this.settings.streakBonusMultiplier;
 
-    const roundSummary = new RoundSummary(this.currentRound);
+    const roundSummary = new RoundSummary(this.state.round);
     roundSummary.timeBonusSummary = this.calculateTimeBonusSummary(firstPartiallyCorrectTime);
 
     this.leaderboard.addSummary(roundSummary);
@@ -213,7 +231,7 @@ export class GameInstance {
       const entry = this.leaderboard.getOrCreate(userId);
       entry.addRound(
         new RoundResult(
-          this.currentRound,
+          this.state.round,
           data?.text || 'No Guess Submitted',
           pointsEarned,
           data?.scoreValue || 0.0,
@@ -224,18 +242,18 @@ export class GameInstance {
       );
     });
 
-    this.state = GameState.ROUND_RESULTS;
+    this.state.phase = GamePhase.ROUND_RESULTS;
     this.guessedPlayers = new Set();
 
     if (this.trackInfo !== null) {
-      const roundResults = this.leaderboard.getRoundResults(this.currentRound);
+      const roundResults = this.leaderboard.getRoundResults(this.state.round);
       this.gameStats.updateBestScoringRound(roundResults, this.trackInfo.track);
       this.gameStats.updateLeastScoringRound(roundResults, this.trackInfo.track);
       this.gameStats.updateFastestCorrectGuess(roundResults, this.trackInfo.track);
     }
   }
 
-  public updateStreak(userId: string, scoreMultiplier: number) {
+  public updateStreak(userId: UserId, scoreMultiplier: number) {
     if (this.streaks[userId] === undefined) {
       this.streaks[userId] = 0;
     }
@@ -249,8 +267,8 @@ export class GameInstance {
     this.gameStats.updateHighestStreak(userId, this.streaks[userId]);
   }
 
-  public calculateLostStreaks(): Record<string, number> {
-    const roundGuesses = this.guesses[this.currentRound] || {};
+  public calculateLostStreaks(): Record<UserId, number> {
+    const roundGuesses = this.guesses[this.state.round] || {};
     const lostStreaks: Record<string, number> = {};
 
     this.registeredUsers.forEach(userId => {
@@ -272,7 +290,7 @@ export class GameInstance {
   public calculateTimeBonusSummary(firstPartiallyCorrectTime: number): TimeBonusSummary | null {
     if (this.settings.timeBonus == null) return null;
 
-    const roundGuesses = this.guesses[this.currentRound] || {};
+    const roundGuesses = this.guesses[this.state.round] || {};
 
     // Precompute a fixed number of points of the time bonus function
     const samples = 200; // number of evenly spaced samples to calculate to draw the time bonus curve
@@ -328,75 +346,147 @@ export class GameInstance {
     return Math.min(MAX_TIME_MULTIPLIER, Math.max(MIN_TIME_MULTIPLIER, multiplier));
   }
 
-  public advanceRound(): string {
-    this.readyUsers = new Set();
+  public advanceRound(): GameState {
+    this.readyPlayers.clear();
+    this.readyClients.clear();
     this.currentRoundLostStreaks = {};
+    this.state.playback = null;
 
-    if (this.currentRound >= this.settings.rounds) {
-      this.state = GameState.FINAL_RESULTS;
+    if (this.state.round >= this.settings.rounds) {
+      this.state.phase = GamePhase.FINAL_RESULTS;
       this.applyAchievementBonuses();
       this.leaderboard.sort();
       this.lastWinnerId = this.leaderboard.getWinnerId();
       this.gameStats.endTime = Date.now();
     } else {
-      this.state = GameState.TRACK_SELECTION;
-      this.currentRound += 1;
+      this.state.phase = GamePhase.TRACK_SELECTION;
+      this.state.round += 1;
     }
 
     return this.state;
   }
 
-  public async playTrack(track: Track, roundFinishedCallback: () => void): Promise<void> {
-    const startTime = Date.now() + COUNTDOWN_DURATION;
-    const endTime = startTime + this.settings.maxGuessTime;
-
+  public async selectNextTrack(track: Track): Promise<void> {
     this.trackInfo = {
       url: `/music/${track.audio}`,
-      startTime,
-      endTime,
       track,
       gameCoverUrl: `/game_covers/${track.cover}`,
     };
-    this.state = GameState.PLAYING;
+    this.state.phase = GamePhase.PLAYING;
     this.trackHistory.push(track.audio);
-    const roundAtStart = this.currentRound;
-    const gameAtStart = this.currentGame;
 
     // Generate the blurred cover art on the server once at the beginning of the round if needed
     if (track.cover && this.settings.enabledJokers.has(Joker.GLIMPSE)) {
       await this.generateBlurredImage(track.cover);
     }
 
-    const totalWaitTime = COUNTDOWN_DURATION + this.settings.maxGuessTime;
+    this.roundEndTimeout?.close();
+  }
+
+  public playNextTrack(startTime: number, endTime: number) {
+    this.state.playback = {
+      game: this.state.game,
+      round: this.state.round,
+      startTime,
+      endTime,
+    } satisfies Playback;
+
+    const startInMs = startTime - Date.now();
+    const endInMs = endTime - Date.now();
+
+    logger.debug(
+      `Round ${this.state.round} scheduled: Starting in ${startInMs}ms, ending in ${endInMs}ms`,
+      LogCategory.GAME,
+      this.instanceId
+    );
 
     // Set a timer to automatically transition to HOST_REVIEW after maxGuessTime
-    setTimeout(() => {
-      if (this.state === GameState.PLAYING && this.currentRound === roundAtStart && this.currentGame === gameAtStart) {
-        this.state = GameState.HOST_REVIEW;
-        logger.debug(`Timer for round ${roundAtStart} expired`, LogCategory.GAME, this.instanceId);
+    this.roundEndTimeout?.close();
+    this.roundEndTimeout = setTimeout(() => {
+      const playback = this.state.playback;
+      if (!playback) return;
 
-        roundFinishedCallback();
+      if (
+        this.state.phase === GamePhase.PLAYING &&
+        this.state.round === playback.round &&
+        this.state.game === playback.game
+      ) {
+        logger.debug(`Timer for round ${this.state.round} expired`, LogCategory.GAME, this.instanceId);
+        this.state.phase = GamePhase.HOST_REVIEW;
+        this.notifyUpdate();
         this.removeTempFiles();
       }
-    }, totalWaitTime);
+    }, endInMs);
+  }
+
+  public updateClientReadyStatus(userId: UserId, isReady: boolean, setupDurationMillis: number) {
+    const MIN_ROUND_START_DELAY = 1500;
+    const MAX_ROUND_START_DELAY = 5000;
+    const MAX_LATENCY_DELAY = 3000;
+    const SAFETY_TOLERANCE = 100;
+
+    // Calculate a fitting start/end time for the upcoming round and notify clients about this
+    const scheduleRoundStart = (artificialDelay: number = 0) => {
+      this.roundStartTimeout?.close();
+      this.roundStartTimeout = null;
+
+      if (this.state.playback !== null) return;
+
+      // Respect reasonable client latencies and requested artificial delay
+      const maxClientLatency = Math.min(MAX_LATENCY_DELAY, Math.max(...this.clientLatencies.values()));
+      const minimumWaitingTime = Math.max(artificialDelay - SAFETY_TOLERANCE, maxClientLatency);
+
+      const startTime = Date.now() + COUNTDOWN_DURATION + minimumWaitingTime + SAFETY_TOLERANCE;
+      const endTime = startTime + this.settings.maxGuessTime;
+
+      this.playNextTrack(startTime, endTime);
+      this.notifyUpdate();
+    };
+
+    if (isReady) {
+      // Start a fallback timeout once the first client is ready to automatically start the round after some maximum waiting time
+      if (this.readyClients.size === 0 && !this.roundStartTimeout) {
+        setTimeout(() => scheduleRoundStart(), MAX_ROUND_START_DELAY - setupDurationMillis);
+      }
+
+      this.readyClients.add(userId);
+    } else {
+      this.readyClients.delete(userId);
+    }
+
+    logger.debug(
+      `User '${getCachedDisplayName(userId)}' is ${isReady ? 'READY' : 'NOT READY'} to play (setupDuration: ${Math.round(setupDurationMillis * 100) / 100}ms)`,
+      LogCategory.GAME,
+      this.instanceId
+    );
+
+    // Everyone is ready -> initiate round start
+    if (this.readyClients.size >= this.registeredUsers.size) {
+      // Let clients wait at least MIN_ROUND_START_DELAY in total before the countdown starts
+      const minimumWaitingTime = MIN_ROUND_START_DELAY - setupDurationMillis;
+      scheduleRoundStart(minimumWaitingTime);
+    }
+
+    return { pendingClientsNumber: this.registeredUsers.size - this.readyClients.size };
   }
 
   public restart() {
-    this.state = GameState.SETUP;
-    this.currentRound = 0;
-    this.readyUsers = new Set();
+    this.state.phase = GamePhase.SETUP;
+    this.state.round = 0;
+    this.readyPlayers = new Set<UserId>();
+    this.readyClients = new Set<UserId>();
     this.guesses = {};
     this.trackInfo = null;
     this.trackHistory = [];
     this.leaderboard = new Leaderboard();
-    this.currentGame += 1;
+    this.state.game += 1;
     this.usedJokers = {};
     this.streaks = {};
     this.gameStats = new GameStats();
     this.activeAchievementBonuses = [];
   }
 
-  public canUseJoker(userId: string, jokerType: Joker): boolean {
+  public canUseJoker(userId: UserId, jokerType: Joker): boolean {
     if (!this.usedJokers[userId]) {
       this.usedJokers[userId] = {};
     }
@@ -405,7 +495,7 @@ export class GameInstance {
     if (jokerType in this.usedJokers[userId]) return false;
 
     // Check if any joker has already been used in this round
-    return !Object.values(this.usedJokers[userId]).includes(this.currentRound);
+    return !Object.values(this.usedJokers[userId]).includes(this.state.round);
   }
 
   public getPartialHint(revealPercent: number = 0.2): string {
@@ -421,14 +511,14 @@ export class GameInstance {
         // Keep special characters
         if (!/[a-zA-Z0-9]/.test(c)) return c;
 
-        // Obfuscate the rest, but keep a few characters
+        // Obfuscate the rest but keep a few characters
         return generator.random() < revealPercent ? c : '_';
       })
       .join('');
   }
 
   private hashWithGameState(str: string): number {
-    return hash(`${this.instanceId}-${this.currentGame}-${this.currentRound}-${str}`);
+    return hash(`${this.instanceId}-${this.state.game}-${this.state.round}-${str}`);
   }
 
   public getTagHint(): Tag[] {
@@ -455,13 +545,13 @@ export class GameInstance {
     return finalChoices.sort(() => 0.5 - generator.random());
   }
 
-  public getSpyHint(userId: string): string | null {
-    return this.guesses[this.currentRound]?.[userId]?.text ?? null;
+  public getSpyHint(userId: UserId): string | null {
+    return this.guesses[this.state.round]?.[userId]?.text ?? null;
   }
 
   public async getGlimpseHint(): Promise<string | null> {
     const tempDir = this.temporaryDirectory();
-    const imagePath = path.join(tempDir, `glimpse_${this.currentRound}.jpg`);
+    const imagePath = path.join(tempDir, `glimpse_${this.state.round}.jpg`);
 
     if (!fs.existsSync(imagePath)) return null;
 
@@ -489,7 +579,7 @@ export class GameInstance {
     const outputDir = this.temporaryDirectory(true);
 
     try {
-      const outputPath = path.join(outputDir, `glimpse_${this.currentRound}.jpg`);
+      const outputPath = path.join(outputDir, `glimpse_${this.state.round}.jpg`);
 
       await sharp(path.join(getFilePath('game_covers'), coverImageFile))
         .resize(500)
@@ -514,12 +604,12 @@ export class GameInstance {
     });
   }
 
-  public markJokerUsed(userId: string, joker: Joker): void {
+  public markJokerUsed(userId: UserId, joker: Joker): void {
     if (!this.usedJokers[userId]) {
       this.usedJokers[userId] = {};
     }
 
-    this.usedJokers[userId][joker] = this.currentRound;
+    this.usedJokers[userId][joker] = this.state.round;
   }
 
   public pickNewHost(): boolean {
@@ -559,6 +649,7 @@ export class GameInstance {
   }
 
   public dispose(): void {
+    this.roundEndTimeout?.close();
     this.removeTempFiles();
   }
 
@@ -567,10 +658,18 @@ export class GameInstance {
       ...this,
       // Convert Sets to Arrays (Sets serialize to {})
       registeredUsers: Array.from(this.registeredUsers),
-      readyUsers: Array.from(this.readyUsers),
+      readyPlayers: Array.from(this.readyPlayers),
+      readyClients: Array.from(this.readyClients),
       guessedPlayers: Array.from(this.guessedPlayers),
     };
   }
+}
+
+class GameState {
+  public game: number = 1;
+  public round: number = 0;
+  public phase: GamePhase = GamePhase.SETUP;
+  public playback: Playback | null = null;
 }
 
 /**

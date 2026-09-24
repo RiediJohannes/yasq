@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 import { GameInstance } from '../src/models/game_instance.js';
 import {
   deserializeError,
-  GameState,
+  GamePhase,
   INSTANCE_PATH,
   Joker,
   LogLevel,
@@ -79,29 +79,61 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
     const game = req.game!;
 
     if (isReady) {
-      game.readyUsers.add(userId);
+      game.readyPlayers.add(userId);
     } else {
-      game.readyUsers.delete(userId);
+      game.readyPlayers.delete(userId);
     }
 
     game.notifyUpdate();
 
     res.send({
-      readyUsers: [...game.readyUsers],
+      readyPlayers: [...game.readyPlayers],
     });
+  });
+
+  router.patch(`/${INSTANCE_PATH}/round/:roundNumber/ready`, authenticateUser, async (req, res) => {
+    const roundParam = req.params.roundNumber as string | undefined;
+    if (!roundParam) {
+      throw new ApiError(400, 'Missing path parameter: roundNumber', req);
+    }
+
+    const isReady = req.body.ready as boolean | undefined;
+    if (isReady === undefined) {
+      throw new ApiError(400, 'Missing property: ready', req);
+    }
+    const setupDuration = req.body.setupDuration as number | undefined;
+    if (setupDuration === undefined) {
+      throw new ApiError(400, 'Missing property: setupDuration', req);
+    }
+
+    const userId = req.userId!;
+    const game = req.game!;
+
+    // Check if current game state conflicts with the request
+    const targetRound = parseInt(roundParam, 10);
+    if (targetRound !== game.state.round) {
+      throw new ApiError(409, `Round ${targetRound} is not active. Current round: ${game.state.round}`, req);
+    }
+    if (game.state.phase !== GamePhase.PLAYING || !game.trackInfo) {
+      throw new ApiError(409, 'Game does not accept ready-to-play signals yet. No track selected', req);
+    }
+
+    const { pendingClientsNumber } = game.updateClientReadyStatus(userId, isReady, setupDuration);
+
+    // Status 202 => Request accepted but not yet acted upon
+    const status = pendingClientsNumber > 0 ? 202 : 200;
+    res.sendStatus(status);
   });
 
   router.get(`/${INSTANCE_PATH}/current-track`, authenticateUser, async (req, res) => {
     const userId = req.userId!;
     const game = req.game!;
 
-    if (game?.state === GameState.PLAYING) {
+    if (game?.state.phase === GamePhase.PLAYING) {
       const trackInfo = game.trackInfo;
 
       const response: any = {
         url: trackInfo?.url,
-        startTime: trackInfo?.startTime,
-        endTime: trackInfo?.endTime,
       };
 
       // Host exclusive information
@@ -115,7 +147,7 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
       return res.send(response);
     }
 
-    res.send({ url: null, startTime: 0, endTime: 0 });
+    res.send({ url: null });
   });
 
   router.get(`/${INSTANCE_PATH}/available-jokers`, authenticateUser, async (req, res) => {
@@ -141,7 +173,7 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
     }
 
     if (!game.canUseJoker(userId, jokerType)) {
-      throw new ApiError(403, 'Joker already used', req);
+      throw new ApiError(410, 'Joker already used', req);
     }
 
     let hint: any;
@@ -206,8 +238,8 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
       game.instanceId
     );
 
-    if (game.state === GameState.HOST_REVIEW) {
-      logger.debug(`Game moved to state: ${game.state}`, LogCategory.GAME, game.instanceId);
+    if (game.state.phase === GamePhase.HOST_REVIEW) {
+      logger.debug(`Game moved to state: ${game.state.phase}`, LogCategory.GAME, game.instanceId);
     }
 
     game.notifyUpdate();
@@ -219,22 +251,22 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
     const userId = (req.query.user_id || req.query.userId) as string;
     const game = req.game!;
 
-    if (game?.state !== GameState.ROUND_RESULTS) {
-      throw new ApiError(400, 'Results not ready yet.', req);
+    if (game?.state.phase !== GamePhase.ROUND_RESULTS) {
+      throw new ApiError(409, 'Results not ready yet.', req);
     }
 
     // Get the result for the current round of the requested user
-    const roundResult = game.leaderboard.getRoundResults(game.currentRound, game.isHost(userId) ? undefined : userId);
+    const roundResult = game.leaderboard.getRoundResults(game.state.round, game.isHost(userId) ? undefined : userId);
 
-    const roundSummary = game.leaderboard.getRoundSummary(game.currentRound);
+    const roundSummary = game.leaderboard.getRoundSummary(game.state.round);
 
     const correctPlayers = game.leaderboard.getAll().flatMap(playerEntry => {
-      const currentRoundResult = playerEntry.roundHistory.findLast(r => r.round === game.currentRound);
+      const currentRoundResult = playerEntry.roundHistory.findLast(r => r.round === game.state.round);
       return currentRoundResult?.scoreValue === 1 ? [playerEntry.userId] : [];
     });
 
     res.send({
-      round: game.currentRound,
+      round: game.state.round,
       result: roundResult,
       summary: roundSummary,
       correctAnswer: game.trackInfo?.track.game,
@@ -249,8 +281,8 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
   router.get(`/${INSTANCE_PATH}/final-results`, async (req, res) => {
     const game = req.game!;
 
-    if (game?.state !== GameState.FINAL_RESULTS) {
-      throw new ApiError(400, 'Game has not finished yet.', req);
+    if (game?.state.phase !== GamePhase.FINAL_RESULTS) {
+      throw new ApiError(409, 'Game has not finished yet.', req);
     }
 
     // Download a screenshot of the final results instead of displaying them in the view

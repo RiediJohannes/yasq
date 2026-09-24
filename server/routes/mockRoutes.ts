@@ -37,16 +37,19 @@ export const setupMockRoutes = (
 
     const updates = req.body;
 
-    if (updates.state !== undefined) game.state = updates.state;
-    if (updates.currentRound !== undefined) game.currentRound = updates.currentRound;
+    if (updates.state) {
+      game.state = {
+        ...game.state,
+        ...updates.state,
+      };
+    }
     if (updates.hostId !== undefined) game.hostId = updates.hostId;
-    if (updates.currentGame !== undefined) game.currentGame = updates.currentGame;
     if (updates.lastWinnerId !== undefined) game.lastWinnerId = updates.lastWinnerId;
     if (updates.registeredUsers) {
       game.registeredUsers = new Set(updates.registeredUsers.map((u: any) => (typeof u === 'string' ? u : u.id)));
     }
-    if (updates.readyUsers) {
-      game.readyUsers = new Set(updates.readyUsers);
+    if (updates.readyPlayers) {
+      game.readyPlayers = new Set(updates.readyPlayers);
     }
     if (updates.trackHistory) {
       game.trackHistory = updates.trackHistory;
@@ -61,8 +64,6 @@ export const setupMockRoutes = (
     if (updates.trackInfo) {
       game.trackInfo = {
         url: updates.trackInfo.url,
-        startTime: updates.trackInfo.startTime,
-        endTime: updates.trackInfo.endTime,
         track: updates.trackInfo.track,
         gameCoverUrl: updates.trackInfo.gameCoverUrl,
       };
@@ -122,7 +123,7 @@ export function setMockState(stateData: any): GameInstance {
   }
 
   if (stateData.readyUserIds) {
-    game.readyUsers = new Set(stateData.readyUserIds);
+    game.readyPlayers = new Set(stateData.readyUserIds);
   }
 
   if (stateData.settings?.enabledJokers) {

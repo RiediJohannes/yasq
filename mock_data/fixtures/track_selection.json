@@ -1,14 +1,18 @@
 {
   "instanceId": "123456789",
   "hostId": "0",
-  "state": "TRACK_SELECTION",
+  "state": {
+    "game": 1,
+    "round": 1,
+    "phase": "TRACK_SELECTION",
+    "playback": null
+  },
   "trackHistory": ["track003.mp3"],
   "settings": {
     "rounds": 5,
     "maxGuessTime": 60000,
     "enabledJokers": ["OBFUSCATION", "TRIVIA", "MULTIPLE_CHOICE", "SPY"]
   },
-  "currentRound": 1,
   "registeredUsers": ["0", "1", "2", "3"],
   "userData": [
     { "id": "0", "username": "MockPlayer0" },

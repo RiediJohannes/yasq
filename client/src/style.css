@@ -1489,7 +1489,12 @@ kbd {
   width: 0;
   height: 100%;
   background-color: var(--blurple);
-  transition: width 1s linear;
+  transition: width 0.3s linear;
+  will-change: width;
+}
+
+#progress-bar.danger {
+  background-color: var(--red);
 }
 
 @keyframes pulse-blink {
@@ -1521,11 +1526,19 @@ kbd {
   z-index: 100;
 }
 
-#countdown-number {
+.countdown {
   font-size: 8rem;
   font-weight: 800;
   color: var(--blurple);
+}
+
+#countdown-number {
   animation: pulse 1s infinite;
+}
+
+#countdown-text {
+  font-size: min(8rem, 20svw);
+  animation: slam-down 0.4s cubic-bezier(0.11, 0.9, 0.2, 1) forwards;
 }
 
 @keyframes pulse {
@@ -1540,6 +1553,23 @@ kbd {
   100% {
     transform: scale(1);
     opacity: 1;
+  }
+}
+
+@keyframes slam-down {
+  0% {
+    opacity: 0;
+    transform: translateY(-50px) scale(1.4);
+    filter: blur(8px);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(4px) scale(0.96); /* Slight compression on landing */
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 

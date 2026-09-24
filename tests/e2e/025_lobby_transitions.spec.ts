@@ -2,7 +2,7 @@ import { expect, test } from './test_setup.js';
 import { EXPECTED_TIME_BONUS_LABELS, toBonusPercent } from '../utils/helper.js';
 import {
   FirstBonusMultiplier,
-  GameState,
+  GamePhase,
   Joker,
   sortByEnumOrder,
   StreakBonusMultiplier,
@@ -23,7 +23,7 @@ test.use({
     playerCount: 3,
     userIndex: 0,
     sessionData: {
-      state: GameState.LOBBY,
+      state: { phase: GamePhase.LOBBY },
       settings: CUSTOM_SETTINGS,
     },
   },

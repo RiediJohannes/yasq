@@ -9,6 +9,7 @@ import {
   DEFAULT_STREAK_BONUS_MULTIPLIER,
   DEFAULT_TIME_BONUS,
   FirstBonusMultiplier,
+  GamePhase,
   Joker,
   StreakBonusMultiplier,
   TimeBonus,
@@ -37,8 +38,6 @@ export interface Track {
 
 export interface TrackInfo {
   url: string;
-  startTime: number;
-  endTime: number;
   track: Track;
   gameCoverUrl: string;
 }
@@ -130,4 +129,27 @@ export class PointsBonus {
       ? 1 // pity point so the bonus does not disappear entirely from the total points calculation
       : Math.round(fractionalBonus);
   }
+}
+
+export interface GameStatus {
+  state: {
+    game: number;
+    round: number;
+    phase: GamePhase;
+    playback: Playback | null;
+  };
+  hostId: string | null;
+  readyPlayers: string[];
+  guessedPlayers: string[];
+  lastWinnerId: string | null;
+  streaks: Record<string, number>;
+  lostStreaks: Record<string, number>;
+  settings: GameSettings<Joker[]>;
+}
+
+export interface Playback {
+  game: number;
+  round: number;
+  startTime: number;
+  endTime: number;
 }

@@ -1,7 +1,7 @@
 import { useSignal } from '@preact/signals';
 
 import { DEFAULT_VOLUME_SLIDER_VAL, getAvatarUrl, getDisplayName, MAX_VOLUME } from '@yasq/shared';
-import { gainNode, gameState, isMac, participants, volume } from '../main';
+import { gainNode, gameStatus, isMac, participants, volume } from '../main';
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
 import { getActionKeyLabel } from '../utils/helper';
 import { DiscordAvatar } from './DiscordAvatar';
@@ -29,8 +29,8 @@ export const Sidebar = () => {
   };
 
   const sortedParticipants = [...participants.value].sort((a, b) => {
-    const isAHost = a.id === gameState.value.hostId;
-    const isBHost = b.id === gameState.value.hostId;
+    const isAHost = a.id === gameStatus.value.hostId;
+    const isBHost = b.id === gameStatus.value.hostId;
 
     if (isAHost) return -1;
     if (isBHost) return 1;
@@ -48,13 +48,13 @@ export const Sidebar = () => {
         <h2>Participating Players</h2>
         <div id="participant-list">
           {sortedParticipants.map(p => {
-            const isPlayerHost = p.id === gameState.value.hostId;
-            const isPlayerReady = gameState.value.readyUsers.includes(p.id);
-            const hasPlayerGuessed = gameState.value.guessedPlayers.includes(p.id);
-            const isLastWinner = p.id === gameState.value.lastWinnerId;
+            const isPlayerHost = p.id === gameStatus.value.hostId;
+            const isPlayerReady = gameStatus.value.readyPlayers.includes(p.id);
+            const hasPlayerGuessed = gameStatus.value.guessedPlayers.includes(p.id);
+            const isLastWinner = p.id === gameStatus.value.lastWinnerId;
 
-            const brokenStreak = gameState.value.lostStreaks?.[p.id] || 0;
-            const activeStreak = gameState.value.streaks?.[p.id] || 0;
+            const brokenStreak = gameStatus.value.lostStreaks?.[p.id] || 0;
+            const activeStreak = gameStatus.value.streaks?.[p.id] || 0;
             const streakToDisplay = brokenStreak > 0 ? brokenStreak : activeStreak;
             const isStreakBroken = brokenStreak > 0;
 
