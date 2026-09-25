@@ -4,7 +4,7 @@ import { withTimeout } from './helper';
 import * as backend from './backend';
 import { gameState, participants } from '../main';
 import { io, Socket } from 'socket.io-client';
-import { Participant, SocketEvent, TSocketEvent } from '@yasq/shared';
+import { GameEvent, Participant, TGameEvent } from '@yasq/shared';
 import { Signal, signal } from '@preact/signals';
 
 const CONNECTION_TIMEOUT_MILLIS_LONG: number = 10_000;
@@ -13,10 +13,6 @@ const CLOCK_SYNC_INTERVAL_MILLIS: number = 30_000;
 
 const socketSignal = signal<Socket | null>(null);
 export const socketConnected = signal<boolean>(false);
-
-export function getSocket() {
-  return socketSignal.value;
-}
 
 export type AbstractDiscordSdk = DiscordSDK | typeof mockDiscordSdk;
 
@@ -103,22 +99,22 @@ export function establishServerConnection(instanceId: string, authToken: string)
 
   socket.on('connect', async () => {
     console.log('[DIAGNOSTICS] Socket connected! Emitting JOIN_INSTANCE event');
-    socket.emit(SocketEvent.JOIN_INSTANCE, { instanceId });
+    socket.emit(GameEvent.JOIN_INSTANCE, { instanceId });
 
-    await syncClockWithServer();
+    void syncClockWithServer();
   });
   socket.io.on('reconnect', async attempt => {
     console.log(`[DIAGNOSTICS] Socket reconnected successfully on attempt ${attempt}...`);
-    socket.emit(SocketEvent.JOIN_INSTANCE, { instanceId });
+    socket.emit(GameEvent.JOIN_INSTANCE, { instanceId });
 
-    await syncClockWithServer();
+    void syncClockWithServer();
   });
   socket.on('disconnect', reason => {
     console.warn(`[DIAGNOSTICS] Socket disconnected. Reason: ${reason}`);
   });
 
   // Listen for game state updates
-  socket.on(SocketEvent.GAME_STATE_UPDATED, updatedState => {
+  socket.on(GameEvent.GAME_STATE_UPDATED, updatedState => {
     gameState.value = updatedState;
     if (updatedState.participants) {
       participants.value = updatedState.participants;
@@ -201,7 +197,7 @@ export const syncClockWithServer = async (sampleCount = 8): Promise<number> => {
     await new Promise<void>(resolve => {
       const sendTime = Date.now();
 
-      socket.emit(SocketEvent.REQUEST_TIME, (serverTime: number) => {
+      socket.emit(GameEvent.REQUEST_TIME, (serverTime: number) => {
         const receiveTime = Date.now();
         const roundTripTime = receiveTime - sendTime;
 
@@ -228,7 +224,7 @@ export const syncClockWithServer = async (sampleCount = 8): Promise<number> => {
     `[TimeSync] Clock synced. Offset: ${serverClockOffset.toFixed(2)}ms (Best RTT: ${samples[0]!.roundTripTime}ms)`
   );
 
-  socket.emit(SocketEvent.TIME_SYNCED, -serverClockOffset);
+  socket.emit(GameEvent.TIME_SYNCED, -serverClockOffset);
 
   return serverClockOffset;
 };
@@ -236,7 +232,7 @@ export const syncClockWithServer = async (sampleCount = 8): Promise<number> => {
 /**
  * Subscribes a handler to the given game event and returns an unsubscribe function for clean-up.
  */
-export function onGameEvent<T = any>(event: TSocketEvent, callback: (data: T) => void): () => void {
+export function onGameEvent<T = any>(event: TGameEvent, callback: (data: T) => void): () => void {
   const socket = socketSignal.value;
   if (!socket) return () => {};
 
@@ -245,4 +241,26 @@ export function onGameEvent<T = any>(event: TSocketEvent, callback: (data: T) =>
   return () => {
     socketSignal.value?.off(event, callback);
   };
+}
+
+/**
+ * Registers a **one-shot** callback for the next time the given {@link GameEvent} occurs.
+ * Returns an unsubscribe function to cancel this event callback.
+ */
+export function onNextGameEvent<T = any>(event: TGameEvent, callback: (data: T) => void): () => void {
+  const socket = socketSignal.value;
+  if (!socket) return () => {};
+
+  socketSignal.value?.once(event, callback);
+
+  return () => {
+    socketSignal.value?.off(event, callback);
+  };
+}
+
+/**
+ * Emits a {@link GameEvent} to the backend server.
+ */
+export function emitGameEvent<T = any>(event: TGameEvent, data: T) {
+  socketSignal.value?.emit(event, data);
 }

@@ -131,3 +131,8 @@ export class PointsBonus {
       : Math.round(fractionalBonus);
   }
 }
+
+export interface RoundTimingData {
+  startTime: number;
+  endTime: number;
+}

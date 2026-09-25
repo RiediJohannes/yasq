@@ -15,7 +15,7 @@ import {
   getReachableTags,
   SortOption,
 } from '../utils/trackFiltering';
-import { Playlist, SocketEvent } from '@yasq/shared';
+import { GameEvent, Playlist } from '@yasq/shared';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { onGameEvent } from '../utils/connections';
 
@@ -47,8 +47,8 @@ export const TrackSelectionView = ({ isHost }: { isHost: boolean }) => {
     fetchTracksAndPlaylists();
 
     // Set up event listeners
-    const unsubTracks = onGameEvent(SocketEvent.TRACKS_UPDATED, fetchTracksAndPlaylists);
-    const unsubPlaylists = onGameEvent(SocketEvent.PLAYLISTS_UPDATED, fetchTracksAndPlaylists);
+    const unsubTracks = onGameEvent(GameEvent.TRACKS_UPDATED, fetchTracksAndPlaylists);
+    const unsubPlaylists = onGameEvent(GameEvent.PLAYLISTS_UPDATED, fetchTracksAndPlaylists);
 
     // Cleanup
     return () => {

@@ -24,10 +24,11 @@ import {
 import {
   API_ROOT,
   COUNTDOWN_DURATION,
+  GameEvent,
   HOST_PREFIX,
   type Playlist,
+  type RoundTimingData,
   SAMPLE_DATA_DIR,
-  SocketEvent,
   STATIC_FILES_DIR,
   TEMP_FILES_DIR,
   TEST_PREFIX,
@@ -199,7 +200,7 @@ export function setupServer() {
     tracksPath,
     () => {
       cachedTracks = loadTracks(tracksPath);
-      server.emit(SocketEvent.TRACKS_UPDATED);
+      server.emit(GameEvent.TRACKS_UPDATED);
     },
     'Tracks'
   );
@@ -208,7 +209,7 @@ export function setupServer() {
     playlistsPath,
     () => {
       cachedPlaylists = loadPlaylists(playlistsPath);
-      server.emit(SocketEvent.PLAYLISTS_UPDATED);
+      server.emit(GameEvent.PLAYLISTS_UPDATED);
     },
     'Playlists'
   );
@@ -240,10 +241,10 @@ export function setupServer() {
     const endTime = startTime + game.settings.maxGuessTime;
 
     // Broadcast round start event
-    server.to(game.instanceId).emit(SocketEvent.ROUND_STARTING, {
+    server.to(game.instanceId).emit(GameEvent.ROUND_STARTING, {
       startTime,
       endTime,
-    });
+    } satisfies RoundTimingData);
   }
 
   server.use(async (socket, next) => {
@@ -260,7 +261,7 @@ export function setupServer() {
   });
 
   server.on('connection', socket => {
-    socket.on(SocketEvent.REQUEST_TIME, (callback: (serverTime: number) => void) => {
+    socket.on(GameEvent.REQUEST_TIME, (callback: (serverTime: number) => void) => {
       if (typeof callback === 'function') {
         callback(Date.now());
       }
@@ -298,21 +299,21 @@ export function setupServer() {
           }
         }
 
-        server.to(instanceId).emit(SocketEvent.GAME_STATE_UPDATED, getGameStatusPayload(currentGame));
+        server.to(instanceId).emit(GameEvent.GAME_STATE_UPDATED, getGameStatusPayload(currentGame));
       }, DISCONNECTION_GRACE_MILLIS);
 
       disconnectTimeouts.set(timeoutKey, disconnectTimeout);
     });
 
-    socket.on(SocketEvent.TIME_SYNCED, (determinedTimeOffset: number) => {
+    socket.on(GameEvent.TIME_SYNCED, (determinedTimeOffset: number) => {
       const userId = socket.data.userId;
       if (userId) {
-        console.log(`Latency of user ${userId} is now ${determinedTimeOffset}ms`);
+        console.log(`Clock offset of user ${userId} is now ${determinedTimeOffset}ms`);
         clientLatencies.set(userId, determinedTimeOffset);
       }
     });
 
-    socket.on(SocketEvent.JOIN_INSTANCE, async ({ instanceId }) => {
+    socket.on(GameEvent.JOIN_INSTANCE, async ({ instanceId }) => {
       const userId = socket.data.userId;
       socket.data.instanceId = instanceId;
 
@@ -355,10 +356,10 @@ export function setupServer() {
       }
 
       // Broadcast updated state to everyone in this game instance
-      server.to(instanceId).emit(SocketEvent.GAME_STATE_UPDATED, getGameStatusPayload(game));
+      server.to(instanceId).emit(GameEvent.GAME_STATE_UPDATED, getGameStatusPayload(game));
     });
 
-    socket.on(SocketEvent.READY_TO_PLAY, ({ setupDuration }) => {
+    socket.on(GameEvent.READY_TO_PLAY, ({ setupDuration }) => {
       const instanceId = socket.data.instanceId;
       const game = instances[instanceId];
       if (!game) return;

@@ -1,7 +1,7 @@
 import { useSignal } from '@preact/signals';
 import { TargetedEvent } from 'preact';
 
-import { discordSdk, gameState, useAuth } from '../main';
+import { audioPlayer, discordSdk, gameState, useAuth } from '../main';
 
 import * as backend from '../utils/backend';
 import { HOST_TIME_BONUS_LABELS } from '../utils/constants';
@@ -108,6 +108,8 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
 
     isSubmitting.value = false;
   };
+
+  audioPlayer.pause();
 
   return (
     <div className="view-container centered">

@@ -1,15 +1,18 @@
 import { useSignal } from '@preact/signals';
 import { useEffect, useRef } from 'preact/hooks';
 
-import * as backend from '../utils/backend';
 import { audioPlayer, discordSdk, gameState, isMac, participants, useAuth } from '../main';
+import * as backend from '../utils/backend';
+import * as connections from '../utils/connections';
 import {
   COUNTDOWN_DURATION,
+  GameEvent,
   getAvatarUrl,
   getDisplayName,
   Joker,
+  LogLevel,
   MAX_GUESS_LENGTH,
-  SocketEvent,
+  RoundTimingData,
   Tag,
 } from '@yasq/shared';
 import { ALL_JOKER_ICONS } from '../components/Icons';
@@ -19,7 +22,6 @@ import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
 import { DiscordAvatar } from '../components/DiscordAvatar';
 import { TooltipDiv, WithTooltip } from '../components/Tooltip';
 import { LoadingSpinner } from '../components/LoadingSpinner';
-import { getSocket, getSyncedServerTime } from '../utils/connections';
 
 type JokerHint =
   | { type: Joker.OBFUSCATION; data: string }
@@ -126,9 +128,9 @@ const renderJokerHint = (activeHint: JokerHint, submit: SubmitFunction) => {
 };
 
 enum PlayingViewPhase {
-  SETUP = 'SETUP',
-  COUNTDOWN = 'COUNTDOWN',
-  PLAYING = 'PLAYING',
+  SETUP = 0,
+  COUNTDOWN = 1,
+  PLAYING = 2,
 }
 
 export const PlayingView = ({ isHost }: { isHost: boolean }) => {
@@ -196,127 +198,165 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
     }
   }, [currentPhase.value]);
 
-  // Round Initialization & Handshake Listener Loop
+  const bufferAudio = (url: string, abortSignal: AbortSignal): Promise<void> => {
+    // Preload audio buffer
+    audioPlayer.src = url;
+    audioPlayer.load();
+
+    return new Promise<void>((resolve, reject) => {
+      // Check if the audion player has already finished buffering
+      if (audioPlayer.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA) {
+        resolve();
+        return;
+      }
+
+      // Otherwise, get notified when it does
+      let settled = false;
+      const done = () => {
+        if (settled) return;
+        settled = true;
+
+        clearTimeout(fallback);
+        audioPlayer.removeEventListener('canplaythrough', handleCanPlay);
+        abortSignal.removeEventListener('abort', handleAbort);
+        resolve();
+      };
+
+      const handleAbort = () => {
+        if (settled) return;
+        settled = true;
+
+        clearTimeout(fallback);
+        audioPlayer.removeEventListener('canplaythrough', handleCanPlay);
+        reject(new DOMException('Aborted', 'AbortError'));
+      };
+
+      const handleCanPlay = () => done();
+      const fallback = setTimeout(done, 5000);
+
+      audioPlayer.addEventListener('canplaythrough', handleCanPlay);
+      abortSignal.addEventListener('abort', handleAbort, { once: true });
+    });
+  };
+
+  // Animate countdown
+  const startAnimationLoop = (
+    roundTimingData: { startTime: number; endTime: number },
+    abortSignal: AbortSignal
+  ): number => {
+    let animationFrameId: number;
+    const { startTime, endTime } = roundTimingData;
+    const totalDurationMillis = endTime - startTime;
+
+    const animateCountdownAndProgressBar = () => {
+      if (abortSignal.aborted) return;
+
+      const now = connections.getSyncedServerTime();
+      const timeDifference = now - startTime;
+      const progressBar = progressBarRef.current;
+
+      if (timeDifference < 0) {
+        // Render waiting message and countdown
+        audioPlayer.pause();
+        audioPlayer.currentTime = 0;
+
+        if (progressBar) {
+          progressBar.style.width = '100%';
+          progressBar.classList.remove('danger', 'blink');
+        }
+
+        // Check if it is time to show the countdown already
+        const remainingMilliseconds = Math.abs(timeDifference);
+
+        if (remainingMilliseconds <= COUNTDOWN_DURATION) {
+          // Only now start the numbered countdown
+          currentPhase.value = PlayingViewPhase.COUNTDOWN;
+
+          const remainingSeconds = Math.ceil(remainingMilliseconds / 1000);
+          countdownValue.value = Math.max(1, Math.min(COUNTDOWN_DURATION / 1000, remainingSeconds));
+        } else {
+          currentPhase.value = PlayingViewPhase.SETUP;
+        }
+      } else {
+        // Play track and animate progress bar
+        currentPhase.value = PlayingViewPhase.PLAYING;
+
+        let progressPercentage = 100 - (timeDifference / totalDurationMillis) * 100;
+        progressPercentage = Math.max(0, Math.min(100, progressPercentage));
+
+        if (progressBar) {
+          progressBar.style.width = `${progressPercentage}%`;
+          progressBar.classList.toggle('danger', progressPercentage < 20);
+          progressBar.classList.toggle('blink', progressPercentage < 5);
+        }
+
+        const elapsedSeconds = timeDifference / 1000;
+        const trackDuration = audioPlayer.duration || totalDurationMillis / 1000;
+        const expectedPlaybackTime = trackDuration > 0 ? elapsedSeconds % trackDuration : elapsedSeconds;
+
+        // Correct the audio player if we are off by at least one second
+        if (Math.abs(audioPlayer.currentTime - expectedPlaybackTime) >= 1) {
+          audioPlayer.currentTime = expectedPlaybackTime;
+        }
+
+        if (audioPlayer.paused) {
+          audioPlayer.play().catch(async () =>
+            backend.logToServer(LogLevel.ERROR, 'Failed to play track', getUserId(auth), {
+              instanceId: discordSdk.instanceId,
+            })
+          );
+        }
+      }
+
+      // Register self to be called again on the next animation frame
+      animationFrameId = requestAnimationFrame(animateCountdownAndProgressBar);
+    };
+
+    // Start the animation loop
+    animationFrameId = requestAnimationFrame(animateCountdownAndProgressBar);
+    return animationFrameId;
+  };
+
+  // Initialize round (pre-buffer audio track and start countdown/progressBar animation loop)
   useEffect(() => {
     let animationFrameId: number;
-    let hasBeenCancelled = false;
-    const socket = getSocket();
+    let cleanupHandlers: (() => void) | undefined;
+    const controller = new AbortController();
+    const { signal: abortSignal } = controller;
 
     // Ensure audio player is immediately halted when entering/switching rounds
     audioPlayer.pause();
     audioPlayer.currentTime = 0;
     audioPlayer.src = '';
 
+    // Wrap async calls in a function because useEffect handler must remain synchronous
     const setupRound = async () => {
       currentPhase.value = PlayingViewPhase.SETUP;
       const setupStartTime = Date.now();
 
       try {
         const trackData = await backend.getCurrentTrack(auth.access_token, discordSdk.instanceId);
-        if (!trackData || !trackData.url || hasBeenCancelled) return;
+        if (!trackData || !trackData.url || abortSignal.aborted) return;
 
         if (isHost) {
           activeTrackInfo.value = trackData;
         }
 
-        // 1. Preload audio buffer
-        audioPlayer.src = window.location.origin + trackData.url;
-        audioPlayer.load();
+        await bufferAudio(window.location.origin + trackData.url, abortSignal);
 
-        await new Promise<void>(resolve => {
-          // Check if the audion player has already finished buffering
-          if (audioPlayer.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA) {
-            resolve();
-            return;
-          }
-          // Otherwise, get notified when it does
-          let settled = false;
-          const done = () => {
-            if (settled) return;
-            settled = true;
-
-            clearTimeout(fallback);
-            audioPlayer.removeEventListener('canplaythrough', handleCanPlay);
-            resolve();
-          };
-
-          const handleCanPlay = () => done();
-          const fallback = setTimeout(done, 5000);
-
-          audioPlayer.addEventListener('canplaythrough', handleCanPlay);
-        });
-
-        if (hasBeenCancelled) return;
-
-        // Listen for the server's start event
-        const handleRoundStarting = (startData: { startTime: number; endTime: number }) => {
-          if (hasBeenCancelled) return;
-          const { startTime, endTime } = startData;
-          const totalDurationMs = endTime - startTime;
-
-          // Start Synchronized Animation Loop
-          const updateLoop = () => {
-            if (hasBeenCancelled) return;
-
-            const now = getSyncedServerTime();
-            const timeDifference = now - startTime;
-            const progressBar = progressBarRef.current;
-
-            if (timeDifference < 0) {
-              const remainingMilliseconds = Math.abs(timeDifference);
-
-              if (remainingMilliseconds <= COUNTDOWN_DURATION) {
-                // Only now start the visible countdown
-                currentPhase.value = PlayingViewPhase.COUNTDOWN;
-
-                const remainingSeconds = Math.ceil(remainingMilliseconds / 1000);
-                countdownValue.value = Math.max(1, Math.min(COUNTDOWN_DURATION / 1000, remainingSeconds));
-              } else {
-                // Still more than 3 seconds out -> stay on "Ready?"
-                currentPhase.value = PlayingViewPhase.SETUP;
-              }
-
-              audioPlayer.pause();
-              audioPlayer.currentTime = 0;
-              if (progressBar) progressBar.style.width = '100%';
-            } else {
-              currentPhase.value = PlayingViewPhase.PLAYING;
-
-              let percentage = 100 - (timeDifference / totalDurationMs) * 100;
-              percentage = Math.max(0, Math.min(100, percentage));
-
-              if (progressBar) {
-                progressBar.style.width = `${percentage}%`;
-                progressBar.style.backgroundColor = percentage < 20 ? '#f04747' : '#5865f2';
-                progressBar.classList.toggle('blink', percentage < 5);
-              }
-
-              const elapsedSeconds = timeDifference / 1000;
-              const trackDuration = audioPlayer.duration || totalDurationMs / 1000;
-              const expectedPlaybackTime = trackDuration > 0 ? elapsedSeconds % trackDuration : elapsedSeconds;
-
-              if (Math.abs(audioPlayer.currentTime - expectedPlaybackTime) > 0.5) {
-                audioPlayer.currentTime = expectedPlaybackTime;
-              }
-
-              if (audioPlayer.paused) {
-                audioPlayer.play().catch(() => console.warn('Autoplay blocked'));
-              }
-            }
-
-            animationFrameId = requestAnimationFrame(updateLoop);
-          };
-
-          animationFrameId = requestAnimationFrame(updateLoop);
+        const handleRoundStarting = (roundTimingData: RoundTimingData) => {
+          if (abortSignal.aborted) return;
+          animationFrameId = startAnimationLoop(roundTimingData, abortSignal);
         };
 
-        socket?.once(SocketEvent.ROUND_STARTING, handleRoundStarting);
+        // Listen for the server's round start event
+        cleanupHandlers = connections.onNextGameEvent<RoundTimingData>(GameEvent.ROUND_STARTING, handleRoundStarting);
 
         // Notify the server that we are ready to start the round now
-        if (socket) {
-          socket.emit(SocketEvent.READY_TO_PLAY, { setupDuration: Date.now() - setupStartTime });
-        }
+        connections.emitGameEvent(GameEvent.READY_TO_PLAY, { setupDuration: Date.now() - setupStartTime });
       } catch (err) {
+        if ((err as Error).name === 'AbortError') return;
+
         console.error('Round setup error:', err);
       }
     };
@@ -324,10 +364,10 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
     void setupRound();
 
     return () => {
-      hasBeenCancelled = true;
+      controller.abort();
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
 
-      socket?.off(SocketEvent.ROUND_STARTING);
+      cleanupHandlers?.();
     };
   }, [isHost, gameState.value.currentRound]);
 

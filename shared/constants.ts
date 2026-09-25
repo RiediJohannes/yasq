@@ -112,7 +112,7 @@ export const HOST_PREFIX: string = 'host';
 export const TEST_PREFIX: string = 'test';
 export const INSTANCE_PATH: string = 'instance/:instanceId';
 
-export const SocketEvent = {
+export const GameEvent = {
   JOIN_INSTANCE: 'join_instance',
   REQUEST_TIME: 'request_time',
   TIME_SYNCED: 'time_synced',
@@ -123,7 +123,7 @@ export const SocketEvent = {
   PLAYLISTS_UPDATED: 'playlists-updated',
 } as const;
 
-export type TSocketEvent = (typeof SocketEvent)[keyof typeof SocketEvent];
+export type TGameEvent = (typeof GameEvent)[keyof typeof GameEvent];
 
 export const UI_UPDATES_DELAY_IN_E2E: number = 1000;
 export const LONG_PRESS_MILLIS = 400;

@@ -1489,7 +1489,12 @@ kbd {
   width: 0;
   height: 100%;
   background-color: var(--blurple);
-  transition: width 1s linear;
+  transition: width 0.3s linear;
+  will-change: width;
+}
+
+#progress-bar.danger {
+  background-color: var(--red);
 }
 
 @keyframes pulse-blink {
