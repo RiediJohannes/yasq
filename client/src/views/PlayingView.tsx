@@ -376,15 +376,24 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
       id="game-arena"
       className="centered"
     >
-      {currentPhase.value === PlayingViewPhase.SETUP && (
+      {currentPhase.value !== PlayingViewPhase.PLAYING && (
         <div id="countdown-overlay">
-          <div id="countdown-number">Ready?</div>
-        </div>
-      )}
-
-      {currentPhase.value === PlayingViewPhase.COUNTDOWN && (
-        <div id="countdown-overlay">
-          <div id="countdown-number">{countdownValue.value}</div>
+          {currentPhase.value === PlayingViewPhase.SETUP && (
+            <div
+              id="countdown-text"
+              className="countdown"
+            >
+              Ready?
+            </div>
+          )}
+          {currentPhase.value === PlayingViewPhase.COUNTDOWN && (
+            <div
+              id="countdown-number"
+              className="countdown"
+            >
+              {countdownValue.value}
+            </div>
+          )}
         </div>
       )}
 
