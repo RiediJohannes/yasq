@@ -84,3 +84,48 @@ export async function saveLeaderboard(leaderboard: Leaderboard): Promise<void> {
     client.release();
   }
 }
+
+export async function getPlayerRank(userId: string) {
+  const client = await pool.connect();
+  try {
+    const query = `
+      WITH lifetime_leaderboard AS (
+        SELECT
+          user_id,
+          SUM(total_score) AS lifetime_points,
+          COUNT(game_id) AS games_played,
+          RANK() OVER (ORDER BY SUM(total_score) DESC) AS rank
+        FROM entries
+        GROUP BY user_id
+      )
+      SELECT *
+      FROM lifetime_leaderboard
+      WHERE user_id = $1;
+    `;
+    const result = await client.query(query, [userId]);
+    return result.rows[0] || null;
+  } finally {
+    client.release();
+  }
+}
+
+export async function getTopLifetimePlayers(limit: number = 5) {
+  const client = await pool.connect();
+  try {
+    const query = `
+      SELECT
+        user_id,
+        SUM(total_score) AS lifetime_points,
+        COUNT(game_id) AS games_played,
+        RANK() OVER (ORDER BY SUM(total_score) DESC) AS rank
+      FROM entries
+      GROUP BY user_id
+      ORDER BY lifetime_points DESC
+      LIMIT $1;
+    `;
+    const result = await client.query(query, [limit]);
+    return result.rows;
+  } finally {
+    client.release();
+  }
+}

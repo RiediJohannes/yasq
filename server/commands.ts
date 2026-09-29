@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import { REST, Routes } from 'discord.js';
-import { ApplicationCommandType, EntryPointCommandHandlerType } from 'discord.js';
+import { ApplicationCommandOptionType, ApplicationCommandType, EntryPointCommandHandlerType } from 'discord.js';
 
 dotenv.config({ path: '../.env' });
 
@@ -23,6 +23,24 @@ const commands = [
     name: 'test',
     description: 'Test Command',
     type: ApplicationCommandType.ChatInput,
+  },
+  {
+    name: 'top',
+    description: 'View the top 5 YASQ players',
+    type: ApplicationCommandType.ChatInput,
+  },
+  {
+    name: 'rank',
+    description: 'View your YASQ rank',
+    type: ApplicationCommandType.ChatInput,
+    options: [
+      {
+        name: 'player',
+        description: "Check another player's rank (optional)",
+        type: ApplicationCommandOptionType.User,
+        required: false,
+      },
+    ],
   },
 ];
 
