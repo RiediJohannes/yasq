@@ -42,17 +42,35 @@ const commands = [
       },
     ],
   },
+  {
+    name: 'play',
+    description: 'Play your favourite YASQ track',
+    type: ApplicationCommandType.ChatInput,
+    options: [
+      {
+        name: 'track',
+        description: 'Search by track title or game name',
+        type: ApplicationCommandOptionType.String,
+        required: true,
+      },
+    ],
+  },
+  {
+    name: 'leave',
+    description: 'Kick the bot out of the voice channel',
+    type: ApplicationCommandType.ChatInput,
+  },
 ];
 
 const rest = new REST({ version: '10' }).setToken(TOKEN);
 
 (async () => {
   try {
-    console.log('Registering global Entry Point command...');
+    console.log('Registering global YASQ commands...');
 
     await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
 
-    console.log('Successfully registered global Entry Point command.');
+    console.log('Successfully registered global YASQ commands.');
   } catch (error) {
     console.error(error);
   }
