@@ -11,12 +11,15 @@ import {
 } from 'discord.js';
 
 import { getTopLifetimePlayers, getPlayerRank, initDatabase } from './db.js';
-import { getDisplayName, type Track } from '@yasq/shared';
+import { getDisplayName, type Playlist, type Track } from '@yasq/shared';
 import path from 'path';
 import fs from 'fs';
+import { execSync } from 'child_process';
 import { isAllowed } from './src/access_control.js';
 
 dotenv.config({ path: '../.env' });
+
+const activeAudioPlayers = new Map<string, { player: any; skipFn: () => void }>();
 
 export async function startDiscordBot() {
   await initDatabase().catch(err => console.error('Database init error:', err));
@@ -219,11 +222,16 @@ export async function startDiscordBot() {
           connection.subscribe(player);
           player.play(resource);
 
+          const durationStr = getAudioDuration(audioFilePath);
+
           const embed = new EmbedBuilder()
             .setColor(0x5865f2)
             .setTitle('🎶 Now Playing')
             .setDescription(`**${chosenTrack.title}**`)
-            .addFields({ name: 'Game', value: chosenTrack.game, inline: true })
+            .addFields(
+              { name: 'Game', value: chosenTrack.game, inline: true },
+              { name: 'Duration', value: durationStr, inline: true }
+            )
             .setTimestamp();
 
           if (Array.isArray(chosenTrack.tags)) {
@@ -331,6 +339,262 @@ export async function startDiscordBot() {
       });
     }
 
+    if (interaction.commandName === 'playlist') {
+      await interaction.deferReply();
+
+      const voice = await import('@discordjs/voice');
+      const member = interaction.guild?.members.cache.get(interaction.user.id);
+      const voiceChannel = member?.voice.channel;
+
+      if (!voiceChannel) {
+        await interaction.editReply('❌ You need to be in a voice channel first!');
+        return;
+      }
+
+      const dataDir = process.env.DATA_SOURCE || 'sample';
+      const playlistsFilePath = path.join(process.cwd(), 'data', dataDir, 'playlists.json');
+      const tracksFilePath = path.join(process.cwd(), 'data', dataDir, 'tracks.json');
+
+      let playlists: Playlist[];
+      let tracks: Track[];
+
+      try {
+        playlists = JSON.parse(fs.readFileSync(playlistsFilePath, 'utf8'));
+        tracks = JSON.parse(fs.readFileSync(tracksFilePath, 'utf8'));
+      } catch (error) {
+        console.error('Failed to read playlist or track database:', error);
+        await interaction.editReply('❌ Could not load playlist data.');
+        return;
+      }
+
+      // Shared playlist playback logic
+      const handlePlaylistPlayback = async (
+        targetInteraction: any,
+        selectedPlaylistName: string,
+        followUpMessage?: any
+      ) => {
+        const playlist = playlists.find(p => p.name.toLowerCase() === selectedPlaylistName.toLowerCase());
+        if (!playlist) {
+          await targetInteraction.editReply('❌ Selected playlist not found.');
+          return;
+        }
+
+        const playlistTracks = playlist.tracks
+          .map(audioFile => tracks.find(t => t.audio === audioFile))
+          .filter((t): t is Track => t !== undefined && isAllowed(interaction.user.id, t.audio));
+
+        if (playlistTracks.length === 0) {
+          await targetInteraction.editReply(`❌ No authorized tracks found in playlist "${playlist.name}".`);
+          return;
+        }
+
+        try {
+          const targetMember = await interaction.guild?.members.fetch(interaction.user.id);
+          const targetVoiceChannel = targetMember?.voice.channel;
+
+          if (!targetVoiceChannel) {
+            await targetInteraction.editReply('❌ You must be in a voice channel!');
+            return;
+          }
+
+          const connection = voice.joinVoiceChannel({
+            channelId: targetVoiceChannel.id,
+            guildId: targetVoiceChannel.guild.id,
+            adapterCreator: targetVoiceChannel.guild.voiceAdapterCreator,
+          });
+
+          await voice.entersState(connection, voice.VoiceConnectionStatus.Ready, 10_000);
+
+          const player = voice.createAudioPlayer();
+          connection.subscribe(player);
+
+          let currentIndex = 0;
+
+          const playNextTrack = () => {
+            if (currentIndex >= playlistTracks.length) {
+              (interaction.channel as any).send(`✅ Finished playing playlist **${playlist.name}**.`).catch(() => {});
+              activeAudioPlayers.delete(interaction.guildId!);
+              return;
+            }
+
+            const currentTrack = playlistTracks[currentIndex++];
+            if (!currentTrack) {
+              interaction.editReply('❌ Track could not be found.');
+              return;
+            }
+
+            if (!isAllowed(interaction.user.id, currentTrack.audio)) {
+              interaction.editReply('❌ You do not have permission to play this track.');
+              return;
+            }
+
+            const audioFilePath = path.join(process.cwd(), 'data', dataDir, 'music', currentTrack.audio);
+
+            if (!fs.existsSync(audioFilePath)) {
+              playNextTrack();
+              return;
+            }
+
+            const resource = voice.createAudioResource(audioFilePath, { inlineVolume: true });
+            player.play(resource);
+
+            const durationStr = getAudioDuration(audioFilePath);
+
+            const embed = new EmbedBuilder()
+              .setColor(0x5865f2)
+              .setTitle('🎶 Now Playing')
+              .setDescription(`**${currentTrack.title}**`)
+              .addFields(
+                { name: 'Game', value: currentTrack.game, inline: true },
+                { name: 'Duration', value: durationStr, inline: true }
+              )
+              .setTimestamp();
+
+            if (Array.isArray(currentTrack.tags)) {
+              for (const tag of currentTrack.tags) {
+                const fieldName = tag.type.charAt(0).toUpperCase() + tag.type.slice(1);
+                embed.addFields({
+                  name: fieldName,
+                  value: tag.value,
+                  inline: true,
+                });
+              }
+            }
+
+            const files: AttachmentBuilder[] = [];
+
+            if (currentTrack.cover) {
+              const coverPath = path.join(process.cwd(), 'data', dataDir, 'game_covers', currentTrack.cover);
+
+              if (fs.existsSync(coverPath)) {
+                const ext = path.extname(currentTrack.cover) || '.jpg';
+                const attachmentName = `cover${ext}`;
+
+                const attachment = new AttachmentBuilder(coverPath, { name: attachmentName });
+                embed.setThumbnail(`attachment://${attachmentName}`);
+                files.push(attachment);
+              }
+            }
+
+            const payload = {
+              content: `▶️️ Playing playlist **${playlist.name}** (${currentIndex}/${playlistTracks.length}):`,
+              embeds: [embed],
+              files: files,
+            };
+
+            if (currentIndex === 1) {
+              interaction.editReply(payload).catch(() => {});
+            } else {
+              (interaction.channel as any).send(payload).catch(() => {});
+            }
+          };
+
+          activeAudioPlayers.set(interaction.guildId!, {
+            player,
+            skipFn: () => {
+              // Stopping the player triggers the Idle event, which loads the next track
+              player.stop();
+            },
+          });
+
+          player.on(voice.AudioPlayerStatus.Idle, () => {
+            playNextTrack();
+          });
+
+          playNextTrack();
+
+          // Clean up ephemeral message if it exists
+          if (followUpMessage) {
+            await interaction.deleteReply(followUpMessage.id).catch(() => {});
+          }
+        } catch (error) {
+          console.error('Playlist playback error:', error);
+          await targetInteraction.editReply('❌ Failed to connect or start playlist playback.');
+        }
+      };
+
+      // Filter playlists based on user input, or get all if no input was provided
+      const optionName = interaction.options.getString('name');
+      const targetPlaylists = optionName
+        ? playlists.filter(p => p.name.toLowerCase().includes(optionName.toLowerCase()))
+        : playlists;
+
+      if (targetPlaylists.length === 0) {
+        await interaction.editReply(`❌ No playlists found${optionName ? ` matching "${optionName}"` : ''}.`);
+        return;
+      }
+
+      // If exactly one match, play it directly without showing a dropdown
+      if (targetPlaylists.length === 1) {
+        await interaction.editReply('Connecting and starting playlist playback...');
+        const playlist = targetPlaylists[0];
+        if (!playlist) {
+          return;
+        }
+        await handlePlaylistPlayback(interaction, playlist.name);
+        return;
+      }
+
+      // If multiple matches, present a selection menu via an ephemeral follow-up
+      await interaction.editReply({
+        content: `🔍 Found **${targetPlaylists.length}** playlist(s)${optionName ? ` matching "${optionName}"` : ''}. Waiting for track selection...`,
+      });
+
+      const selectMenu = new StringSelectMenuBuilder()
+        .setCustomId('playlist_select')
+        .setPlaceholder('Select a playlist to play...')
+        .addOptions(
+          targetPlaylists.slice(0, 25).map(playlist => ({
+            label: playlist.name.substring(0, 100),
+            description: `Tracks: ${playlist.tracks.length}`.substring(0, 100),
+            value: playlist.name,
+          }))
+        );
+
+      const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
+
+      const followUpResponse = await interaction.followUp({
+        content: `Please select a playlist:`,
+        components: [row],
+        flags: MessageFlags.Ephemeral,
+      });
+
+      const collector = followUpResponse.createMessageComponentCollector({
+        filter: i => i.user.id === interaction.user.id,
+        time: 30000,
+      });
+
+      collector.on('collect', async (selectInteraction: StringSelectMenuInteraction) => {
+        await selectInteraction.update({ content: 'Connecting and starting playlist playback...', components: [] });
+
+        const selectedPlaylistName = selectInteraction.values[0];
+        if (!selectedPlaylistName) return;
+
+        await handlePlaylistPlayback(selectInteraction, selectedPlaylistName, followUpResponse);
+      });
+
+      collector.on('end', async collected => {
+        if (collected.size === 0) {
+          await interaction.editReply({ content: '⌛ Playlist selection timed out.' }).catch(() => {});
+          await interaction.deleteReply(followUpResponse.id).catch(() => {});
+        }
+      });
+    }
+
+    if (interaction.commandName === 'skip') {
+      await interaction.deferReply();
+
+      const activeSession = activeAudioPlayers.get(interaction.guildId!);
+      if (!activeSession) {
+        await interaction.editReply('❌ There is no active playlist playing right now.');
+        return;
+      }
+
+      // Trigger the skip
+      activeSession.skipFn();
+      await interaction.editReply('⏭️ Skipped to the next track!');
+    }
+
     if (interaction.commandName === 'leave') {
       const voice = await import('@discordjs/voice');
       const connection = voice.getVoiceConnection(interaction.guildId!);
@@ -346,4 +610,22 @@ export async function startDiscordBot() {
   });
 
   client.login(process.env.DISCORD_BOT_TOKEN);
+}
+
+function getAudioDuration(filePath: string): string {
+  try {
+    // Uses ffprobe to get the duration in seconds
+    const output = execSync(
+      `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`,
+      { encoding: 'utf8' }
+    );
+    const totalSeconds = parseFloat(output.trim());
+    if (isNaN(totalSeconds)) return 'Unknown';
+
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  } catch {
+    return 'Unknown';
+  }
 }

@@ -56,6 +56,24 @@ const commands = [
     ],
   },
   {
+    name: 'playlist',
+    description: 'Play your favourite YASQ playlist',
+    type: ApplicationCommandType.ChatInput,
+    options: [
+      {
+        name: 'name',
+        description: 'Search by playlist',
+        type: ApplicationCommandOptionType.String,
+        required: true,
+      },
+    ],
+  },
+  {
+    name: 'skip',
+    description: 'Skips current track on YASQ playlist',
+    type: ApplicationCommandType.ChatInput,
+  },
+  {
     name: 'leave',
     description: 'Kick the bot out of the voice channel',
     type: ApplicationCommandType.ChatInput,
