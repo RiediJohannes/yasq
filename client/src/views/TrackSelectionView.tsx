@@ -1,8 +1,7 @@
 import { computed, signal, useSignal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 
-import { discordSdk, useAuth } from '../main';
-import * as backend from '../utils/backend';
+import { useBackend } from '../main';
 import { Track } from '../utils/types';
 import { NonDraggableImg } from '../components/NonDraggableImg';
 import { TagFilterDropdown } from '../components/TagFilterComponent';
@@ -26,12 +25,12 @@ const hidePlayed = signal(false);
 const sortOrder = signal<SortOption>('Default Order');
 
 export const TrackSelectionView = ({ isHost }: { isHost: boolean }) => {
-  const auth = useAuth();
+  const backend = useBackend();
   const tracks = useSignal<Track[] | null>(null);
   const playlists = useSignal<Playlist[]>([]);
 
   const fetchTracksAndPlaylists = () => {
-    backend.getTrackList(auth.access_token, discordSdk.instanceId).then(data => {
+    backend.getTrackList().then(data => {
       tracks.value = data.tracks.map((t: Track, i: number) => ({
         ...t,
         originalIndex: i,
@@ -77,7 +76,7 @@ export const TrackSelectionView = ({ isHost }: { isHost: boolean }) => {
     const randomTrack = getRandomEligibleTrack(filteredTracks.value);
     if (!randomTrack) return;
 
-    await backend.playTrack(auth.access_token, randomTrack.audio, discordSdk.instanceId);
+    await backend.playTrack(randomTrack.audio);
   };
 
   const availableTagsByType = computed(() => getAvailableTagsByType(tracks.value));
@@ -223,7 +222,7 @@ export const TrackSelectionView = ({ isHost }: { isHost: boolean }) => {
                   // The button becomes disabled because tracks.value will update
                   // or the state will change to 'PLAYING' via the backend call.
                   (e.currentTarget as HTMLButtonElement).disabled = true;
-                  await backend.playTrack(auth.access_token, track.audio, discordSdk.instanceId);
+                  await backend.playTrack(track.audio);
                 }}
               >
                 {track.played ? 'Already Played' : 'Select Track'}

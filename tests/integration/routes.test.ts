@@ -1,13 +1,5 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  logToServer,
-  playTrack,
-  setBaseUrl,
-  setupGame,
-  submitGuess,
-  transferHostRole,
-  useJoker,
-} from '../../client/src/utils/backend';
+import { AuthenticationResult, Backend } from '../../client/src/utils/backend';
 import { setupServer } from '../../server';
 import {
   deserializeError,
@@ -26,20 +18,32 @@ import { exchangeCodeForToken, getDiscordUser } from '../../server/src/utils/dis
 import { LogCategory, logger } from '@yasq/server/src/utils/logger';
 import { Player } from '../utils/helper';
 
-const hostToken = 'token_1';
-const player1Token = 'token_2';
-const player2Token = 'token_3';
-const nonRegisteredPlayerToken = 'token_4';
+const makeAuth = (id: string, username: string): AuthenticationResult =>
+  ({
+    access_token: `token_${id}`,
+    user: {
+      id,
+      username,
+    },
+    scopes: ['identify'],
+    expires: 'never',
+  }) as AuthenticationResult;
 
-const DEFAULT_PLAYERS: Player[] = [
-  { id: '1', username: 'Player1' },
-  { id: '2', username: 'Player2' },
-];
+const hostAuth = makeAuth('1', 'Host');
+const playerAuth = makeAuth('2', 'Player');
+const player2Auth = makeAuth('3', 'Player2');
+const fakeAuth = makeAuth('fake', 'NonAuthenticatedPlayer');
+
+const DEFAULT_PLAYERS: Player[] = [hostAuth.user, playerAuth.user];
 const DEFAULT_SESSION: [Player[], TestGameState] = [DEFAULT_PLAYERS, { phase: GamePhase.SETUP }];
 
-let httpServer: Server;
 let baseUrl: string;
 let currentInstanceId: string;
+let httpServer: Server;
+let hostBackend: Backend;
+let player1Backend: Backend;
+let player2Backend: Backend;
+let unregisteredBackend: Backend;
 let api: TestApi;
 let loggerSpy: ReturnType<typeof vi.spyOn>;
 
@@ -59,14 +63,13 @@ beforeAll(async () => {
       const port = address.port;
 
       baseUrl = `http://localhost:${port}`;
-      setBaseUrl(baseUrl);
       resolve();
     });
   });
 
   vi.mocked(exchangeCodeForToken).mockResolvedValue('mock_token_for_dev');
-  vi.mocked(getDiscordUser).mockImplementation(async (access_token: string) => {
-    const id = access_token.split('_')[1];
+  vi.mocked(getDiscordUser).mockImplementation(async (accessToken: string) => {
+    const id = accessToken.split('_')[1];
     return {
       id,
       username: `TestUser${id}`,
@@ -82,7 +85,15 @@ afterAll(async () => {
 
 beforeEach(async context => {
   currentInstanceId = `test-instance-${context.task.id}`;
+
   api = new TestApi(baseUrl, currentInstanceId, true);
+
+  hostBackend = new Backend(currentInstanceId, hostAuth);
+  player1Backend = new Backend(currentInstanceId, playerAuth);
+  player2Backend = new Backend(currentInstanceId, player2Auth);
+  unregisteredBackend = new Backend(currentInstanceId, fakeAuth);
+
+  // NOTE: Remove this mock implementation to see logs during integration tests (for debugging)
   loggerSpy = vi.spyOn(logger, 'log').mockImplementation(() => {});
 });
 
@@ -100,7 +111,7 @@ describe('transferHostRole', () => {
   });
 
   it('should return 200 OK when host role is transferred by current host', async () => {
-    const response = await transferHostRole(hostToken, currentInstanceId, '2');
+    const response = await hostBackend.transferHostRole(playerAuth.user.id);
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -108,7 +119,7 @@ describe('transferHostRole', () => {
   });
 
   it('should return 403 Forbidden when non-host player tries to transfer the host role', async () => {
-    const response = await transferHostRole(player1Token, currentInstanceId, '2');
+    const response = await player1Backend.transferHostRole(playerAuth.user.id);
     const body = await response.json();
 
     expect(response.status).toBe(403);
@@ -116,7 +127,7 @@ describe('transferHostRole', () => {
   });
 
   it('should return 400 Bad Request when host role is transferred to non-registered player', async () => {
-    const response = await transferHostRole(hostToken, currentInstanceId, '3');
+    const response = await hostBackend.transferHostRole(fakeAuth.user.id);
     const body = await response.json();
 
     expect(response.status).toBe(400);
@@ -134,7 +145,7 @@ describe('setupGame', () => {
   });
 
   it('should return 200 OK when valid settings are provided', async () => {
-    const response = await setupGame(hostToken, currentInstanceId, {
+    const response = await hostBackend.setupGame({
       rounds: 5,
       maxGuessTime: 60,
       enabledJokers: [],
@@ -149,7 +160,7 @@ describe('setupGame', () => {
   });
 
   it('should return 400 Bad Request when rounds are set to 0', async () => {
-    const response = await setupGame(hostToken, currentInstanceId, {
+    const response = await hostBackend.setupGame({
       rounds: 0,
       maxGuessTime: 60,
       enabledJokers: [],
@@ -164,7 +175,7 @@ describe('setupGame', () => {
   });
 
   it('should return 400 Bad Request when guess time exceeds the maximum allowed value', async () => {
-    const response = await setupGame(hostToken, currentInstanceId, {
+    const response = await hostBackend.setupGame({
       rounds: 5,
       maxGuessTime: 999999999,
       enabledJokers: [],
@@ -179,7 +190,7 @@ describe('setupGame', () => {
   });
 
   it('should return 403 Forbidden when non-host player tries to setup game', async () => {
-    const response = await setupGame(player1Token, currentInstanceId, {
+    const response = await player1Backend.setupGame({
       rounds: 5,
       maxGuessTime: 60,
       enabledJokers: [],
@@ -204,7 +215,7 @@ describe('playTrack', () => {
   });
 
   it('should return 200 OK when valid audio file is requested', async () => {
-    const response = await playTrack(hostToken, 'track001.mp3', currentInstanceId);
+    const response = await hostBackend.playTrack('track001.mp3');
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -212,7 +223,7 @@ describe('playTrack', () => {
   });
 
   it('should return 404 Not Found when non-existent audio file is requested', async () => {
-    const response = await playTrack(hostToken, 'bla.mp3', currentInstanceId);
+    const response = await hostBackend.playTrack('bla.mp3');
     const body = await response.json();
 
     expect(response.status).toBe(404);
@@ -220,7 +231,7 @@ describe('playTrack', () => {
   });
 
   it('should return 403 Forbidden when non-allowed audio file is requested', async () => {
-    const response = await playTrack(hostToken, 'track002.mp3', currentInstanceId);
+    const response = await hostBackend.playTrack('track002.mp3');
     const body = await response.json();
 
     expect(response.status).toBe(403);
@@ -228,7 +239,7 @@ describe('playTrack', () => {
   });
 
   it('should return 403 Forbidden when non-host player tries to play track', async () => {
-    const response = await playTrack(player1Token, 'track002.mp3', currentInstanceId);
+    const response = await player1Backend.playTrack('track002.mp3');
     const body = await response.json();
 
     expect(response.status).toBe(403);
@@ -246,7 +257,7 @@ describe('submitGuess', () => {
   });
 
   it('should return 200 OK when guess is submitted by registered player', async () => {
-    const response = await submitGuess(player1Token, currentInstanceId, 'guess');
+    const response = await player1Backend.submitGuess('guess', Date.now());
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -254,18 +265,17 @@ describe('submitGuess', () => {
   });
 
   it('should return 403 Forbidden when guess is submitted by non-registered player', async () => {
-    const response = await submitGuess(nonRegisteredPlayerToken, currentInstanceId, 'guess');
+    const response = await unregisteredBackend.submitGuess('guess', Date.now());
     const body = await response.json();
 
     expect(response.status).toBe(403);
-    expect(body.error).toContain('User 4 is not registered with this instance.');
+    expect(body.error).toContain(`User ${fakeAuth.user.id} is not registered with this instance.`);
   });
 
   it('should return 400 Bad Request when submitted guess is too long', async () => {
-    const response = await submitGuess(
-      player1Token,
-      currentInstanceId,
-      'thisisaverylongguessthatislongerthantheallowedcharacterlimitof100charactersandisthereforerejectedbytheserver'
+    const response = await player1Backend.submitGuess(
+      'thisisaverylongguessthatislongerthantheallowedcharacterlimitof100charactersandisthereforerejectedbytheserver',
+      Date.now()
     );
     const body = await response.json();
 
@@ -277,11 +287,7 @@ describe('submitGuess', () => {
 describe('useJoker', () => {
   beforeEach(async () => {
     await api.setupSession(
-      [
-        { id: '1', username: 'Player1' },
-        { id: '2', username: 'Player2' },
-        { id: '3', username: 'Player3' },
-      ],
+      [hostAuth.user, playerAuth.user, player2Auth.user],
       {
         phase: GamePhase.PLAYING,
       },
@@ -311,7 +317,7 @@ describe('useJoker', () => {
   it('should return 200 OK when OBFUSCATION joker is used', async () => {
     await api.patchEnabledJokers([Joker.OBFUSCATION]);
 
-    const response = await useJoker(player1Token, currentInstanceId, Joker.OBFUSCATION);
+    const response = await player1Backend.useJoker(Joker.OBFUSCATION);
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -322,7 +328,7 @@ describe('useJoker', () => {
   it('should return 200 OK when TRIVIA joker is used', async () => {
     await api.patchEnabledJokers([Joker.TRIVIA]);
 
-    const response = await useJoker(player1Token, currentInstanceId, Joker.TRIVIA);
+    const response = await player1Backend.useJoker(Joker.TRIVIA);
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -336,7 +342,7 @@ describe('useJoker', () => {
   it('should return 200 OK when MULTIPLE_CHOICE joker is used', async () => {
     await api.patchEnabledJokers([Joker.MULTIPLE_CHOICE]);
 
-    const response = await useJoker(player1Token, currentInstanceId, Joker.MULTIPLE_CHOICE);
+    const response = await player1Backend.useJoker(Joker.MULTIPLE_CHOICE);
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -347,9 +353,9 @@ describe('useJoker', () => {
   it('should return 200 OK when GLIMPSE joker is used', async () => {
     await api.patchEnabledJokers([Joker.GLIMPSE]);
 
-    await playTrack(hostToken, 'track001.mp3', currentInstanceId);
+    await hostBackend.playTrack('track001.mp3');
 
-    const response = await useJoker(player1Token, currentInstanceId, Joker.GLIMPSE);
+    const response = await player1Backend.useJoker(Joker.GLIMPSE);
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -360,7 +366,7 @@ describe('useJoker', () => {
   it('should return 400 Bad Request when SPY joker is missing targetId', async () => {
     await api.patchEnabledJokers([Joker.SPY]);
 
-    const response = await useJoker(player1Token, currentInstanceId, Joker.SPY);
+    const response = await player1Backend.useJoker(Joker.SPY);
     const body = await response.json();
 
     expect(response.status).toBe(400);
@@ -370,7 +376,7 @@ describe('useJoker', () => {
   it('should return 202 Accepted when SPY joker target has not submitted', async () => {
     await api.patchEnabledJokers([Joker.SPY]);
 
-    const response = await useJoker(player1Token, currentInstanceId, Joker.SPY, '3');
+    const response = await player1Backend.useJoker(Joker.SPY, player2Auth.user.id);
     const body = await response.json();
 
     expect(response.status).toBe(202);
@@ -380,8 +386,8 @@ describe('useJoker', () => {
   it('should return 200 OK when SPY joker is used with valid target', async () => {
     await api.patchEnabledJokers([Joker.SPY]);
 
-    await submitGuess(player2Token, currentInstanceId, 'guess');
-    const response = await useJoker(player1Token, currentInstanceId, Joker.SPY, '3');
+    await player2Backend.submitGuess('guess', Date.now());
+    const response = await player1Backend.useJoker(Joker.SPY, player2Auth.user.id);
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -392,7 +398,7 @@ describe('useJoker', () => {
   it('should return 403 Forbidden when joker is not enabled', async () => {
     await api.patchEnabledJokers([Joker.TRIVIA, Joker.MULTIPLE_CHOICE, Joker.SPY]);
 
-    const response = await useJoker(player1Token, currentInstanceId, Joker.OBFUSCATION);
+    const response = await player1Backend.useJoker(Joker.OBFUSCATION);
     const body = await response.json();
 
     expect(response.status).toBe(403);
@@ -402,8 +408,8 @@ describe('useJoker', () => {
   it('should return 410 Gone when joker already used', async () => {
     await api.patchEnabledJokers([Joker.OBFUSCATION]);
 
-    await useJoker(player1Token, currentInstanceId, Joker.OBFUSCATION);
-    const response = await useJoker(player1Token, currentInstanceId, Joker.OBFUSCATION);
+    await player1Backend.useJoker(Joker.OBFUSCATION);
+    const response = await player1Backend.useJoker(Joker.OBFUSCATION);
     const body = await response.json();
 
     expect(response.status).toBe(410);
@@ -420,8 +426,8 @@ describe('clientLogs', () => {
     await api.deleteSession();
   });
 
-  it("should parse and forward a valid client log to the server's logger", async () => {
-    const response = await logToServer(LogLevel.INFO, 'Connection established', '1');
+  it("should forward a valid client log to the server's logger including the client's userId and instanceId", async () => {
+    const response = await player1Backend.logToServer(LogLevel.INFO, 'Connection established');
 
     expect(response.status).toBe(200);
     expect(loggerSpy).toHaveBeenCalledTimes(1);
@@ -430,15 +436,14 @@ describe('clientLogs', () => {
       'Connection established',
       LogCategory.CLIENT,
       expect.objectContaining({
-        clientUserId: '1',
+        instanceId: currentInstanceId,
+        clientUserId: playerAuth.user.id,
       })
     );
   });
 
-  it('should correctly (de)serialize and pass on full log context when provided', async () => {
-    const userId = '1';
+  it('should correctly (de)serialize a given error and include it in the log context when provided', async () => {
     const message = 'Audio playback failed';
-    const testInstance = 'TestInstance';
 
     const testErrorMessage = 'File not found';
     const testErrorObject = new Error(testErrorMessage);
@@ -449,15 +454,12 @@ describe('clientLogs', () => {
     ];
 
     for (const [errorInputValue, expectedReceivedValue] of testErrors) {
-      const response = await logToServer(LogLevel.ERROR, message, userId, {
-        instanceId: testInstance,
-        error: errorInputValue,
-      });
+      const response = await player2Backend.logToServer(LogLevel.ERROR, message, errorInputValue);
 
       expect(response.status).toBe(200);
       expect(loggerSpy).toHaveBeenCalledWith(LogLevel.ERROR, message, LogCategory.CLIENT, {
-        instanceId: testInstance,
-        clientUserId: userId,
+        instanceId: currentInstanceId,
+        clientUserId: player2Auth.user.id,
         error: expectedReceivedValue,
       });
     }
@@ -467,7 +469,7 @@ describe('clientLogs', () => {
     const expectedStatusCode = 400;
     const expectedMessage = 'Missing property: message';
 
-    const response = await logToServer(LogLevel.INFO, undefined, '1');
+    const response = await player1Backend.logToServer(LogLevel.INFO, undefined);
 
     // Response includes the correct status code and error message
     expect(response.status).toBe(expectedStatusCode);
@@ -495,7 +497,7 @@ describe('clientLogs', () => {
     const invalidLogLevel = LogLevel.ERROR + 1;
     const expectedMessage = `Unknown log level ${invalidLogLevel}`;
 
-    const response = await logToServer(invalidLogLevel as LogLevel, 'Test message', '1');
+    const response = await player1Backend.logToServer(invalidLogLevel as LogLevel, 'Test message');
 
     // Response includes the correct status code and error message
     expect(response.status).toBe(expectedStatusCode);

@@ -5,6 +5,7 @@ import fs from 'fs';
 import { GameInstance, UserGuess } from './game_instance.js';
 import { LeaderboardEntry } from './leaderboard.js';
 import { setupTempDir } from '../helper.js';
+import { logger } from '../utils/logger.js';
 import {
   BASE_POINTS,
   BonusType,
@@ -63,6 +64,8 @@ describe('GameInstance - startGame', () => {
     game = new GameInstance(INSTANCE_ID, HOST);
     game.addUser(HOST);
     game.addUser(PLAYER_1);
+
+    vi.spyOn(logger, 'log').mockImplementation(() => {}); // hide logs
   });
 
   it('should initialize settings and transition state', () => {

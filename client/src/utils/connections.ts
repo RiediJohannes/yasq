@@ -1,7 +1,7 @@
-import { DiscordSDK } from '@discord/embedded-app-sdk';
+import { DiscordSDK, Events } from '@discord/embedded-app-sdk';
 import { mockDiscordSdk } from '../../../mock_data/mockDiscordSdk';
 import { withTimeout } from './helper';
-import * as backend from './backend';
+import { AuthenticationResult, Backend } from './backend';
 import { gameStatus, participants } from '../main';
 import { io, Socket } from 'socket.io-client';
 import { GameEvent, Participant, TGameEvent } from '@yasq/shared';
@@ -36,25 +36,17 @@ export function getDiscordSdk(): AbstractDiscordSdk {
   return discordSdk;
 }
 
-export interface AuthenticationResult {
-  access_token: string;
-  user: Participant;
-  application: {
-    id: string;
-    name: string;
-    description: string;
-    icon: string;
-  };
-  scopes: string[];
-  expires: string;
+interface BackendCache {
+  instanceId: string;
+  authResult: AuthenticationResult;
 }
 
-export async function authenticateWithDiscord(discordSdk: AbstractDiscordSdk): Promise<AuthenticationResult> {
-  const cachedAuth = (window as any).__DISCORD_AUTH__;
+export async function authenticateWithDiscord(discordSdk: AbstractDiscordSdk): Promise<Backend> {
+  const cachedBackend = (window as any).__BACKEND_CACHE__ as BackendCache;
 
-  if (cachedAuth) {
-    console.log('[INIT] Using cached auth payload - bypassing SDK authentication.');
-    return cachedAuth;
+  if (cachedBackend) {
+    console.log('[INIT] Using cached authorized backend - bypassing SDK authentication.');
+    return new Backend(cachedBackend.instanceId, cachedBackend.authResult);
   }
 
   console.log('[INIT] Starting full Discord activity handshake...');
@@ -72,19 +64,19 @@ export async function authenticateWithDiscord(discordSdk: AbstractDiscordSdk): P
     'Discord Authorization reached timeout'
   );
 
-  const { access_token } = await backend.requestAuthToken(code);
+  const accessToken = await Backend.requestAccessToken(code);
 
-  const authResult = await withTimeout<any>(
-    discordSdk.commands.authenticate({ access_token }),
+  const authResult: AuthenticationResult = await withTimeout<any>(
+    discordSdk.commands.authenticate({ access_token: accessToken }),
     CONNECTION_TIMEOUT_MILLIS_LONG,
     'Discord User Authentication reached timeout'
   );
 
-  // Cache auth result in the current iframe
-  (window as any).__DISCORD_AUTH__ = authResult;
+  // Cache the backend data in the current iframe
+  (window as any).__BACKEND_CACHE__ = { instanceId: discordSdk.instanceId, authResult } satisfies BackendCache;
 
   console.log('[INIT] Authentication complete. Connected to Discord backend.');
-  return authResult;
+  return new Backend(discordSdk.instanceId, authResult);
 }
 
 export function establishServerConnection(instanceId: string, authToken: string) {
@@ -167,7 +159,7 @@ export async function syncParticipants(
 
   participantsSignal.value = participantData.participants;
   discordSdk.subscribe(
-    'ACTIVITY_INSTANCE_PARTICIPANTS_UPDATE',
+    Events.ACTIVITY_INSTANCE_PARTICIPANTS_UPDATE,
     (e: ParticipantsPayload) => (participantsSignal.value = e.participants)
   );
 }

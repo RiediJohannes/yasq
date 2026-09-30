@@ -1,9 +1,8 @@
 import { useSignal } from '@preact/signals';
 import { TargetedEvent } from 'preact';
 
-import { audioPlayer, discordSdk, gameStatus, useAuth } from '../main';
+import { audioPlayer, gameStatus, useBackend } from '../main';
 
-import * as backend from '../utils/backend';
 import { HOST_TIME_BONUS_LABELS } from '../utils/constants';
 import { OptionalTimeBonus, TOptionalTimeBonus } from '../utils/types';
 
@@ -32,7 +31,7 @@ import { RadioGroup } from '../components/RadioGroup';
 import { AchievementBonusSettingsPanel } from '../components/AchievementBonusSettings';
 
 export const SetupView = ({ isHost }: { isHost: boolean }) => {
-  const auth = useAuth();
+  const backend = useBackend();
   const roundCount = useSignal(gameStatus.value.settings.rounds || DEFAULT_ROUNDS);
   const maxGuessTime = useSignal(
     gameStatus.value.settings.maxGuessTime ? gameStatus.value.settings.maxGuessTime / 1000 : DEFAULT_MAX_GUESS_TIME
@@ -99,7 +98,7 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
     };
 
     try {
-      await backend.setupGame(auth.access_token, discordSdk.instanceId, currentSettings);
+      await backend.setupGame(currentSettings);
     } catch (e) {
       console.error('Setup failed:', e);
     }

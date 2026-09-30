@@ -2,15 +2,14 @@ import { createContext, render } from 'preact';
 import { signal } from '@preact/signals';
 import { useContext } from 'preact/hooks';
 
-import { getUserId } from './utils/helper';
 import {
   AbstractDiscordSdk,
   authenticateWithDiscord,
-  AuthenticationResult,
   establishServerConnection,
   getDiscordSdk,
   syncParticipants,
 } from './utils/connections';
+import { Backend } from './utils/backend';
 import { useKeyboardShortcut } from './hooks/useKeyboardShortcut';
 import { DEFAULT_VOLUME_SLIDER_VAL, GamePhase, GameSettings, GameStatus, MAX_VOLUME, Participant } from '@yasq/shared';
 
@@ -31,9 +30,9 @@ import { FinalResultsView } from './views/FinalResultsView';
 
 import './style.css';
 
-const authState = signal<AuthenticationResult | null>(null);
 export const discordSdk: AbstractDiscordSdk = getDiscordSdk();
 export const participants = signal<Participant[]>([]);
+const backend = signal<Backend | null>(null);
 
 export const gameStatus = signal<GameStatus>({
   state: {
@@ -50,6 +49,7 @@ export const gameStatus = signal<GameStatus>({
   streaks: {},
   lostStreaks: {},
 });
+
 export const volume = signal(DEFAULT_VOLUME_SLIDER_VAL);
 
 export const audioPlayer = new Audio();
@@ -73,8 +73,8 @@ export const triggerManualReconnect = async () => {
   await initializeApplication();
 };
 
-const AuthContext = createContext<AuthenticationResult>(null!);
-export const useAuth = () => useContext(AuthContext);
+const BackendContext = createContext<Backend>(null!);
+export const useBackend = (): Backend => useContext(BackendContext);
 
 const App = () => {
   useKeyboardShortcut({ key: 'Q', altKey: !isMac, metaKey: isMac }, () => {
@@ -97,17 +97,18 @@ const App = () => {
     );
   }
 
-  if (!authState.value) return <LoadingState label="Authenticating" />;
+  const activeBackend = backend.value;
+
+  if (!activeBackend) return <LoadingState label="Authenticating" />;
 
   if (gameStatus.value.hostId === null) {
     return <LoadingState label="Starting Game" />;
   }
 
-  const isHost = String(getUserId(authState.value)) === String(gameStatus.value.hostId);
-  const authenticationResult = authState.value;
+  const isHost = activeBackend.userId === String(gameStatus.value.hostId);
 
   return (
-    <AuthContext.Provider value={authenticationResult}>
+    <BackendContext.Provider value={activeBackend}>
       <div className="container">
         <div className="game-column">
           <GameHeader />
@@ -143,7 +144,7 @@ const App = () => {
       <footer>
         <p className="version">Ver. {import.meta.env.VERSION}</p>
       </footer>
-    </AuthContext.Provider>
+    </BackendContext.Provider>
   );
 };
 
@@ -175,10 +176,10 @@ export const initializeApplication = async () => {
 
   try {
     // Authenticate user with the Discord backend
-    authState.value = await authenticateWithDiscord(discordSdk);
+    backend.value = await authenticateWithDiscord(discordSdk);
 
     // Establish a bidirectional socket connection to the YASQ server
-    establishServerConnection(discordSdk.instanceId, authState.value.access_token);
+    establishServerConnection(discordSdk.instanceId, backend.value.accessToken);
 
     // Sync local information of the activity's participants with the backend
     await syncParticipants(discordSdk, participants);

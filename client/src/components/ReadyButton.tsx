@@ -1,22 +1,17 @@
 import { useState } from 'preact/hooks';
-import { discordSdk, gameStatus, isMac, useAuth } from '../main';
-import * as backend from '../utils/backend';
-import { getActionKeyLabel, getUserId } from '../utils/helper';
+import { gameStatus, isMac, useBackend } from '../main';
+import { getActionKeyLabel } from '../utils/helper';
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
 
 // Custom hook to inform the backend about the user's ready status
 export const useReadyButtonLogic = () => {
-  const auth = useAuth();
+  const backend = useBackend();
   const [hasInteracted, setHasInteracted] = useState(false);
 
   const handleReady = async () => {
     setHasInteracted(true);
 
-    await backend.updateReadyStatus(
-      auth.access_token,
-      discordSdk.instanceId,
-      !gameStatus.value.readyPlayers.includes(getUserId(auth)!)
-    );
+    await backend.updateReadyStatus(!gameStatus.value.readyPlayers.includes(backend.userId));
   };
 
   return { hasInteracted, handleReady };
@@ -28,11 +23,10 @@ interface ReadyButtonProps {
 }
 
 export const ReadyButton = ({ promptText }: ReadyButtonProps) => {
-  const auth = useAuth();
+  const backend = useBackend();
   const { hasInteracted, handleReady } = useReadyButtonLogic();
 
-  const userId = getUserId(auth)!;
-  const isReady = gameStatus.value.readyPlayers.includes(userId);
+  const isReady = gameStatus.value.readyPlayers.includes(backend.userId);
   const isFinalRound = gameStatus.value.state.round >= gameStatus.value.settings.rounds;
 
   useKeyboardShortcut({ key: 'R', altKey: !isMac, metaKey: isMac }, () => {

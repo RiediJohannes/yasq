@@ -45,7 +45,7 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
 
     try {
       const accessToken = await exchangeCodeForToken(code);
-      res.send({ access_token: accessToken });
+      res.send({ accessToken });
     } catch (err: unknown) {
       logger.error(`OAuth2 token exchange failed`, LogCategory.AUTH, null, err as Error);
       throw new ApiError(500, 'Authentication failed', req);

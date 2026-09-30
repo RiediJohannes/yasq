@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { Permissions, PermissionUtils } from '@discord/embedded-app-sdk';
 
 import { discordSdk } from '../main';
 
-import { WithTooltip } from '../components/Tooltip';
+import { WithTooltip } from './Tooltip';
 
 export function InviteButton() {
   const [canInvite, setCanInvite] = useState(false);

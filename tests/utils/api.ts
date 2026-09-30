@@ -1,6 +1,6 @@
 import { API_ROOT, GamePhase, Joker, Playback, TEST_PREFIX } from '@yasq/shared';
-import { setBaseUrl } from '../../client/src/utils/backend';
 import { Player } from './helper';
+import { Backend } from '@yasq/client/src/utils/backend';
 
 export interface TestGameState {
   phase: GamePhase;
@@ -17,7 +17,9 @@ export class TestApi {
     this.baseUrl = baseUrl;
     this.instanceId = instanceId;
 
-    if (isIntegration) setBaseUrl(baseUrl);
+    if (isIntegration) {
+      Backend.BASE_URL = baseUrl;
+    }
   }
 
   private async http(method: string, path: string, options: { data?: any; headers?: any } = {}) {

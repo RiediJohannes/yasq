@@ -1,9 +1,7 @@
 import { useSignal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
-
-import * as backend from '../utils/backend';
-import { discordSdk, gameStatus, participants, useAuth } from '../main';
-import { capitalize, findUser, getUserId } from '../utils/helper';
+import { gameStatus, participants, useBackend } from '../main';
+import { capitalize, findUser } from '../utils/helper';
 import { NonDraggableImg } from '../components/NonDraggableImg';
 import { getAvatarUrl, getDisplayName, Participant, Tag } from '@yasq/shared';
 import { RoundBubblesGroup } from '../components/RoundBubble';
@@ -16,7 +14,7 @@ import { TooltipDiv } from '../components/Tooltip';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
 export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
-  const auth = useAuth();
+  const backend = useBackend();
   const roundData = useSignal<any>(null);
   const isPointsDetailsOpen = useSignal(false);
 
@@ -25,7 +23,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
 
   useEffect(() => {
     backend
-      .getRoundResults(discordSdk.instanceId, getUserId(auth)!)
+      .getRoundResults()
       .then(data => {
         roundData.value = data;
       })
@@ -36,13 +34,13 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
 
   // Logic for the Host's "Next Round" button
   const playersExcludingHost = participants.value.filter(p => p.id !== gameStatus.value.hostId);
-  const currentPlayer = findUser(participants.value, getUserId(auth)!);
+  const currentPlayer = findUser(participants.value, backend.userId);
   const readyCount = gameStatus.value.readyPlayers.length;
   const allPlayersReady =
     playersExcludingHost.length > 0 && playersExcludingHost.every(p => gameStatus.value.readyPlayers.includes(p.id));
 
   const handleNextRound = async () => {
-    await backend.startNextRound(auth.access_token, discordSdk.instanceId);
+    await backend.startNextRound();
   };
 
   if (!roundData.value) {

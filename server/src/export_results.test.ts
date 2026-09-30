@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -8,6 +8,7 @@ import { generateResultsImage } from './export_results.js';
 import type { Participant } from '@yasq/shared';
 import { setupTempDir } from './helper.js';
 import { Leaderboard } from './models/leaderboard.js';
+import { GameStats } from './models/game_stats.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -57,7 +58,7 @@ describe.skip('generateResultsImage', () => {
     const leaderboardData = Leaderboard.fromJSON(JSON.parse(rawJsonData));
 
     // Generate image
-    await generateResultsImage(instanceId, directoryPath, leaderboardData, mockUserData);
+    await generateResultsImage(instanceId, directoryPath, leaderboardData, mockUserData, new GameStats());
 
     // Verify file asset existence on disk
     expect(fs.existsSync(testOutputPath)).toBe(true);

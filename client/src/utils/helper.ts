@@ -1,5 +1,4 @@
 import { Participant } from '@yasq/shared';
-import { AuthenticationResult } from './connections';
 
 const userCache = new Map<string, Participant>();
 
@@ -14,13 +13,6 @@ export function findUser(participants: Participant[], userId: string): Participa
 
   // Lookup cache if not present in game
   return userCache.get(userId) || { id: '0', username: 'Unknown' };
-}
-
-export function getUserId(auth: AuthenticationResult) {
-  if (!auth || !auth.user) {
-    return null;
-  }
-  return auth.user.id;
 }
 
 export function capitalize(str: string) {

@@ -1,8 +1,6 @@
 import { useSignal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
-
-import * as backend from '../utils/backend';
-import { discordSdk, participants, useAuth } from '../main';
+import { participants, useBackend } from '../main';
 import { capitalize, findUser } from '../utils/helper';
 import { ALL_JOKER_ICONS } from '../components/Icons';
 import { ReviewData } from '../utils/types';
@@ -13,13 +11,13 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { RadioGroup } from '../components/RadioGroup';
 
 export const HostReviewView = ({ isHost }: { isHost: boolean }) => {
-  const auth = useAuth();
+  const backend = useBackend();
   const reviewData = useSignal<ReviewData | null>(null);
   const corrections = useSignal<Record<string, number>>({});
 
   useEffect(() => {
     if (isHost) {
-      backend.getGuesses(auth.access_token, discordSdk.instanceId).then(data => {
+      backend.getGuesses().then(data => {
         reviewData.value = data;
         // Pre-populate corrections with 0 (Wrong) for everyone who guessed
         const initial: Record<string, number> = {};
@@ -47,7 +45,7 @@ export const HostReviewView = ({ isHost }: { isHost: boolean }) => {
   const handleSubmit = async (e: MouseEvent) => {
     const btn = e.currentTarget as HTMLButtonElement;
     btn.disabled = true;
-    await backend.submitRoundResults(auth.access_token, discordSdk.instanceId, corrections.value);
+    await backend.submitRoundResults(corrections.value);
   };
 
   return (
