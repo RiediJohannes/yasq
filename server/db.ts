@@ -7,11 +7,27 @@ const { Pool } = pkg;
 
 dotenv.config({ path: '../.env' });
 
-export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+export const pool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL }) : null;
+
+async function getClient() {
+  if (!pool) {
+    console.warn('Database not configured (DATABASE_URL missing).');
+    return null;
+  }
+  try {
+    return await pool.connect();
+  } catch (error: any) {
+    console.warn('Failed to connect to database. Error:', error.message);
+    return null;
+  }
+}
 
 export async function initDatabase() {
+  if (!pool) {
+    console.warn('Database not configured (DATABASE_URL missing). Skipping initDatabase.');
+    return;
+  }
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       user_id VARCHAR(64) PRIMARY KEY,
@@ -45,7 +61,8 @@ export async function initDatabase() {
 }
 
 export async function saveLeaderboard(leaderboard: Leaderboard): Promise<void> {
-  const client = await pool.connect();
+  const client = await getClient();
+  if (!client) return;
 
   try {
     await client.query('BEGIN');
@@ -86,7 +103,9 @@ export async function saveLeaderboard(leaderboard: Leaderboard): Promise<void> {
 }
 
 export async function getPlayerRank(userId: string) {
-  const client = await pool.connect();
+  const client = await getClient();
+  if (!client) return null;
+
   try {
     const query = `
       WITH lifetime_leaderboard AS (
@@ -110,7 +129,9 @@ export async function getPlayerRank(userId: string) {
 }
 
 export async function getTopLifetimePlayers(limit: number = 5) {
-  const client = await pool.connect();
+  const client = await getClient();
+  if (!client) return null;
+
   try {
     const query = `
       SELECT

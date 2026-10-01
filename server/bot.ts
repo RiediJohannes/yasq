@@ -84,6 +84,10 @@ async function handleTopCommand(interaction: ChatInputCommandInteraction) {
 
   try {
     const topPlayers = await getTopLifetimePlayers(5);
+    if (!topPlayers) {
+      await interaction.editReply('❌ Could not retrieve the lifetime leaderboard. Please try again later.');
+      return;
+    }
 
     if (topPlayers.length === 0) {
       const emptyEmbed = new EmbedBuilder()
@@ -125,11 +129,7 @@ async function handleRankCommand(interaction: ChatInputCommandInteraction) {
     const stats = await getPlayerRank(targetUser.id);
 
     if (!stats) {
-      const notFoundEmbed = new EmbedBuilder()
-        .setColor(0xed4245) // Red
-        .setDescription(`${targetUser} hasn't played any recorded games yet!`);
-
-      await interaction.editReply({ embeds: [notFoundEmbed] });
+      await interaction.editReply(`❌ ${targetUser} hasn't played any recorded games yet!`);
       return;
     }
 
