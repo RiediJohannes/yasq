@@ -30,7 +30,7 @@ export const HostTransferDropdown = () => {
     if (!selectedPlayer.value) return;
     isTransferring.value = true;
     try {
-      await backend.assignNewHost(auth.access_token, discordSdk.instanceId, selectedPlayer.value.id);
+      await backend.transferHostRole(auth.access_token, discordSdk.instanceId, selectedPlayer.value.id);
     } catch (e) {
       console.error(e);
     }

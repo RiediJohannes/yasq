@@ -23,3 +23,35 @@ export function capitalize(str: string) {
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 }
+
+export interface SerializedError {
+  name: string;
+  message: string;
+  stack?: string | undefined;
+}
+
+export function serializeError(err: Error): SerializedError {
+  return {
+    name: err.name,
+    message: err.message,
+    stack: err.stack,
+  };
+}
+
+export function deserializeError(payload: SerializedError): Error | string | undefined {
+  if (!payload) return undefined;
+  if (typeof payload === 'string') return payload;
+
+  if (typeof payload === 'object') {
+    const { name, message, stack } = payload;
+
+    if (message || stack) {
+      const err = new Error(message || 'Unknown Client Error');
+      if (name) err.name = name;
+      if (stack) err.stack = stack;
+      return err;
+    }
+  }
+
+  return String(payload);
+}

@@ -4,6 +4,7 @@ import path from 'path';
 import { type APIChannel, type APITextChannel, ChannelType } from 'discord-api-types/v10';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
+import type { Request } from 'express';
 
 import type { GameInstance } from './models/game_instance.js';
 import {
@@ -80,14 +81,14 @@ export function getGameStatusPayload(game: GameInstance) {
     lostStreaks: game.currentRoundLostStreaks,
     gameSettings: {
       ...game.settings,
-      enabledJokers: [...game.settings.enabledJokers],
+      enabledJokers: game.settings.enabledJokers ? [...game.settings.enabledJokers] : [],
     },
   };
 }
 
-export function broadcastGameStatus(server: Server, instanceId: string, game: GameInstance) {
+export function broadcastGameStatus(server: Server, game: GameInstance) {
   const emitUpdate = () => {
-    server.to(instanceId).emit(WS_GAME_STATUS_UPDATE_EVENT, getGameStatusPayload(game));
+    server.to(game.instanceId).emit(WS_GAME_STATUS_UPDATE_EVENT, getGameStatusPayload(game));
   };
 
   if (process.env.UI_TEST_MODE === 'true') {
@@ -170,3 +171,6 @@ export function getAudioDuration(filePath: string): string {
     return 'Unknown';
   }
 }
+
+export const hasQueryParams = (request: Request) => Object.keys(request.query).length > 0;
+export const hasPathParams = (request: Request) => Object.keys(request.params).length > 0;

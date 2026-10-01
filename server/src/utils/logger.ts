@@ -1,29 +1,67 @@
+import { getDisplayName, LogLevel } from '@yasq/shared';
+import { userDataCache } from '../helper.js';
+
 export enum LogCategory {
+  API = 'API',
   AUTH = 'AUTH',
+  CLIENT = 'CLIENT',
   DISCORD = 'DISCORD',
   GAME = 'GAME',
   GENERAL = 'GENERAL',
   SECURITY = 'SECURITY',
 }
 
-const LEVELS = { debug: 0, info: 1, warn: 2, error: 3 };
+const getAppLogLevel = () =>
+  LogLevel[(process.env.LOG_LEVEL || 'INFO').toUpperCase() as keyof typeof LogLevel] ?? LogLevel.INFO;
 
-const getLogLevel = () => LEVELS[(process.env.LOG_LEVEL || 'info').toLowerCase() as keyof typeof LEVELS] ?? 1;
+const logOutput: Record<LogLevel, (msg: string) => void> = {
+  [LogLevel.DEBUG]: console.log,
+  [LogLevel.INFO]: console.info,
+  [LogLevel.WARN]: console.warn,
+  [LogLevel.ERROR]: console.error,
+};
+
+export interface LogContext {
+  instanceId?: string | null | undefined;
+  clientUserId?: string | undefined;
+  error?: Error | string | undefined;
+}
 
 export const logger = {
-  debug: (instanceId: string, msg: string, category: LogCategory = LogCategory.GENERAL) =>
-    getLogLevel() <= LEVELS.debug && console.debug(`[DEBUG] [${instanceId}] [${category}] ${msg}`),
+  log: (level: LogLevel, msg: string, category: LogCategory = LogCategory.GENERAL, context: LogContext = {}) => {
+    if (getAppLogLevel() > level) return;
 
-  info: (instanceId: string, msg: string, category: LogCategory = LogCategory.GENERAL) =>
-    getLogLevel() <= LEVELS.info && console.info(`[INFO] [${instanceId}] [${category}] ${msg}`),
+    const levelName = LogLevel[level] ?? 'INFO';
+    let formattedMessage = `[${levelName}:${category}]`;
 
-  warn: (instanceId: string, msg: string, category: LogCategory = LogCategory.GENERAL) =>
-    getLogLevel() <= LEVELS.warn && console.warn(`[WARN] [${instanceId}] [${category}] ${msg}`),
+    if (context.instanceId) {
+      formattedMessage += ` [${context.instanceId}]`;
+    }
+    if (context.clientUserId) {
+      const participant = userDataCache.get(context.clientUserId);
+      const userName = participant ? getDisplayName(participant) : 'unknown user';
+      formattedMessage += ` [USER ${userName} (${context.clientUserId})]`;
+    }
+    formattedMessage += ` ${msg}`;
+    if (context.error) {
+      const err = context.error;
+      const errorDetails = err instanceof Error ? `${err.stack || err.message}` : `Error: ${err}`;
+      formattedMessage += ` -- ${errorDetails}`;
+    }
 
-  error: (instanceId: string, msg: string, err?: unknown, category: LogCategory = LogCategory.GENERAL) => {
-    if (getLogLevel() > LEVELS.error) return;
-
-    const errorDetails = err instanceof Error ? `: ${err.stack || err.message}` : err ? `: ${err}` : '';
-    console.error(`[ERROR] [${instanceId}] [${category}] ${msg}${errorDetails}`);
+    const logMessage: (msg: string) => void = logOutput[level];
+    logMessage(formattedMessage);
   },
+
+  debug: (msg: string, category: LogCategory, instanceId?: string) =>
+    logger.log(LogLevel.DEBUG, msg, category, { instanceId }),
+
+  info: (msg: string, category: LogCategory, instanceId?: string) =>
+    logger.log(LogLevel.INFO, msg, category, { instanceId }),
+
+  warn: (msg: string, category: LogCategory, instanceId?: string | null, error?: Error | string) =>
+    logger.log(LogLevel.WARN, msg, category, { instanceId, error }),
+
+  error: (msg: string, category: LogCategory, instanceId?: string | null, error?: Error | string) =>
+    logger.log(LogLevel.ERROR, msg, category, { instanceId, error }),
 };
