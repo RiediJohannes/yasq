@@ -191,8 +191,7 @@ async function handlePlayCommand(interaction: ChatInputCommandInteraction) {
 
   let tracks: Track[];
   try {
-    const fileContent = fs.readFileSync(tracksFilePath, 'utf8');
-    tracks = JSON.parse(fileContent);
+    tracks = JSON.parse(fs.readFileSync(tracksFilePath, 'utf8'));
   } catch (error) {
     console.error('Failed to read tracks.json:', error);
     await interaction.editReply('❌ Could not load the track database.');
@@ -232,73 +231,19 @@ async function handlePlayCommand(interaction: ChatInputCommandInteraction) {
     }
 
     try {
-      // Ensure the member and their voice state are fully fetched (fixes cache misses)
-      const targetMember = await targetInteraction.guild?.members.fetch(interaction.user.id);
-      const targetVoiceChannel = targetMember?.voice.channel;
-
-      if (!targetVoiceChannel) {
-        await targetInteraction.editReply('❌ You must be in a voice channel!');
+      const voiceSession = await connectToVoiceChannel(targetInteraction, voice);
+      if (!voiceSession) {
+        await targetInteraction.editReply(
+          '❌ Failed to connect to the voice channel. Make sure you are in a voice channel!'
+        );
         return;
       }
 
-      const connection = voice.joinVoiceChannel({
-        channelId: targetVoiceChannel.id,
-        guildId: targetVoiceChannel.guild.id,
-        adapterCreator: targetVoiceChannel.guild.voiceAdapterCreator,
-      });
-
-      // Wait up to 10 seconds for the connection to establish, or throw an error
-      await voice.entersState(connection, voice.VoiceConnectionStatus.Ready, 10_000);
-
-      const player = voice.createAudioPlayer();
       const resource = voice.createAudioResource(audioFilePath, { inlineVolume: true });
+      voiceSession.player.play(resource);
 
-      connection.subscribe(player);
-      player.play(resource);
-
-      const durationStr = getAudioDuration(audioFilePath);
-
-      const embed = new EmbedBuilder()
-        .setColor(0x5865f2)
-        .setTitle('🎶 Now Playing')
-        .setDescription(`**${chosenTrack.title}**`)
-        .addFields(
-          { name: 'Game', value: chosenTrack.game, inline: true },
-          { name: 'Duration', value: durationStr, inline: true }
-        )
-        .setTimestamp();
-
-      if (Array.isArray(chosenTrack.tags)) {
-        for (const tag of chosenTrack.tags) {
-          const fieldName = tag.type.charAt(0).toUpperCase() + tag.type.slice(1);
-          embed.addFields({
-            name: fieldName,
-            value: tag.value,
-            inline: true,
-          });
-        }
-      }
-
-      const files: AttachmentBuilder[] = [];
-
-      if (chosenTrack.cover) {
-        const coverPath = path.join(process.cwd(), 'data', dataDir, 'game_covers', chosenTrack.cover);
-
-        if (fs.existsSync(coverPath)) {
-          const ext = path.extname(chosenTrack.cover) || '.jpg';
-          const attachmentName = `cover${ext}`;
-
-          const attachment = new AttachmentBuilder(coverPath, { name: attachmentName });
-          embed.setThumbnail(`attachment://${attachmentName}`);
-          files.push(attachment);
-        }
-      }
-
-      await interaction.editReply({
-        content: '',
-        embeds: [embed],
-        files: files,
-      });
+      const payload = buildTrackPayload(chosenTrack, dataDir);
+      await interaction.editReply({ content: '', ...payload });
     } catch (error) {
       console.error('Voice connection/playback error:', error);
       await targetInteraction.editReply('❌ Failed to connect to the voice channel or start playback.');
@@ -353,8 +298,7 @@ async function handlePlayCommand(interaction: ChatInputCommandInteraction) {
       return;
     }
 
-    const selectedIndex = parseInt(selectedValue, 10);
-    const chosenTrack = matches[selectedIndex];
+    const chosenTrack = matches[parseInt(selectedValue, 10)];
     if (!chosenTrack) {
       await selectInteraction.editReply({ content: '❌ Selected track could not be found.', components: [] });
       return;
@@ -362,7 +306,9 @@ async function handlePlayCommand(interaction: ChatInputCommandInteraction) {
 
     await handlePlayback(selectInteraction, chosenTrack);
 
-    await interaction.deleteReply(followUpResponse.id).catch(() => {});
+    if (followUpResponse) {
+      await interaction.deleteReply(followUpResponse.id).catch(() => {});
+    }
   });
 
   collector.on('end', async (collected: Collection<string, StringSelectMenuInteraction>) => {
@@ -423,24 +369,13 @@ async function handlePlaylistCommand(interaction: ChatInputCommandInteraction) {
     }
 
     try {
-      const targetMember = await interaction.guild?.members.fetch(interaction.user.id);
-      const targetVoiceChannel = targetMember?.voice.channel;
-
-      if (!targetVoiceChannel) {
-        await targetInteraction.editReply('❌ You must be in a voice channel!');
+      const voiceSession = await connectToVoiceChannel(targetInteraction, voice);
+      if (!voiceSession) {
+        await targetInteraction.editReply(
+          '❌ Failed to connect to the voice channel. Make sure you are in a voice channel!'
+        );
         return;
       }
-
-      const connection = voice.joinVoiceChannel({
-        channelId: targetVoiceChannel.id,
-        guildId: targetVoiceChannel.guild.id,
-        adapterCreator: targetVoiceChannel.guild.voiceAdapterCreator,
-      });
-
-      await voice.entersState(connection, voice.VoiceConnectionStatus.Ready, 10_000);
-
-      const player = voice.createAudioPlayer();
-      connection.subscribe(player);
 
       let currentIndex = 0;
 
@@ -470,50 +405,12 @@ async function handlePlaylistCommand(interaction: ChatInputCommandInteraction) {
         }
 
         const resource = voice.createAudioResource(audioFilePath, { inlineVolume: true });
-        player.play(resource);
+        voiceSession.player.play(resource);
 
-        const durationStr = getAudioDuration(audioFilePath);
-
-        const embed = new EmbedBuilder()
-          .setColor(0x5865f2)
-          .setTitle('🎶 Now Playing')
-          .setDescription(`**${currentTrack.title}**`)
-          .addFields(
-            { name: 'Game', value: currentTrack.game, inline: true },
-            { name: 'Duration', value: durationStr, inline: true }
-          )
-          .setTimestamp();
-
-        if (Array.isArray(currentTrack.tags)) {
-          for (const tag of currentTrack.tags) {
-            const fieldName = tag.type.charAt(0).toUpperCase() + tag.type.slice(1);
-            embed.addFields({
-              name: fieldName,
-              value: tag.value,
-              inline: true,
-            });
-          }
-        }
-
-        const files: AttachmentBuilder[] = [];
-
-        if (currentTrack.cover) {
-          const coverPath = path.join(process.cwd(), 'data', dataDir, 'game_covers', currentTrack.cover);
-
-          if (fs.existsSync(coverPath)) {
-            const ext = path.extname(currentTrack.cover) || '.jpg';
-            const attachmentName = `cover${ext}`;
-
-            const attachment = new AttachmentBuilder(coverPath, { name: attachmentName });
-            embed.setThumbnail(`attachment://${attachmentName}`);
-            files.push(attachment);
-          }
-        }
-
+        const trackPayload = buildTrackPayload(currentTrack, dataDir);
         const payload = {
-          content: `▶️️ Playing playlist **${playlist.name}** (${currentIndex}/${playlistTracks.length}):`,
-          embeds: [embed],
-          files: files,
+          content: `▶ Playing playlist **${playlist.name}** (${currentIndex}/${playlistTracks.length}):`,
+          ...trackPayload,
         };
 
         if (currentIndex === 1) {
@@ -524,14 +421,14 @@ async function handlePlaylistCommand(interaction: ChatInputCommandInteraction) {
       };
 
       activeAudioPlayers.set(interaction.guildId!, {
-        player,
+        player: voiceSession.player,
         skipFn: () => {
           // Stopping the player triggers the Idle event, which loads the next track
-          player.stop();
+          voiceSession.player.stop();
         },
       });
 
-      player.on(voice.AudioPlayerStatus.Idle, () => {
+      voiceSession.player.on(voice.AudioPlayerStatus.Idle, () => {
         playNextTrack();
       });
 
@@ -562,9 +459,7 @@ async function handlePlaylistCommand(interaction: ChatInputCommandInteraction) {
   if (targetPlaylists.length === 1) {
     await interaction.editReply('Connecting and starting playlist playback...');
     const playlist = targetPlaylists[0];
-    if (!playlist) {
-      return;
-    }
+    if (!playlist) return;
     await handlePlaylistPlayback(interaction, playlist.name);
     return;
   }
@@ -640,6 +535,64 @@ async function handleLeaveCommand(interaction: ChatInputCommandInteraction) {
 
   connection.destroy();
   await interaction.reply('👋 Bye!');
+}
+
+export async function connectToVoiceChannel(
+  interaction: ChatInputCommandInteraction | StringSelectMenuInteraction,
+  voice: any
+) {
+  const targetMember = await interaction.guild?.members.fetch(interaction.user.id);
+  const targetVoiceChannel = targetMember?.voice.channel;
+
+  if (!targetVoiceChannel) return null;
+
+  const connection = voice.joinVoiceChannel({
+    channelId: targetVoiceChannel.id,
+    guildId: targetVoiceChannel.guild.id,
+    adapterCreator: targetVoiceChannel.guild.voiceAdapterCreator,
+  });
+
+  // Wait up to 10 seconds for the connection to establish, or throw an error
+  await voice.entersState(connection, voice.VoiceConnectionStatus.Ready, 10_000);
+  const player = voice.createAudioPlayer();
+  connection.subscribe(player);
+
+  return { connection, player };
+}
+
+export function buildTrackPayload(track: Track, dataDir: string) {
+  const audioFilePath = path.join(process.cwd(), 'data', dataDir, 'music', track.audio);
+  const durationStr = fs.existsSync(audioFilePath) ? getAudioDuration(audioFilePath) : 'Unknown';
+
+  const embed = new EmbedBuilder()
+    .setColor(0x5865f2)
+    .setTitle('🎶 Now Playing')
+    .setDescription(`**${track.title}**`)
+    .addFields(
+      { name: 'Game', value: track.game, inline: true },
+      { name: 'Duration', value: durationStr, inline: true }
+    )
+    .setTimestamp();
+
+  if (Array.isArray(track.tags)) {
+    for (const tag of track.tags) {
+      const fieldName = tag.type.charAt(0).toUpperCase() + tag.type.slice(1);
+      embed.addFields({ name: fieldName, value: tag.value, inline: true });
+    }
+  }
+
+  const files: AttachmentBuilder[] = [];
+  if (track.cover) {
+    const coverPath = path.join(process.cwd(), 'data', dataDir, 'game_covers', track.cover);
+    if (fs.existsSync(coverPath)) {
+      const ext = path.extname(track.cover) || '.jpg';
+      const attachmentName = `cover${ext}`;
+      files.push(new AttachmentBuilder(coverPath, { name: attachmentName }));
+      embed.setThumbnail(`attachment://${attachmentName}`);
+    }
+  }
+
+  return { embeds: [embed], files };
 }
 
 function getAudioDuration(filePath: string): string {
