@@ -2,9 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import path from 'path';
 import fs from 'fs';
 
-import { GameInstance, UserGuess } from './game_instance.js';
-import { LeaderboardEntry } from './leaderboard.js';
-import { setupTempDir } from '../helper.js';
 import {
   BASE_POINTS,
   BonusType,
@@ -25,6 +22,11 @@ import {
   type Track,
   type TrackInfo,
 } from '@yasq/shared';
+
+import { GameInstance, UserGuess } from './game_instance.js';
+import { LeaderboardEntry } from './leaderboard.js';
+import { saveLeaderboard } from '../../db.js';
+import { setupTempDir } from '../helper.js';
 
 const HOST = 'host_123';
 const INSTANCE_ID = 'mock_instance';
@@ -703,10 +705,16 @@ describe('GameInstance - timeMultiplier:CONSTANT', () => {
   });
 });
 
+vi.mock('../../db.js', () => ({
+  saveLeaderboard: vi.fn(),
+}));
+
 describe('GameInstance - advanceRound', () => {
   let game: GameInstance;
 
   beforeEach(() => {
+    vi.clearAllMocks();
+
     game = new GameInstance(INSTANCE_ID, HOST);
     game.setupGame({
       rounds: 3,
@@ -747,6 +755,8 @@ describe('GameInstance - advanceRound', () => {
     expect(nextState).toBe(GameState.FINAL_RESULTS);
     expect(game.lastWinnerId).toBe(PLAYER_2);
     expect(game.state).toBe(GameState.FINAL_RESULTS);
+
+    expect(saveLeaderboard).toHaveBeenCalled();
   });
 });
 
