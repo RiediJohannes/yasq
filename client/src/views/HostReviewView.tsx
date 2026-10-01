@@ -3,10 +3,10 @@ import { useEffect } from 'preact/hooks';
 
 import * as backend from '../utils/backend';
 import { discordSdk, participants, useAuth } from '../main';
-import { capitalize, findUser } from '../utils/helper';
+import { findUser } from '../utils/helper';
 import { ALL_JOKER_ICONS } from '../components/Icons';
 import { ReviewData } from '../utils/types';
-import { getAvatarUrl, getDisplayName } from '@yasq/shared';
+import { capitalize, getAvatarUrl, getDisplayName } from '@yasq/shared';
 import { DiscordAvatar } from '../components/DiscordAvatar';
 import { TooltipDiv } from '../components/Tooltip';
 import { LoadingSpinner } from '../components/LoadingSpinner';

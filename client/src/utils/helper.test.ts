@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
+
 import { Participant } from '@yasq/shared';
-import { capitalize, findUser, formatBonusMultiplier, getActionKeyLabel, getGameDuration, getUserId } from './helper';
+
+import { findUser, formatBonusMultiplier, getActionKeyLabel, getGameDuration, getUserId } from './helper';
 import { AuthenticationResult } from './connections';
 
 const mockParticipants: Participant[] = [
@@ -42,16 +44,6 @@ describe('getUserId', () => {
   it('should return user id when present', () => {
     const auth = { user: { id: '1' } };
     expect(getUserId(auth as AuthenticationResult)).toBe('1');
-  });
-});
-
-describe('capitalize', () => {
-  it('should properly capitalize snake_case strings', () => {
-    expect(capitalize('hello_world')).toBe('Hello World');
-  });
-
-  it('should handle single words and casing correctly', () => {
-    expect(capitalize('TEST_STRING_value')).toBe('Test String Value');
   });
 });
 

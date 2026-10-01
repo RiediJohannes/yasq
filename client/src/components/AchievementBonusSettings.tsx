@@ -1,7 +1,6 @@
-import { AchievementBonusType, AchievementBonusMode, AchievementBonuses } from '@yasq/shared';
+import { AchievementBonusType, AchievementBonusMode, AchievementBonuses, capitalize } from '@yasq/shared';
 import { RadioGroup } from './RadioGroup';
 import { Signal } from '@preact/signals';
-import { capitalize } from '../utils/helper';
 
 interface AchievementBonusSettingsPanelProps {
   settingsSignal: Signal<AchievementBonuses>;

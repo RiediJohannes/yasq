@@ -12,14 +12,15 @@ import {
   StringSelectMenuBuilder,
   StringSelectMenuInteraction,
 } from 'discord.js';
-
-import { getTopLifetimePlayers, getPlayerRank, initDatabase } from './db.js';
-import { getDisplayName, type Playlist, type Track } from '@yasq/shared';
+import type { AudioPlayer } from '@discordjs/voice';
 import path from 'path';
 import fs from 'fs';
-import { execSync } from 'child_process';
+
+import { capitalize, getDisplayName, type Playlist, type Track } from '@yasq/shared';
+
+import { getTopLifetimePlayers, getPlayerRank, initDatabase } from './db.js';
 import { isAllowed } from './src/access_control.js';
-import type { AudioPlayer } from '@discordjs/voice';
+import { getAudioDuration } from './src/helper.js';
 
 dotenv.config({ path: '../.env' });
 
@@ -576,8 +577,7 @@ export function buildTrackPayload(track: Track, dataDir: string) {
 
   if (Array.isArray(track.tags)) {
     for (const tag of track.tags) {
-      const fieldName = tag.type.charAt(0).toUpperCase() + tag.type.slice(1);
-      embed.addFields({ name: fieldName, value: tag.value, inline: true });
+      embed.addFields({ name: capitalize(tag.type), value: tag.value, inline: true });
     }
   }
 
@@ -593,22 +593,4 @@ export function buildTrackPayload(track: Track, dataDir: string) {
   }
 
   return { embeds: [embed], files };
-}
-
-function getAudioDuration(filePath: string): string {
-  try {
-    // Uses ffprobe to get the duration in seconds
-    const output = execSync(
-      `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`,
-      { encoding: 'utf8' }
-    );
-    const totalSeconds = parseFloat(output.trim());
-    if (isNaN(totalSeconds)) return 'Unknown';
-
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = Math.floor(totalSeconds % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  } catch {
-    return 'Unknown';
-  }
 }

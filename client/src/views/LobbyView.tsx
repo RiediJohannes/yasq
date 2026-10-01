@@ -4,10 +4,10 @@ import { discordSdk, gameState, participants, useAuth } from '../main';
 
 import * as backend from '../utils/backend';
 import { PLAYER_TIME_BONUS_LABELS } from '../utils/constants';
-import { capitalize, formatBonusMultiplier } from '../utils/helper';
+import { formatBonusMultiplier } from '../utils/helper';
 import { OptionalTimeBonus, TOptionalTimeBonus } from '../utils/types';
 
-import { AchievementBonusType, Joker } from '@yasq/shared';
+import { AchievementBonusType, capitalize, Joker } from '@yasq/shared';
 
 import { ALL_JOKER_ICONS, InfoIcon } from '../components/Icons';
 import { Modal } from '../components/Modal';
