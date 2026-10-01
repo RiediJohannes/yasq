@@ -29,6 +29,11 @@ const activeAudioPlayers = new Map<string, { player: AudioPlayer; skipFn: () => 
 export async function startDiscordBot() {
   await initDatabase().catch(err => console.error('Database init error:', err));
 
+  if (!process.env.DISCORD_BOT_TOKEN) {
+    console.warn('DISCORD_BOT_TOKEN is not set. Starting with no bot functionality.');
+    return;
+  }
+
   const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
   });
@@ -195,7 +200,7 @@ async function handlePlayCommand(interaction: ChatInputCommandInteraction) {
     tracks = JSON.parse(fs.readFileSync(tracksFilePath, 'utf8'));
   } catch (error) {
     console.error('Failed to read tracks.json:', error);
-    await interaction.editReply('❌ Could not load the track database.');
+    await interaction.editReply('❌ Could not load the track list.');
     return;
   }
 
@@ -343,7 +348,7 @@ async function handlePlaylistCommand(interaction: ChatInputCommandInteraction) {
     playlists = JSON.parse(fs.readFileSync(playlistsFilePath, 'utf8'));
     tracks = JSON.parse(fs.readFileSync(tracksFilePath, 'utf8'));
   } catch (error) {
-    console.error('Failed to read playlist or track database:', error);
+    console.error('Failed to read playlist or track list:', error);
     await interaction.editReply('❌ Could not load playlist data.');
     return;
   }
