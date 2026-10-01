@@ -61,7 +61,7 @@ export async function startDiscordBot() {
         }
 
         const embed = new EmbedBuilder()
-          .setColor(0xffd700) // Gold color
+          .setColor(0xf1c40f) // Gold
           .setTitle('🏆 Top YASQ Players');
 
         for (const p of topPlayers) {
@@ -102,7 +102,7 @@ export async function startDiscordBot() {
 
         const rankColor =
           rankNumber === 1
-            ? 0xffd700 // Gold
+            ? 0xf1c40f // Gold
             : rankNumber === 2
               ? 0xc0c0c0 // Silver
               : rankNumber === 3

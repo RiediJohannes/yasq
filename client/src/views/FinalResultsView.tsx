@@ -97,6 +97,8 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
           const staggerIndex = totalPlayers - 1 - index;
           const delay = staggerIndex * 1.5;
           const isWinner = index === 0;
+          const isSecond = index === 1;
+          const isThird = index === 2;
 
           const achievements: string[] = player.achievementBonuses || [];
 
@@ -107,7 +109,7 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
               style={{ animationDelay: `${delay}s` }}
             >
               <div
-                className={`player-card ${isWinner ? 'winner' : ''}`}
+                className={`player-card ${isWinner ? 'winner' : ''} ${isSecond ? 'second' : ''} ${isThird ? 'third' : ''}`}
                 style={{
                   animationDelay: `${delay + 0.4}s`,
                   zIndex: 1000 - index,

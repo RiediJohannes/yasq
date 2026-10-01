@@ -33,6 +33,8 @@
   --yellow: #faa61a;
   --red: #f04747;
   --gold: #f1c40f;
+  --silver: #c0c0c0;
+  --bronze: #cd7f32;
 
   color: var(--text-main);
   background-color: var(--bg-main);
@@ -1791,6 +1793,12 @@ input[value='1']:checked + .btn-radio.correct {
 
 .player-card.winner {
   border-color: var(--gold);
+}
+.player-card.second {
+  border-color: var(--silver);
+}
+.player-card.third {
+  border-color: var(--bronze);
 }
 
 .shimmer-layer {
