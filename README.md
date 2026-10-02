@@ -178,15 +178,15 @@ This requires a valid `DISCORD_BOT_TOKEN` to be set in the `.env` file.
 
 The following commands exist:
 
-| Command | Description | Requirements | Parameters |
-| :--- | :--- | :--- | :--- |
-| **`/test`** | Test Command | None | None |
-| **`/top`** | View the top 5 YASQ players | Postgres Database | None |
-| **`/rank`** | View your YASQ rank | Postgres Database | `player` (User, Optional): Check another player's rank |
-| **`/play`** | Play your favourite YASQ track | None | `track` (String, Required): Search by track title or game name |
-| **`/playlist`** | Play your favourite YASQ playlist | None | `name` (String, Required): Search by playlist |
-| **`/skip`** | Skip current track on YASQ playlist | None | None |
-| **`/leave`** | Kick the bot out of the voice channel | None | None |
+| Command         | Description                           | Requirements      | Parameters                                                     |
+| :-------------- | :------------------------------------ | :---------------- | :------------------------------------------------------------- |
+| **`/test`**     | Test Command                          | None              | None                                                           |
+| **`/top`**      | View the top 5 YASQ players           | Postgres Database | None                                                           |
+| **`/rank`**     | View your YASQ rank                   | Postgres Database | `player` (User, Optional): Check another player's rank         |
+| **`/play`**     | Play your favourite YASQ track        | None              | `track` (String, Required): Search by track title or game name |
+| **`/playlist`** | Play your favourite YASQ playlist     | None              | `name` (String, Required): Search by playlist                  |
+| **`/skip`**     | Skip current track on YASQ playlist   | None              | None                                                           |
+| **`/leave`**    | Kick the bot out of the voice channel | None              | None                                                           |
 
 This also allows players to launch the activity directly from the chat interface via an Entry Point Command.
 
@@ -197,25 +197,30 @@ A postgres database can be set up to persist leaderboard data. For this, you nee
 Open your terminal as an administrator or use the `psql` command-line tool connected to your local PostgreSQL server, and run the following commands:
 
 1. Create a dedicated database user
-    ```sql
-    CREATE USER yasq WITH PASSWORD 'your_password';
-    ```
+
+   ```sql
+   CREATE USER yasq WITH PASSWORD 'your_password';
+   ```
 
 2. Create the YASQ database
-    ```sql
-    CREATE DATABASE yasq_db OWNER yasq;
-    ```
+
+   ```sql
+   CREATE DATABASE yasq_db OWNER yasq;
+   ```
+
 3. Grant privileges to the user
-    ```sql
-    GRANT ALL PRIVILEGES ON DATABASE yasq_db TO yasq;
-    ```
+
+   ```sql
+   GRANT ALL PRIVILEGES ON DATABASE yasq_db TO yasq;
+   ```
+
 4. Set your Environment Variable in `.env`
-    ```dotenv
-    DATABASE_URL=postgresql://yasq:your_secure_password@localhost:5432/yasq_db
-    ```
+
+   ```dotenv
+   DATABASE_URL=postgresql://yasq:your_secure_password@localhost:5432/yasq_db
+   ```
 
 Once the database is set up, the activity will write the final results to the database after every game, allowing users to query historic data via the bot.
-
 
 ## Testing
 
