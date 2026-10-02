@@ -70,7 +70,7 @@ const commands = [
   },
   {
     name: 'skip',
-    description: 'Skips current track on YASQ playlist',
+    description: 'Skip current track on YASQ playlist',
     type: ApplicationCommandType.ChatInput,
   },
   {
