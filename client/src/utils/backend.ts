@@ -74,6 +74,23 @@ export async function updateReadyStatus(access_token: string, instanceId: string
   });
 }
 
+export async function updateReadyToPlayStatus(
+  access_token: string,
+  instanceId: string,
+  round: number,
+  isReady: boolean,
+  setupDurationMillis: number
+) {
+  return apiFetch(`/instance/${instanceId}/round/${round}/ready`, {
+    method: 'PATCH',
+    token: access_token,
+    body: {
+      ready: isReady,
+      setupDuration: setupDurationMillis,
+    },
+  });
+}
+
 export async function transferHostRole(access_token: string, instanceId: string, newHostId: string) {
   return apiFetch(`/${HOST_PREFIX}/instance/${instanceId}/transfer`, {
     method: 'PUT',

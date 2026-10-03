@@ -4,7 +4,6 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { createServer } from 'http';
-import { Server } from 'socket.io';
 
 import { setupCommonRoutes } from './routes/commonRoutes.js';
 import { setupHostRoutes } from './routes/hostRoutes.js';
@@ -15,30 +14,25 @@ import {
   broadcastGameStatus,
   getDataSourceDir,
   getFilePath,
-  getGameStatusPayload,
   isMockMode,
   setupTempDir,
   userDataCache,
-  validateToken,
 } from './src/helper.js';
 import {
   API_ROOT,
+  GAME_COVERS_DIR,
+  GameEvent,
   HOST_PREFIX,
   type Playlist,
-  PLAYLISTS_UPDATED_EVENT,
   SAMPLE_DATA_DIR,
   STATIC_FILES_DIR,
   TEMP_FILES_DIR,
   TEST_PREFIX,
   type Track,
-  TRACKS_UPDATED_EVENT,
-  WS_GAME_STATUS_UPDATE_EVENT,
-  WS_JOIN_INSTANCE_EVENT,
+  TRACK_AUDIO_DIR,
 } from '@yasq/shared';
-import { LogCategory, logger } from './src/utils/logger.js';
 import { loadPermissions } from './src/access_control.js';
-
-const DISCONNECTION_GRACE_MILLIS: number = 20_000;
+import { setupWebsocketServer } from './src/socket_server.js';
 
 dotenv.config({ path: '../.env' });
 
@@ -196,12 +190,16 @@ export function setupServer() {
   let cachedTracks = loadTracks(tracksPath);
   let cachedPlaylists = loadPlaylists(playlistsPath);
 
+  const app = express();
+  const httpServer = createServer(app);
+  const socketServer = setupWebsocketServer(httpServer, instances);
+
   // Watch for file changes and update cache
   const tracksWatcher = setupFileWatcher(
     tracksPath,
     () => {
       cachedTracks = loadTracks(tracksPath);
-      server.emit(TRACKS_UPDATED_EVENT);
+      socketServer.emit(GameEvent.TRACKS_UPDATED);
     },
     'Tracks'
   );
@@ -210,132 +208,19 @@ export function setupServer() {
     playlistsPath,
     () => {
       cachedPlaylists = loadPlaylists(playlistsPath);
-      server.emit(PLAYLISTS_UPDATED_EVENT);
+      socketServer.emit(GameEvent.PLAYLISTS_UPDATED);
     },
     'Playlists'
   );
 
-  const disconnectTimeouts = new Map();
-
-  const app = express();
-  const httpServer = createServer(app);
-  const server = new Server(httpServer, {
-    pingInterval: 4000,
-    pingTimeout: 4000,
-    cors: {
-      origin: '*',
-    },
-  });
-
-  const notifyGameSubscribers = (updatedGame: GameInstance) => broadcastGameStatus(server, updatedGame);
-
-  server.use(async (socket, next) => {
-    const token = socket.handshake.auth.token;
-    if (!token) return next(new Error('Missing token'));
-
-    try {
-      // Bind user ID to socket so it's available everywhere
-      socket.data.userId = await validateToken(token);
-      next();
-    } catch (err) {
-      next(new Error(`Invalid token: ${err}`));
-    }
-  });
-
-  server.on('connection', socket => {
-    socket.on(WS_JOIN_INSTANCE_EVENT, async ({ instanceId }) => {
-      const userId = socket.data.userId;
-      socket.data.instanceId = instanceId;
-
-      // Find and disconnect any other existing sockets for this user in the same instance
-      const sockets = await server.in(instanceId).fetchSockets();
-      for (const s of sockets) {
-        if (s.data.userId === userId && s.id !== socket.id) {
-          s.disconnect(true);
-        }
-      }
-
-      socket.join(instanceId);
-
-      // If the user reconnected within grace period, cancel their timeout for removal
-      const timeoutKey = `${instanceId}:${userId}`;
-      const isReconnecting = disconnectTimeouts.has(timeoutKey);
-
-      if (isReconnecting) {
-        clearTimeout(disconnectTimeouts.get(timeoutKey));
-        disconnectTimeouts.delete(timeoutKey);
-        logger.debug(`User ${userId} reconnected within grace period`, LogCategory.GAME, instanceId);
-      }
-
-      // If no one has registered for this instance yet, this user is the host
-      if (!instances[instanceId]) {
-        const game = new GameInstance(instanceId, userId);
-        game.onUpdate = notifyGameSubscribers;
-        instances[instanceId] = game;
-      }
-
-      const game = instances[instanceId];
-      game.registeredUsers.add(userId);
-
-      if (!isReconnecting) {
-        logger.debug(
-          `User ${userId} joined the game (role: ${game.isHost(userId) ? 'Host' : 'Player'})`,
-          LogCategory.GAME,
-          instanceId
-        );
-      }
-
-      // Broadcast updated state to everyone in this game instance
-      server.to(instanceId).emit(WS_GAME_STATUS_UPDATE_EVENT, getGameStatusPayload(game));
-    });
-
-    socket.on('disconnect', () => {
-      const { userId, instanceId } = socket.data;
-      if (!userId || !instanceId || !instances[instanceId]) return;
-
-      logger.debug(`User ${userId} disconnected from server -> Starting grace period`, LogCategory.GAME, instanceId);
-      const timeoutKey = `${instanceId}:${userId}`;
-
-      // Clear any existing timeout
-      if (disconnectTimeouts.has(timeoutKey)) {
-        clearTimeout(disconnectTimeouts.get(timeoutKey));
-      }
-
-      // Give the client a grace period to reconnect before stripping their host/player status
-      const disconnectTimeout = setTimeout(() => {
-        disconnectTimeouts.delete(timeoutKey);
-
-        const currentGame = instances[instanceId];
-        if (!currentGame) return;
-
-        currentGame.registeredUsers.delete(userId);
-        logger.debug(`User ${userId}: Grace period expired -> Removing user from game`, LogCategory.GAME, instanceId);
-
-        if (currentGame.isHost(userId) && !isMockMode()) {
-          const isGameActive = currentGame.pickNewHost();
-
-          if (!isGameActive) {
-            logger.debug('Terminating empty game instance', LogCategory.GAME, instanceId);
-            currentGame.dispose();
-            delete instances[instanceId];
-          }
-        }
-
-        server.to(instanceId).emit(WS_GAME_STATUS_UPDATE_EVENT, getGameStatusPayload(currentGame));
-      }, DISCONNECTION_GRACE_MILLIS);
-
-      disconnectTimeouts.set(timeoutKey, disconnectTimeout);
-    });
-  });
-
   // Allow express to parse JSON bodies
   app.use(express.json());
 
-  const musicPath = getFilePath('music');
-  const gameCoverPath = getFilePath('game_covers');
+  const musicPath = getFilePath(TRACK_AUDIO_DIR);
+  const gameCoverPath = getFilePath(GAME_COVERS_DIR);
 
-  app.use('/music', express.static(musicPath));
-  app.use('/game_covers', express.static(gameCoverPath));
+  app.use(`/${TRACK_AUDIO_DIR}`, express.static(musicPath));
+  app.use(`/${GAME_COVERS_DIR}`, express.static(gameCoverPath));
 
   // Folder for serving temporary static files
   const tempDir = setupTempDir(projectRoot);
@@ -364,7 +249,10 @@ export function setupServer() {
   // Only register mock routes when server is started in mock mode
   if (isMockMode()) {
     console.log('[MODE] Server is running in mock mode');
-    app.use(`/${API_ROOT}/${TEST_PREFIX}`, setupMockRoutes(instances, notifyGameSubscribers));
+    app.use(
+      `/${API_ROOT}/${TEST_PREFIX}`,
+      setupMockRoutes(instances, (updatedGame: GameInstance) => broadcastGameStatus(socketServer, updatedGame))
+    );
   }
 
   // These routes MUST be added last

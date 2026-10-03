@@ -1,13 +1,17 @@
 {
   "instanceId": "123456789",
   "hostId": "0",
-  "state": "FINAL_RESULTS",
+  "state": {
+    "game": 1,
+    "round": 1,
+    "phase": "FINAL_RESULTS",
+    "playback": null
+  },
   "settings": {
     "rounds": 5,
     "maxGuessTime": 60000,
     "enabledJokers": ["OBFUSCATION", "TRIVIA", "MULTIPLE_CHOICE", "SPY"]
   },
-  "currentRound": 1,
   "registeredUsers": ["0", "1", "2", "3"],
   "lastWinnerId": "1",
   "gameStats": {

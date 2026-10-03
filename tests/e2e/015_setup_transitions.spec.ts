@@ -1,6 +1,7 @@
 import { expect, test } from './test_setup.js';
 import { EXPECTED_TIME_BONUS_LABELS, toBonusPercent } from '../utils/helper.js';
 import {
+  AchievementBonusMode,
   DEFAULT_ENABLED_JOKERS,
   DEFAULT_FIRST_BONUS_MULTIPLIER,
   DEFAULT_MAX_GUESS_TIME,
@@ -8,18 +9,17 @@ import {
   DEFAULT_STREAK_BONUS_MULTIPLIER,
   DEFAULT_TIME_BONUS,
   FirstBonusMultiplier,
-  GameState,
+  GamePhase,
   Joker,
   StreakBonusMultiplier,
   TimeBonus,
-  AchievementBonusMode,
 } from '@yasq/shared';
 
 test.use({
   sessionConfig: {
     playerCount: 3,
     sessionData: {
-      state: GameState.SETUP,
+      state: { phase: GamePhase.SETUP },
     },
   },
 });

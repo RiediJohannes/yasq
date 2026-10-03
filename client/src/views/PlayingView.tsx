@@ -1,9 +1,19 @@
 import { useSignal } from '@preact/signals';
 import { useEffect, useRef } from 'preact/hooks';
 
+import { audioPlayer, discordSdk, gameStatus, isMac, participants, useAuth } from '../main';
 import * as backend from '../utils/backend';
-import { audioPlayer, discordSdk, gameState, isMac, participants, useAuth } from '../main';
-import { getAvatarUrl, getDisplayName, Joker, MAX_GUESS_LENGTH, POLLING_INTERVAL, Tag } from '@yasq/shared';
+import * as connections from '../utils/connections';
+import {
+  getAvatarUrl,
+  getDisplayName,
+  Joker,
+  LogLevel,
+  MAX_GUESS_LENGTH,
+  Playback,
+  RoundTimings,
+  Tag,
+} from '@yasq/shared';
 import { ALL_JOKER_ICONS } from '../components/Icons';
 import { capitalize, findUser, getActionKeyLabel, getUserId } from '../utils/helper';
 import { NonDraggableImg } from '../components/NonDraggableImg';
@@ -116,12 +126,26 @@ const renderJokerHint = (activeHint: JokerHint, submit: SubmitFunction) => {
   }
 };
 
+enum PlayingViewPhase {
+  SETUP = 0,
+  COUNTDOWN = 1,
+  PLAYING = 2,
+}
+
 export const PlayingView = ({ isHost }: { isHost: boolean }) => {
   const auth = useAuth();
   const hasSubmitted = useSignal(false);
-  const jokerError = useSignal<string | null>(null);
-  const countdown = useSignal<number | null>(3);
+  const isAudioBuffered = useSignal(false);
+
+  // Phases: SETUP ("Ready?") -> COUNTDOWN (3, 2, 1) -> PLAYING
+  const currentViewPhase = useSignal<PlayingViewPhase>(PlayingViewPhase.SETUP);
+  const countdownValue = useSignal<number>(3);
+
   const inputRef = useRef<HTMLInputElement>(null);
+  const progressBarRef = useRef<HTMLDivElement>(null);
+  const setupControllerRef = useRef<AbortController | null>(null);
+
+  const jokerError = useSignal<string | null>(null);
   const activeHint = useSignal<JokerHint | null>(null);
   const availableJokers = useSignal<string[]>([]);
   const isSelectingSpyTarget = useSignal(false);
@@ -132,7 +156,7 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
     backend.getAvailableJokers(auth.access_token, discordSdk.instanceId).then(data => {
       availableJokers.value = data.available;
     });
-  }, [gameState.value.currentRound]);
+  }, [gameStatus.value.state.round, isHost]);
 
   const handleJokerUsage = async (jokerType: Joker, targetId?: string) => {
     if (jokerType === Joker.SPY && !targetId) {
@@ -151,7 +175,6 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
       } else {
         jokerError.value = payload.error;
       }
-      // Joker becomes unusable for the CURRENT round either way
       availableJokers.value = availableJokers.value.filter(j => j !== jokerType);
       isSelectingSpyTarget.value = false;
     } catch (err) {
@@ -167,102 +190,252 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
 
   const submitGuess = async (guess: string) => {
     hasSubmitted.value = true;
-
     await backend.submitGuess(auth.access_token, discordSdk.instanceId, guess);
   };
 
+  // Autofocus input when playing phase starts
   useEffect(() => {
-    const roundStarted = countdown.value === null;
-    const canFocus = !isHost && !hasSubmitted.value && inputRef.current;
-
-    if (roundStarted && canFocus) {
+    if (currentViewPhase.value === PlayingViewPhase.PLAYING && !isHost && !hasSubmitted.value && inputRef.current) {
       inputRef.current?.focus();
     }
-  }, [countdown.value]);
+  }, [isHost, currentViewPhase.value, inputRef.current]);
 
+  const bufferAudio = (url: string, abortSignal: AbortSignal): Promise<void> => {
+    // Check if correct track is already loaded
+    if (audioPlayer.src === url && audioPlayer.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA) {
+      isAudioBuffered.value = true;
+      return Promise.resolve();
+    } else {
+      isAudioBuffered.value = false;
+    }
+
+    // Preload audio buffer
+    audioPlayer.src = url;
+    audioPlayer.load();
+
+    return new Promise<void>((resolve, reject) => {
+      // Check if the audio player has already finished buffering
+      if (audioPlayer.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA) {
+        resolve();
+        return;
+      }
+
+      // Otherwise, get notified when it does
+      let settled = false;
+      const done = () => {
+        if (settled) return;
+        settled = true;
+
+        clearTimeout(fallback);
+        audioPlayer.removeEventListener('canplaythrough', handleCanPlay);
+        abortSignal.removeEventListener('abort', handleAbort);
+        isAudioBuffered.value = true;
+
+        resolve();
+      };
+
+      const handleAbort = () => {
+        if (settled) return;
+        settled = true;
+
+        clearTimeout(fallback);
+        audioPlayer.removeEventListener('canplaythrough', handleCanPlay);
+        isAudioBuffered.value = false;
+
+        reject(new DOMException('Aborted', 'AbortError'));
+      };
+
+      const handleCanPlay = () => done();
+      const fallback = setTimeout(done, 5000);
+
+      audioPlayer.addEventListener('canplaythrough', handleCanPlay);
+      abortSignal.addEventListener('abort', handleAbort, { once: true });
+    });
+  };
+
+  // Request track data, pre-buffer audio track, then notify server
+  const setupRound = async (abortSignal: AbortSignal) => {
+    const setupStartTime = performance.now();
+
+    try {
+      const trackData = await backend.getCurrentTrack(auth.access_token, discordSdk.instanceId);
+      if (!trackData || !trackData.url || abortSignal.aborted) return;
+
+      if (isHost) activeTrackInfo.value = trackData;
+
+      // Pre-buffer the track
+      await bufferAudio(window.location.origin + trackData.url, abortSignal);
+      if (abortSignal.aborted) return;
+
+      // Notify the server that we are ready to start the round now
+      await backend.updateReadyToPlayStatus(
+        auth.access_token,
+        discordSdk.instanceId,
+        gameStatus.value.state.round,
+        isAudioBuffered.value,
+        performance.now() - setupStartTime
+      );
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') return;
+      console.error('Round setup error:', err);
+    } finally {
+      // Setup is no longer in flight (unless a newer run has already replaced us)
+      if (setupControllerRef.current?.signal === abortSignal) {
+        setupControllerRef.current = null;
+      }
+    }
+  };
+
+  const startSetup = async () => {
+    setupControllerRef.current?.abort(); // cancel any previous setup run
+
+    const setupController = new AbortController();
+    setupControllerRef.current = setupController;
+
+    await setupRound(setupController.signal);
+  };
+
+  // Initialize round (load audio track and send ready event)
   useEffect(() => {
-    const sync = async () => {
-      try {
-        const { url, startTime, endTime, ...hostData } = await backend.getCurrentTrack(
-          auth.access_token,
-          discordSdk.instanceId
-        );
-        if (!url) return;
+    if (hasSubmitted.value) return;
 
-        if (isHost) {
-          activeTrackInfo.value = hostData;
-        }
+    // Ensure audio player is immediately halted when entering/switching rounds
+    audioPlayer.pause();
+    audioPlayer.currentTime = 0;
+    audioPlayer.src = '';
 
-        const now = Date.now();
-        const totalDurationMs = endTime - startTime;
-        const timePassedMs = now - startTime;
+    isAudioBuffered.value = false;
+    currentViewPhase.value = PlayingViewPhase.SETUP;
 
-        const progressBar = document.getElementById('progress-bar');
+    void startSetup();
 
-        // 1. Countdown Phase (before startTime)
-        if (timePassedMs < 0) {
-          const remainingSeconds = Math.abs(Math.ceil(timePassedMs / 1000));
-          countdown.value = remainingSeconds > 0 ? remainingSeconds : null;
+    return () => {
+      setupControllerRef.current?.abort();
+      setupControllerRef.current = null;
+    };
+  }, [isHost, gameStatus.value.state.round]);
 
-          // Ensure player is paused and ready at the start
-          audioPlayer.pause();
-          audioPlayer.currentTime = 0;
-          if (audioPlayer.src !== window.location.origin + url) audioPlayer.src = url;
+  // Animate countdown and progress bar according to the timing specified in `activePlayback`
+  const scheduleAnimationLoop = (activePlayback: Playback, abortSignal: AbortSignal): number => {
+    let animationFrameId: number;
+    const { startTime, endTime } = activePlayback;
+    const totalDurationMillis = endTime - startTime;
 
-          if (progressBar) {
-            progressBar.style.width = '100%';
-          }
-          return; // Don't play the track until the countdown finishes
-        }
+    const animateCountdownAndProgressBar = (_currentFrameStart: DOMHighResTimeStamp) => {
+      if (abortSignal.aborted) return;
 
-        // 2. Playing Phase
-        countdown.value = null;
-        let percentage = 100 - (timePassedMs / totalDurationMs) * 100;
-        percentage = Math.max(0, Math.min(100, percentage));
+      const now = connections.getSyncedServerTime();
+      const timeDifference = now - startTime;
+      const progressBar = progressBarRef.current;
+
+      if (timeDifference < 0) {
+        // Render waiting message and countdown
+        audioPlayer.pause();
+        audioPlayer.currentTime = 0;
 
         if (progressBar) {
-          progressBar.style.width = `${percentage}%`;
-          progressBar.style.backgroundColor = percentage < 20 ? '#f04747' : '#5865f2';
-          progressBar.classList.toggle('blink', percentage < 5);
+          progressBar.style.width = '100%';
+          progressBar.classList.remove('danger', 'blink');
         }
 
-        // Check if we need to load a new source
-        if (audioPlayer.src !== window.location.origin + url) {
-          audioPlayer.src = url;
+        // Check if it is time to show the countdown already
+        const remainingMilliseconds = Math.abs(timeDifference);
+
+        if (remainingMilliseconds <= RoundTimings.COUNTDOWN_DURATION) {
+          // Only now start the numbered countdown
+          currentViewPhase.value = PlayingViewPhase.COUNTDOWN;
+
+          const remainingSeconds = Math.ceil(remainingMilliseconds / 1000);
+          countdownValue.value = Math.max(1, Math.min(RoundTimings.COUNTDOWN_DURATION / 1000, remainingSeconds));
+        } else {
+          currentViewPhase.value = PlayingViewPhase.SETUP;
+        }
+      } else {
+        // Play track and animate progress bar
+        currentViewPhase.value = PlayingViewPhase.PLAYING;
+
+        let progressPercentage = 100 - (timeDifference / totalDurationMillis) * 100;
+        progressPercentage = Math.max(0, Math.min(100, progressPercentage));
+
+        if (progressBar) {
+          progressBar.style.width = `${progressPercentage}%`;
+          progressBar.classList.toggle('danger', progressPercentage < 20);
+          progressBar.classList.toggle('blink', progressPercentage < 5);
         }
 
-        // Sync timing
-        const elapsedSeconds = timePassedMs / 1000;
-        const trackDuration = audioPlayer.duration || totalDurationMs / 1000;
+        const elapsedSeconds = timeDifference / 1000;
+        const trackDuration = audioPlayer.duration || totalDurationMillis / 1000;
         const expectedPlaybackTime = trackDuration > 0 ? elapsedSeconds % trackDuration : elapsedSeconds;
 
-        // If we are more than 2 seconds out of sync, snap to server time
-        if (Math.abs(audioPlayer.currentTime - expectedPlaybackTime) > 2) {
+        // Correct the audio player if we are off by at least one second
+        if (Math.abs(audioPlayer.currentTime - expectedPlaybackTime) >= 1) {
           audioPlayer.currentTime = expectedPlaybackTime;
         }
 
         if (audioPlayer.paused) {
-          audioPlayer.play().catch(() => {});
+          audioPlayer.play().catch(async () =>
+            backend.logToServer(LogLevel.ERROR, 'Failed to play track', getUserId(auth), {
+              instanceId: discordSdk.instanceId,
+            })
+          );
         }
-      } catch (err) {
-        console.error('Arena sync error:', err);
       }
+
+      // Register self to be called again on the next animation frame
+      animationFrameId = requestAnimationFrame(animateCountdownAndProgressBar);
     };
 
-    const interval = setInterval(sync, POLLING_INTERVAL);
+    // Start the animation loop
+    animationFrameId = requestAnimationFrame(animateCountdownAndProgressBar);
+    return animationFrameId;
+  };
+
+  // Start timed countdown/progressBar animation loop once Playback data becomes available
+  useEffect(() => {
+    // Only start animation loop once playback information exists and audio is fully buffered
+    const activePlayback = gameStatus.value.state.playback;
+    if (!activePlayback) return;
+
+    if (!isAudioBuffered.value) {
+      if (!setupControllerRef.current) {
+        void startSetup(); // manually trigger setup
+      }
+      return;
+    }
+
+    const controller = new AbortController();
+    const animationFrameId = scheduleAnimationLoop(activePlayback, controller.signal);
+
     return () => {
-      clearInterval(interval);
+      // Stop the current animation loop
+      controller.abort();
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
     };
-  }, [isHost]);
+  }, [gameStatus.value.state.playback, isAudioBuffered.value]);
 
   return (
     <div
       id="game-arena"
       className="centered"
     >
-      {countdown.value !== null && (
+      {currentViewPhase.value !== PlayingViewPhase.PLAYING && (
         <div id="countdown-overlay">
-          <div id="countdown-number">{countdown.value}</div>
+          {currentViewPhase.value === PlayingViewPhase.SETUP && (
+            <div
+              id="countdown-text"
+              className="countdown"
+            >
+              Ready?
+            </div>
+          )}
+          {currentViewPhase.value === PlayingViewPhase.COUNTDOWN && (
+            <div
+              id="countdown-number"
+              className="countdown"
+            >
+              {countdownValue.value}
+            </div>
+          )}
         </div>
       )}
 
@@ -314,10 +487,10 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
               <h2>Pick a player to spy on:</h2>
               <hr className="divider" />
               <div className="spy-hint-player-list">
-                {gameState.value.guessedPlayers.filter(id => id !== getUserId(auth)).length === 0 ? (
+                {gameStatus.value.guessedPlayers.filter(id => id !== getUserId(auth)).length === 0 ? (
                   <p className="no-results">No player has submitted a guess yet.</p>
                 ) : (
-                  gameState.value.guessedPlayers.map(targetId => {
+                  gameStatus.value.guessedPlayers.map(targetId => {
                     const user = findUser(participants.value, targetId);
 
                     return (
@@ -387,7 +560,7 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
               <div className="joker-list">
                 {ALL_JOKER_ICONS
                   // Only show jokers that were enabled by the host during setup
-                  .filter(Icon => gameState.value.gameSettings.enabledJokers.includes(Icon.jokerType))
+                  .filter(Icon => gameStatus.value.settings.enabledJokers.includes(Icon.jokerType))
                   .map((Icon, index) => {
                     const type = Icon.jokerType;
                     const isAvailable = availableJokers.value.includes(type);
@@ -450,7 +623,10 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
       )}
 
       <div id="progress-container">
-        <div id="progress-bar"></div>
+        <div
+          id="progress-bar"
+          ref={progressBarRef}
+        ></div>
       </div>
     </div>
   );

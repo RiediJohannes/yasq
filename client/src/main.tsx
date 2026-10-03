@@ -2,7 +2,6 @@ import { createContext, render } from 'preact';
 import { signal } from '@preact/signals';
 import { useContext } from 'preact/hooks';
 
-import { GameStatus } from './utils/types';
 import { getUserId } from './utils/helper';
 import {
   AbstractDiscordSdk,
@@ -13,7 +12,7 @@ import {
   syncParticipants,
 } from './utils/connections';
 import { useKeyboardShortcut } from './hooks/useKeyboardShortcut';
-import { DEFAULT_VOLUME_SLIDER_VAL, GameSettings, GameState, MAX_VOLUME, Participant } from '@yasq/shared';
+import { DEFAULT_VOLUME_SLIDER_VAL, GamePhase, GameSettings, GameStatus, MAX_VOLUME, Participant } from '@yasq/shared';
 
 import { GameHeader, isHowToPlayOpen, isLocalSettingsOpen } from './components/GameHeader';
 import { HowToPlay } from './components/HowToPlay';
@@ -36,14 +35,18 @@ const authState = signal<AuthenticationResult | null>(null);
 export const discordSdk: AbstractDiscordSdk = getDiscordSdk();
 export const participants = signal<Participant[]>([]);
 
-export const gameState = signal<GameStatus>({
-  state: GameState.LOBBY,
+export const gameStatus = signal<GameStatus>({
+  state: {
+    game: 1,
+    round: 0,
+    phase: GamePhase.LOBBY,
+    playback: null,
+  },
   hostId: null,
-  readyUsers: [],
+  readyPlayers: [],
   guessedPlayers: [],
-  currentRound: 0,
   lastWinnerId: null,
-  gameSettings: GameSettings.withJokerArray(),
+  settings: GameSettings.withJokerArray(),
   streaks: {},
   lostStreaks: {},
 });
@@ -96,11 +99,11 @@ const App = () => {
 
   if (!authState.value) return <LoadingState label="Authenticating" />;
 
-  if (gameState.value.hostId === null) {
+  if (gameStatus.value.hostId === null) {
     return <LoadingState label="Starting Game" />;
   }
 
-  const isHost = String(getUserId(authState.value)) === String(gameState.value.hostId);
+  const isHost = String(getUserId(authState.value)) === String(gameStatus.value.hostId);
   const authenticationResult = authState.value;
 
   return (
@@ -111,7 +114,7 @@ const App = () => {
 
           <main
             className="game-area"
-            key={`view-${isHost}-${gameState.value.state}`}
+            key={`view-${isHost}-${gameStatus.value.state}`}
             tabIndex={0}
           >
             {renderView(isHost)}
@@ -145,20 +148,20 @@ const App = () => {
 };
 
 const renderView = (isHost: boolean) => {
-  switch (gameState.value.state) {
-    case GameState.SETUP:
+  switch (gameStatus.value.state.phase) {
+    case GamePhase.SETUP:
       return <SetupView isHost={isHost} />;
-    case GameState.LOBBY:
+    case GamePhase.LOBBY:
       return <LobbyView isHost={isHost} />;
-    case GameState.TRACK_SELECTION:
+    case GamePhase.TRACK_SELECTION:
       return <TrackSelectionView isHost={isHost} />;
-    case GameState.PLAYING:
+    case GamePhase.PLAYING:
       return <PlayingView isHost={isHost} />;
-    case GameState.HOST_REVIEW:
+    case GamePhase.HOST_REVIEW:
       return <HostReviewView isHost={isHost} />;
-    case GameState.ROUND_RESULTS:
+    case GamePhase.ROUND_RESULTS:
       return <RoundResultsView isHost={isHost} />;
-    case GameState.FINAL_RESULTS:
+    case GamePhase.FINAL_RESULTS:
       return <FinalResultsView isHost={isHost} />;
   }
 };

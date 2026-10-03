@@ -1,22 +1,22 @@
 import { signal } from '@preact/signals';
 
-import { GameState } from '@yasq/shared';
-import { gameState } from '../main';
+import { GamePhase } from '@yasq/shared';
+import { gameStatus } from '../main';
 import { WithTooltip } from './Tooltip';
 
 export const isLocalSettingsOpen = signal(false);
 export const isHowToPlayOpen = signal(false);
 
 export const GameHeader = () => {
-  const { state, currentRound, gameSettings } = gameState.value;
+  const { state, settings } = gameStatus.value;
 
   const renderHeaderContent = () => {
-    switch (state) {
-      case GameState.TRACK_SELECTION:
-      case GameState.PLAYING:
-      case GameState.HOST_REVIEW:
-      case GameState.ROUND_RESULTS:
-        return `Round ${currentRound} of ${gameSettings.rounds}`;
+    switch (state.phase) {
+      case GamePhase.TRACK_SELECTION:
+      case GamePhase.PLAYING:
+      case GamePhase.HOST_REVIEW:
+      case GamePhase.ROUND_RESULTS:
+        return `Round ${state.round} of ${settings.rounds}`;
       default:
         return 'YASQ';
     }

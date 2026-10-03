@@ -7,5 +7,11 @@ httpServer.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}`);
 });
 
-process.on('SIGINT', () => httpServer.closeAllConnections());
-process.on('SIGTERM', () => httpServer.closeAllConnections());
+const shutdown = () => {
+  console.log('Shutting down server...');
+  httpServer.close(() => process.exit(0));
+  httpServer.closeAllConnections();
+};
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);

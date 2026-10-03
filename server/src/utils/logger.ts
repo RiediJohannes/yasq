@@ -1,5 +1,5 @@
-import { getDisplayName, LogLevel } from '@yasq/shared';
-import { userDataCache } from '../helper.js';
+import { LogLevel } from '@yasq/shared';
+import { getCachedDisplayName } from '../helper.js';
 
 export enum LogCategory {
   API = 'API',
@@ -38,9 +38,7 @@ export const logger = {
       formattedMessage += ` [${context.instanceId}]`;
     }
     if (context.clientUserId) {
-      const participant = userDataCache.get(context.clientUserId);
-      const userName = participant ? getDisplayName(participant) : 'unknown user';
-      formattedMessage += ` [USER ${userName} (${context.clientUserId})]`;
+      formattedMessage += ` [USER ${getCachedDisplayName(context.clientUserId)} (${context.clientUserId})]`;
     }
     formattedMessage += ` ${msg}`;
     if (context.error) {

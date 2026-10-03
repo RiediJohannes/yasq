@@ -5,17 +5,17 @@ import { fileURLToPath } from 'url';
 
 import { GameInstance } from '../src/models/game_instance.js';
 import {
-  COUNTDOWN_DURATION,
-  GameState,
+  GamePhase,
   INSTANCE_PATH,
   INT32_MAX_VALUE,
   Joker,
   type Playlist,
+  RoundTimings,
   STATIC_FILES_DIR,
   TEMP_FILES_DIR,
   type Track,
 } from '@yasq/shared';
-import { filterDiscordTextChannels, userDataCache } from '../src/helper.js';
+import { filterDiscordTextChannels, getCachedDisplayName, userDataCache } from '../src/helper.js';
 import { isAllowed } from '../src/access_control.js';
 import { generateResultsImage } from '../src/export_results.js';
 import { LogCategory, logger } from '../src/utils/logger.js';
@@ -74,8 +74,10 @@ export const setupHostRoutes = (
     }
 
     game.hostId = newHostId;
-    game.readyUsers.delete(newHostId); // New host is not required to be ready
-    logger.debug(`Host changed to user ${newHostId}`, LogCategory.GAME, game.instanceId);
+    game.readyPlayers.delete(newHostId); // New host is not required to be ready
+
+    const hostName = getCachedDisplayName(newHostId);
+    logger.debug(`Host changed to user '${hostName}' (${newHostId})`, LogCategory.GAME, game.instanceId);
 
     game.notifyUpdate();
 
@@ -85,7 +87,7 @@ export const setupHostRoutes = (
   router.post(`/${INSTANCE_PATH}/setup`, async (req, res) => {
     const settings = req.body?.settings;
     const game = req.game!;
-    const maxAllowedGuessTime: number = Math.floor(INT32_MAX_VALUE / 1000) - COUNTDOWN_DURATION;
+    const maxAllowedGuessTime: number = Math.floor(INT32_MAX_VALUE / 1000) - RoundTimings.COUNTDOWN_DURATION;
 
     if (settings.rounds <= 0 || settings.maxGuessTime <= 0) {
       throw new ApiError(400, 'Rounds and guess time must be greater than 0.', req);
@@ -110,18 +112,18 @@ export const setupHostRoutes = (
 
     game.notifyUpdate();
 
-    res.send({ status: GameState.LOBBY });
+    res.send({ status: GamePhase.LOBBY });
   });
 
   router.post(`/${INSTANCE_PATH}/new`, async (req, res) => {
     const game = req.game!;
 
     game.restart();
-    logger.debug(`Host has started new game #${game.currentGame}`, LogCategory.GAME, game.instanceId);
+    logger.debug(`Host has started new game #${game.state.game}`, LogCategory.GAME, game.instanceId);
 
     game.notifyUpdate();
 
-    res.send({ success: true });
+    res.sendStatus(205); // 205 Reset Content (previous game is discarded)
   });
 
   router.post(`/${INSTANCE_PATH}/start`, async (req, res) => {
@@ -132,7 +134,7 @@ export const setupHostRoutes = (
 
     game.notifyUpdate();
 
-    res.send({ status: GameState.TRACK_SELECTION });
+    res.send({ status: GamePhase.TRACK_SELECTION });
   });
 
   router.post(`/${INSTANCE_PATH}/tracks/play`, async (req, res) => {
@@ -142,7 +144,7 @@ export const setupHostRoutes = (
 
     if (!isAllowed(userId, fileName)) {
       logger.warn(
-        `User ${userId} attempted to play restricted track: ${fileName}`,
+        `User '${getCachedDisplayName(userId)}' (${userId}) attempted to play restricted track: ${fileName}`,
         LogCategory.SECURITY,
         game.instanceId
       );
@@ -153,14 +155,14 @@ export const setupHostRoutes = (
 
     if (!track) throw new ApiError(404, 'Track not found.', req);
 
-    await game.playTrack(track, () => game.notifyUpdate());
+    await game.selectNextTrack(track);
 
-    logger.debug(`Started playing ${fileName}`, LogCategory.GAME, game.instanceId);
+    logger.debug(`Selected ${fileName} as next track`, LogCategory.GAME, game.instanceId);
 
     game.notifyUpdate();
 
     res.send({
-      status: GameState.PLAYING,
+      status: GamePhase.PLAYING,
       track: game.trackInfo,
     });
   });
@@ -168,7 +170,7 @@ export const setupHostRoutes = (
   router.get(`/${INSTANCE_PATH}/guesses`, async (req, res) => {
     const game = req.game!;
 
-    const currentRound = game.currentRound;
+    const currentRound = game.state.round;
     const roundGuesses = game.guesses[currentRound] || {};
 
     // Attach used jokers to guesses
@@ -185,15 +187,16 @@ export const setupHostRoutes = (
 
     const timedOutPlayers = game.getTimedOutPlayers();
     if (timedOutPlayers.length > 0) {
+      const timedOutPlayerNames = timedOutPlayers.map(userId => getCachedDisplayName(userId)).join(', ');
       logger.debug(
-        `The following players have not submitted a guess in time: ${timedOutPlayers.join(', ')}`,
+        `The following players have not submitted a guess in time: ${timedOutPlayerNames}`,
         LogCategory.GAME,
         game.instanceId
       );
     }
 
     res.send({
-      round: game.currentRound,
+      round: game.state.round,
       answer: game.trackInfo?.track.game,
       guesses: guessesWithJokers,
       timedOut: timedOutPlayers,
@@ -212,26 +215,26 @@ export const setupHostRoutes = (
     game.submitResults(corrections);
 
     logger.debug(
-      `Results calculated for round #${game.currentRound}: ${JSON.stringify(game.leaderboard.getRoundOverview(game.currentRound))}`,
+      `Results calculated for round #${game.state.round}: ${JSON.stringify(game.leaderboard.getRoundOverview(game.state.round))}`,
       LogCategory.GAME,
       game.instanceId
     );
 
     game.notifyUpdate();
 
-    res.send({ status: GameState.ROUND_RESULTS });
+    res.send({ status: GamePhase.ROUND_RESULTS });
   });
 
   router.post(`/${INSTANCE_PATH}/rounds/next`, async (req, res) => {
     const game = req.game!;
 
-    if (game.state !== GameState.ROUND_RESULTS) {
-      throw new ApiError(403, 'Can only start next round after round results have been shown', req);
+    if (game.state.phase !== GamePhase.ROUND_RESULTS) {
+      throw new ApiError(409, 'Can only start next round after round results have been shown', req);
     }
 
     const newState = game.advanceRound();
 
-    if (newState === GameState.FINAL_RESULTS) {
+    if (newState.phase === GamePhase.FINAL_RESULTS) {
       logger.info(`Game ended!`, LogCategory.GAME, game.instanceId);
       void generateResultsImage(
         game.instanceId,
@@ -247,7 +250,7 @@ export const setupHostRoutes = (
       );
     }
 
-    if (newState === GameState.TRACK_SELECTION) {
+    if (newState.phase === GamePhase.TRACK_SELECTION) {
       logger.debug(`Game has advanced to next round!`, LogCategory.GAME, game.instanceId);
     }
 
@@ -260,8 +263,8 @@ export const setupHostRoutes = (
     const { channelId } = req.body;
     const game = req.game!;
 
-    if (game.state !== GameState.FINAL_RESULTS) {
-      throw new ApiError(400, 'Game has not finished yet.', req);
+    if (game.state.phase !== GamePhase.FINAL_RESULTS) {
+      throw new ApiError(409, 'Game has not finished yet.', req);
     }
 
     const filePath = path.join(__dirname, '..', STATIC_FILES_DIR, TEMP_FILES_DIR, `${game.instanceId}/results.png`);

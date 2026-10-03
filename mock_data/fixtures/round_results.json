@@ -1,7 +1,12 @@
 {
   "instanceId": "123456789",
   "hostId": "0",
-  "state": "ROUND_RESULTS",
+  "state": {
+    "game": 1,
+    "round": 1,
+    "phase": "ROUND_RESULTS",
+    "playback": null
+  },
   "settings": {
     "rounds": 5,
     "maxGuessTime": 60000,
@@ -10,7 +15,6 @@
     "timeBonus": "LINEAR",
     "streakBonusMultiplier": 0.1
   },
-  "currentRound": 1,
   "trackInfo": {
     "url": "some url",
     "track": {

@@ -9,7 +9,6 @@ export class TrackSelectionPage extends BasePage {
   readonly searchInput: Locator;
   readonly tagFilterDropdown: Locator;
   readonly hidePlayedCheckbox: Locator;
-  readonly progressBar: Locator;
   readonly clearFiltersButton: Locator;
 
   constructor(page: Page) {
@@ -22,7 +21,6 @@ export class TrackSelectionPage extends BasePage {
     this.searchInput = page.locator('#track-search');
     this.tagFilterDropdown = page.locator('.filter-dropdown');
     this.hidePlayedCheckbox = page.locator('#hide-played');
-    this.progressBar = page.locator('#progress-bar');
     this.clearFiltersButton = page.locator('button[title="Clear all filters"]');
   }
 

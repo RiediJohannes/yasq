@@ -1,6 +1,13 @@
-import { API_ROOT, GameState, Joker, TEST_PREFIX } from '@yasq/shared';
+import { API_ROOT, GamePhase, Joker, Playback, TEST_PREFIX } from '@yasq/shared';
 import { setBaseUrl } from '../../client/src/utils/backend';
 import { Player } from './helper';
+
+export interface TestGameState {
+  phase: GamePhase;
+  game?: number;
+  round?: number;
+  playback?: Playback | null;
+}
 
 export class TestApi {
   private readonly baseUrl: string;
@@ -21,14 +28,14 @@ export class TestApi {
     });
   }
 
-  async setupSession(players: Player[], state: GameState, extraData = {}) {
+  async setupSession(players: Player[], state: TestGameState, extraData = {}) {
     return this.http('POST', `/${API_ROOT}/${TEST_PREFIX}/instance/${this.instanceId}`, {
       data: {
         ...extraData,
         instanceId: this.instanceId,
         registeredUsers: players,
         hostId: players[0].id,
-        state,
+        state: state,
       },
     });
   }
@@ -44,6 +51,24 @@ export class TestApi {
       },
       headers: {
         Authorization: `Bearer token_${player.id}`,
+      },
+    });
+  }
+
+  async startPlayback(startTime: number, endTime: number, game: number = 1, round: number = 1) {
+    return this.http('PATCH', `/${API_ROOT}/${TEST_PREFIX}/instance/${this.instanceId}`, {
+      data: {
+        state: {
+          playback: {
+            game,
+            round,
+            startTime,
+            endTime,
+          },
+        },
+      },
+      headers: {
+        Authorization: `Bearer token_${0}`, // 0 = hostID
       },
     });
   }

@@ -1,7 +1,7 @@
 import { useSignal } from '@preact/signals';
 import { TargetedEvent } from 'preact';
 
-import { discordSdk, gameState, useAuth } from '../main';
+import { audioPlayer, discordSdk, gameStatus, useAuth } from '../main';
 
 import * as backend from '../utils/backend';
 import { HOST_TIME_BONUS_LABELS } from '../utils/constants';
@@ -33,23 +33,21 @@ import { AchievementBonusSettingsPanel } from '../components/AchievementBonusSet
 
 export const SetupView = ({ isHost }: { isHost: boolean }) => {
   const auth = useAuth();
-  const roundCount = useSignal(gameState.value.gameSettings.rounds || DEFAULT_ROUNDS);
+  const roundCount = useSignal(gameStatus.value.settings.rounds || DEFAULT_ROUNDS);
   const maxGuessTime = useSignal(
-    gameState.value.gameSettings.maxGuessTime
-      ? gameState.value.gameSettings.maxGuessTime / 1000
-      : DEFAULT_MAX_GUESS_TIME
+    gameStatus.value.settings.maxGuessTime ? gameStatus.value.settings.maxGuessTime / 1000 : DEFAULT_MAX_GUESS_TIME
   );
   const isSubmitting = useSignal(false);
   const isAdvancedOpen = useSignal(false);
   const firstBonusMultiplier = useSignal<FirstBonusMultiplier>(
-    gameState.value.gameSettings.firstBonusMultiplier || FirstBonusMultiplier.OFF
+    gameStatus.value.settings.firstBonusMultiplier || FirstBonusMultiplier.OFF
   );
   const streakBonusMultiplier = useSignal<StreakBonusMultiplier>(
-    gameState.value.gameSettings.streakBonusMultiplier || StreakBonusMultiplier.OFF
+    gameStatus.value.settings.streakBonusMultiplier || StreakBonusMultiplier.OFF
   );
 
   const achievementBonuses = useSignal<AchievementBonuses>(
-    gameState.value.gameSettings.achievementBonuses || {
+    gameStatus.value.settings.achievementBonuses || {
       mode: 'manual',
       enabledTypes: Object.values(AchievementBonusType),
       randomCount: 1,
@@ -57,10 +55,10 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
   );
 
   const activeJokers = useSignal<Set<Joker>>(
-    new Set(gameState.value.gameSettings.enabledJokers ?? DEFAULT_ENABLED_JOKERS)
+    new Set(gameStatus.value.settings.enabledJokers ?? DEFAULT_ENABLED_JOKERS)
   );
 
-  const selectedBonus = useSignal<TOptionalTimeBonus>(gameState.value.gameSettings.timeBonus ?? OptionalTimeBonus.NONE);
+  const selectedBonus = useSignal<TOptionalTimeBonus>(gameStatus.value.settings.timeBonus ?? OptionalTimeBonus.NONE);
 
   const { timeBonusSamples, isLoading } = useTimeBonusSamples();
 
@@ -108,6 +106,9 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
 
     isSubmitting.value = false;
   };
+
+  audioPlayer.pause();
+  audioPlayer.src = '';
 
   return (
     <div className="view-container centered">

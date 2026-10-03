@@ -1,6 +1,6 @@
 import { useSignal } from '@preact/signals';
 
-import { discordSdk, gameState, participants, useAuth } from '../main';
+import { discordSdk, gameStatus, participants, useAuth } from '../main';
 
 import * as backend from '../utils/backend';
 import { PLAYER_TIME_BONUS_LABELS } from '../utils/constants';
@@ -21,14 +21,14 @@ import { InviteButton } from '../components/InviteButton';
 
 export const LobbyView = ({ isHost }: { isHost: boolean }) => {
   const auth = useAuth();
-  const jokers = gameState.value.gameSettings.enabledJokers;
-  const achievementBonuses = gameState.value.gameSettings.achievementBonuses;
+  const jokers = gameStatus.value.settings.enabledJokers;
+  const achievementBonuses = gameStatus.value.settings.achievementBonuses;
 
   const { getTabProps, handleKeyDown } = useRovingTabIndex(jokers.length);
 
-  const playersExcludingHost = participants.value.filter(p => p.id !== gameState.value.hostId);
-  const readyUsers = playersExcludingHost.filter(p => gameState.value.readyUsers.includes(p.id)).length;
-  const allPlayersAreReady = playersExcludingHost.length > 0 && readyUsers === playersExcludingHost.length;
+  const playersExcludingHost = participants.value.filter(p => p.id !== gameStatus.value.hostId);
+  const readyPlayers = playersExcludingHost.filter(p => gameStatus.value.readyPlayers.includes(p.id)).length;
+  const allPlayersAreReady = playersExcludingHost.length > 0 && readyPlayers === playersExcludingHost.length;
 
   const handleStart = async () => {
     await backend.startGame(auth.access_token, discordSdk.instanceId);
@@ -38,14 +38,14 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
     await backend.restartGame(auth.access_token, discordSdk.instanceId);
   };
 
-  const currentTimeBonusName = gameState.value.gameSettings.timeBonus?.replace('_', '') ?? 'None';
+  const currentTimeBonusName = gameStatus.value.settings.timeBonus?.replace('_', '') ?? 'None';
   const currentTimeBonusLabel =
-    PLAYER_TIME_BONUS_LABELS[(gameState.value.gameSettings.timeBonus as TOptionalTimeBonus) ?? OptionalTimeBonus.NONE];
+    PLAYER_TIME_BONUS_LABELS[(gameStatus.value.settings.timeBonus as TOptionalTimeBonus) ?? OptionalTimeBonus.NONE];
 
   const { timeBonusSamples, isLoading } = useTimeBonusSamples();
   const activeTimeBonusSample =
-    gameState.value.gameSettings.timeBonus !== null
-      ? timeBonusSamples.value.get(gameState.value.gameSettings.timeBonus)
+    gameStatus.value.settings.timeBonus !== null
+      ? timeBonusSamples.value.get(gameStatus.value.settings.timeBonus)
       : null;
 
   const showTimeBonusDialog = useSignal<boolean>(false);
@@ -67,10 +67,10 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
 
         <dl className="settings-grid">
           <dt>🔄 Rounds</dt>
-          <dd id="settings-rounds">{gameState.value.gameSettings.rounds}</dd>
+          <dd id="settings-rounds">{gameStatus.value.settings.rounds}</dd>
 
           <dt>⏳ Guess Time</dt>
-          <dd id="settings-guess-time">{(gameState.value.gameSettings.maxGuessTime ?? 0) / 1000}s</dd>
+          <dd id="settings-guess-time">{(gameStatus.value.settings.maxGuessTime ?? 0) / 1000}s</dd>
 
           <dt className="top">❓ Jokers</dt>
           <dd id="settings-jokers">
@@ -159,12 +159,10 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
           </dd>
 
           <dt>🥇 First Bonus</dt>
-          <dd id="settings-first-bonus">{formatBonusMultiplier(gameState.value.gameSettings.firstBonusMultiplier)}</dd>
+          <dd id="settings-first-bonus">{formatBonusMultiplier(gameStatus.value.settings.firstBonusMultiplier)}</dd>
 
           <dt>🔥 Streak Bonus</dt>
-          <dd id="settings-streak-bonus">
-            {formatBonusMultiplier(gameState.value.gameSettings.streakBonusMultiplier)}
-          </dd>
+          <dd id="settings-streak-bonus">{formatBonusMultiplier(gameStatus.value.settings.streakBonusMultiplier)}</dd>
 
           <dt className="top">🏆 Achievements</dt>
           <dd id="settings-achievements">
@@ -202,7 +200,7 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
               disabled={!allPlayersAreReady}
               onClick={handleStart}
             >
-              {allPlayersAreReady ? 'Start Game' : `Waiting... (${readyUsers}/${playersExcludingHost.length})`}
+              {allPlayersAreReady ? 'Start Game' : `Waiting... (${readyPlayers}/${playersExcludingHost.length})`}
             </button>
             <InviteButton />
           </>

@@ -6,7 +6,7 @@ import {
   DEFAULT_ROUNDS,
   DEFAULT_STREAK_BONUS_MULTIPLIER,
   DEFAULT_TIME_BONUS,
-  GameState,
+  GamePhase,
   Joker,
 } from '@yasq/shared';
 import AxeBuilder from '@axe-core/playwright';
@@ -15,7 +15,7 @@ test.use({
   sessionConfig: {
     playerCount: 3,
     sessionData: {
-      state: GameState.SETUP,
+      state: { phase: GamePhase.SETUP },
     },
   },
 });
