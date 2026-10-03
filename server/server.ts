@@ -20,6 +20,7 @@ import {
 } from './src/helper.js';
 import {
   API_ROOT,
+  GAME_COVERS_DIR,
   GameEvent,
   HOST_PREFIX,
   type Playlist,
@@ -28,6 +29,7 @@ import {
   TEMP_FILES_DIR,
   TEST_PREFIX,
   type Track,
+  TRACK_AUDIO_DIR,
 } from '@yasq/shared';
 import { loadPermissions } from './src/access_control.js';
 import { setupWebsocketServer } from './src/socket_server.js';
@@ -214,11 +216,11 @@ export function setupServer() {
   // Allow express to parse JSON bodies
   app.use(express.json());
 
-  const musicPath = getFilePath('music');
-  const gameCoverPath = getFilePath('game_covers');
+  const musicPath = getFilePath(TRACK_AUDIO_DIR);
+  const gameCoverPath = getFilePath(GAME_COVERS_DIR);
 
-  app.use('/music', express.static(musicPath));
-  app.use('/game_covers', express.static(gameCoverPath));
+  app.use(`/${TRACK_AUDIO_DIR}`, express.static(musicPath));
+  app.use(`/${GAME_COVERS_DIR}`, express.static(gameCoverPath));
 
   // Folder for serving temporary static files
   const tempDir = setupTempDir(projectRoot);

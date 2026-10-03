@@ -55,6 +55,24 @@ export class TestApi {
     });
   }
 
+  async startPlayback(startTime: number, endTime: number, game: number = 1, round: number = 1) {
+    return this.http('PATCH', `/${API_ROOT}/${TEST_PREFIX}/instance/${this.instanceId}`, {
+      data: {
+        state: {
+          playback: {
+            game,
+            round,
+            startTime,
+            endTime,
+          },
+        },
+      },
+      headers: {
+        Authorization: `Bearer token_${0}`, // 0 = hostID
+      },
+    });
+  }
+
   async submitGuess(playerId: string, guess: string) {
     return this.http('POST', `/${API_ROOT}/instance/${this.instanceId}/guesses`, {
       data: {

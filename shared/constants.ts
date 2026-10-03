@@ -81,8 +81,17 @@ export const DEFAULT_VOLUME_SLIDER_VAL: number = 0.5;
 export const STATIC_FILES_DIR: string = 'data';
 export const SAMPLE_DATA_DIR: string = 'sample';
 export const TEMP_FILES_DIR: string = 'temp';
+export const GAME_COVERS_DIR: string = 'game_covers';
+export const TRACK_AUDIO_DIR: string = 'music';
 
-export const COUNTDOWN_DURATION: number = 3000;
+export const RoundTimings = {
+  COUNTDOWN_DURATION: 3000,
+  MIN_ROUND_START_DELAY: 1500,
+  MAX_ROUND_START_DELAY: 5000,
+  MAX_LATENCY_DELAY: 3000,
+  SAFETY_TOLERANCE: 100,
+} as const;
+
 export const DEFAULT_MAX_GUESS_TIME: number = 60_000;
 export const DEFAULT_ROUNDS: number = 5;
 export const DEFAULT_ENABLED_JOKERS: Joker[] = [

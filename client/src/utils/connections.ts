@@ -182,7 +182,6 @@ export const getSyncedServerTime = (): number => {
   return Date.now() + serverClockOffset;
 };
 
-// TODO Improve syncing algorithm: Ignore outliers and only overwrite current offset by a moving average
 /**
  * Measures the offset of the client's device clock to the server's internal clock (accounting for both clock inaccuracy
  * and network latency) in order to calculate a server-synced current time.

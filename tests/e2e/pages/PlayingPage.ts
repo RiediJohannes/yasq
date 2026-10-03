@@ -8,6 +8,9 @@ export class PlayingPage extends BasePage {
   readonly waitMessage: Locator;
   readonly resultsUI: Locator;
   readonly gameArena: Locator;
+  readonly countdownOverlay: Locator;
+  readonly countdownText: Locator;
+  readonly countdownNumber: Locator;
   readonly jokerObfuscationBtn: Locator;
   readonly jokerTriviaBtn: Locator;
   readonly jokerMcBtn: Locator;
@@ -34,6 +37,9 @@ export class PlayingPage extends BasePage {
     this.waitMessage = page.locator('#waiting-msg');
     this.resultsUI = page.locator('#results');
     this.gameArena = page.locator('#game-arena');
+    this.countdownOverlay = page.locator('#countdown-overlay');
+    this.countdownText = page.locator('#countdown-text');
+    this.countdownNumber = page.locator('#countdown-number');
     this.jokerObfuscationBtn = page.locator('#btn-joker-obfuscation');
     this.jokerTriviaBtn = page.locator('#btn-joker-trivia');
     this.jokerMcBtn = page.locator('#btn-joker-multiple-choice');

@@ -8,14 +8,16 @@ import { setupTempDir } from '../helper.js';
 import {
   BASE_POINTS,
   BonusType,
-  COUNTDOWN_DURATION,
   DEFAULT_FIRST_BONUS_MULTIPLIER,
   DEFAULT_STREAK_BONUS_MULTIPLIER,
   FirstBonusMultiplier,
+  GAME_COVERS_DIR,
   GamePhase,
   Joker,
   MAX_TIME_MULTIPLIER,
   MIN_TIME_MULTIPLIER,
+  type Playback,
+  RoundTimings,
   SAMPLE_DATA_DIR,
   STATIC_FILES_DIR,
   StreakBonusMultiplier,
@@ -23,6 +25,7 @@ import {
   TEMP_FILES_DIR,
   TimeBonus,
   type Track,
+  TRACK_AUDIO_DIR,
   type TrackInfo,
 } from '@yasq/shared';
 
@@ -35,6 +38,17 @@ const PLAYER_3 = 'player_789';
 const GAME_A = 'Game A';
 const GAME_B = 'Game B';
 const GAME_LONG = 'The Game: A Somewhat Long Subtitle';
+
+const SAMPLE_TRACK = {
+  game: GAME_A,
+  title: 'Track A',
+  audio: 'track001.mp3',
+  cover: 'game_a.png',
+  tags: [
+    { type: 'Publisher', value: 'Publisher A' },
+    { type: 'Genre', value: 'Genre A' },
+  ],
+} satisfies Track;
 
 const matchesBonus = (type: BonusType, multiplier: number) =>
   expect.objectContaining({
@@ -100,6 +114,7 @@ describe('GameInstance - startGame', () => {
 });
 
 describe('GameInstance - submitGuess', () => {
+  const ROUND_DURATION = 30_000;
   let game: GameInstance;
 
   beforeEach(() => {
@@ -109,34 +124,45 @@ describe('GameInstance - submitGuess', () => {
     game.addUser(PLAYER_2);
 
     // Simulate game already started and in selection state
+    game.state.game = 1;
     game.state.round = 1;
-    const track = {
-      game: GAME_A,
-      title: 'Track A',
-      audio: '',
-      cover: '',
-      tags: [],
-    } satisfies Track;
+    game.settings.maxGuessTime = ROUND_DURATION;
+
     game.trackInfo = {
       url: 'url',
-      track: track,
+      track: SAMPLE_TRACK,
       gameCoverUrl: 'cover',
     } satisfies TrackInfo;
+
+    game.state.playback = {
+      game: 1,
+      round: 1,
+      startTime: Date.now(),
+      endTime: Date.now() + ROUND_DURATION,
+    } satisfies Playback;
   });
 
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  it('should calculate timeTaken correctly using fake timers', () => {
-    // Fast forward time by 4.5 seconds
-    vi.advanceTimersByTime(4500);
-
+  it('should calculate timeTaken correctly based on message arrival time', () => {
+    // Fast-forward time by 4.5 seconds
+    const firstTimeSkip = 4500;
+    vi.advanceTimersByTime(firstTimeSkip);
     game.submitGuess(PLAYER_1, GAME_A);
 
-    const guess = game.guesses[1]![PLAYER_1];
-    expect(guess?.timeTaken).toBe(4500);
-    expect(guess?.text).toBe(GAME_A);
+    const guess1 = game.guesses[1]![PLAYER_1];
+    expect(guess1?.timeTaken).toBe(firstTimeSkip);
+    expect(guess1?.text).toBe(GAME_A);
+
+    // Fast-forward time past round end
+    vi.advanceTimersByTime(ROUND_DURATION - firstTimeSkip + 2000);
+    game.submitGuess(PLAYER_2, GAME_B);
+
+    const guess2 = game.guesses[1]![PLAYER_2];
+    expect(guess2?.timeTaken).toBe(ROUND_DURATION); // guess time should be capped at round duration
+    expect(guess2?.text).toBe(GAME_B);
   });
 
   it('should transition to HOST_REVIEW when the last player guesses', () => {
@@ -731,99 +757,303 @@ describe('GameInstance - advanceRound', () => {
     const nextState = game.advanceRound();
 
     expect(game.readyPlayers.size).toBe(0);
-    expect(nextState).toBe(GamePhase.TRACK_SELECTION);
-    expect(game.state.round).toBe(2);
-    expect(game.state.phase).toBe(GamePhase.TRACK_SELECTION);
+    expect(nextState.phase).toBe(GamePhase.TRACK_SELECTION);
+    expect(nextState.round).toBe(2);
+    expect(nextState.game).toBe(1); // unchanged
+    expect(nextState).toStrictEqual(game.state);
   });
 
-  it('should finish the game and set lastWinnerId when final round is reached', () => {
+  it('should finish the game and set lastWinnerId and gameStats endTime when final round is reached', () => {
+    vi.useFakeTimers();
     // Manually push to the final round (3 of 3)
     game.state.round = 3;
 
     const nextState = game.advanceRound();
 
-    expect(nextState).toBe(GamePhase.FINAL_RESULTS);
-    expect(game.lastWinnerId).toBe(PLAYER_2);
+    expect(nextState.phase).toBe(GamePhase.FINAL_RESULTS);
     expect(game.state.phase).toBe(GamePhase.FINAL_RESULTS);
+    expect(game.lastWinnerId).toBe(PLAYER_2);
+    expect(game.gameStats.endTime).toBe(Date.now());
+
+    vi.useRealTimers();
   });
 });
 
-// TODO Make this a test of selectNextTrack
-describe('GameInstance - playTrack', () => {
+describe('GameInstance - selectNextTrack', () => {
   let game: GameInstance;
 
   beforeEach(() => {
-    vi.useFakeTimers();
     game = new GameInstance(INSTANCE_ID, HOST);
-    game.settings.maxGuessTime = 10_000; // 10 seconds
+  });
+
+  it('should transition game phase and set correct TrackInfo', async () => {
+    await game.selectNextTrack(SAMPLE_TRACK);
+
+    expect(game.state.phase).toBe(GamePhase.PLAYING);
+    expect(game.trackInfo).toStrictEqual(
+      expect.objectContaining({
+        url: `/${TRACK_AUDIO_DIR}/${SAMPLE_TRACK.audio}`,
+        track: SAMPLE_TRACK,
+        gameCoverUrl: `/${GAME_COVERS_DIR}/${SAMPLE_TRACK.cover}`,
+      })
+    );
+    expect(game.trackHistory).toContain(SAMPLE_TRACK.audio);
+  });
+});
+
+describe('GameInstance - updateClientReadyStatus', () => {
+  const ROUND_DURATION = 10_000; // 10 seconds
+  let game: GameInstance;
+  let playTrackSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(async () => {
+    vi.useFakeTimers();
+
+    game = new GameInstance(INSTANCE_ID, HOST);
+    game.addUser(PLAYER_1);
+    game.addUser(PLAYER_2);
+    game.addUser(PLAYER_3);
+
+    game.state = {
+      game: 1,
+      round: 1,
+      phase: GamePhase.PLAYING,
+      playback: null,
+    };
+    game.settings.maxGuessTime = ROUND_DURATION;
+
+    playTrackSpy = vi.spyOn(game, 'playNextTrack').mockImplementation(_startTime => {});
+
+    await game.selectNextTrack(SAMPLE_TRACK);
   });
 
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  it('should set correct TrackInfo', async () => {
-    const track = {
-      game: GAME_A,
-      title: 'Track A',
-      audio: 'file123',
-      cover: '',
-      tags: [],
-    } satisfies Track;
+  it('should start round once every player is ready with required time buffer', async () => {
+    const startTime = Date.now();
 
-    await game.selectNextTrack(track);
+    vi.advanceTimersByTime(100);
+    expect(playTrackSpy).not.toHaveBeenCalled();
 
-    expect(game.state.phase).toBe(GamePhase.PLAYING);
-    expect(game.trackHistory).toContain('file123');
-  });
-
-  it('should transition to HOST_REVIEW automatically after time expires', async () => {
-    const track = {
-      game: GAME_A,
-      title: 'Track A',
-      audio: 'file123',
-      cover: '',
-      tags: [],
-    } satisfies Track;
-    await game.selectNextTrack(track);
-
-    // Verify we are still playing initially
-    expect(game.state.phase).toBe(GamePhase.PLAYING);
-
-    // Fast-forward time by 13.9 seconds (countdown + maxGuessTime - 100ms)
-    vi.advanceTimersByTime(13_900);
-    expect(game.state.phase).toBe(GamePhase.PLAYING);
-
-    // Jump past the finish line (14.1 seconds total)
     vi.advanceTimersByTime(200);
+    expect(game.updateClientReadyStatus(PLAYER_1, true, 300));
+    expect(playTrackSpy).not.toHaveBeenCalled();
 
-    expect(game.state.phase).toBe(GamePhase.HOST_REVIEW);
+    vi.advanceTimersByTime(1000);
+    expect(game.updateClientReadyStatus(PLAYER_2, true, 1300));
+    expect(playTrackSpy).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(500);
+    const finalSetupTime = 1800;
+    expect(game.updateClientReadyStatus(PLAYER_3, true, finalSetupTime));
+
+    // Check if the last player triggered the call to playNextTrack
+    const elapsed = Date.now() - startTime;
+    expect(elapsed).toBe(finalSetupTime);
+    expect(elapsed).toBeGreaterThan(RoundTimings.MIN_ROUND_START_DELAY);
+    expect(elapsed).toBeLessThan(RoundTimings.MAX_ROUND_START_DELAY);
+    expect(playTrackSpy).toHaveBeenCalled();
+
+    // Check if the start time was scheduled as early as possible after the last player's ready time
+    const requiredTimeBuffer = RoundTimings.COUNTDOWN_DURATION + RoundTimings.SAFETY_TOLERANCE;
+    const expectedStartTime = startTime + finalSetupTime + requiredTimeBuffer;
+    expect(playTrackSpy).toHaveBeenCalledWith(expectedStartTime);
   });
 
-  it('should not transition if the round has already changed (Race Condition Check)', async () => {
-    const track = {
-      game: GAME_A,
-      title: 'Track A',
-      audio: 'file123',
-      cover: '',
-      tags: [],
-    } satisfies Track;
-    await game.selectNextTrack(track);
+  it('should force round start after the maximum round start delay', async () => {
+    const firstDelay = 150;
+    const secondDelay = 2000;
+    expect(firstDelay + secondDelay).toBeLessThan(RoundTimings.MAX_ROUND_START_DELAY);
 
-    // Manually bump the round (simulating all players submitted guess before countdown ends)
-    game.state.round = 2;
+    vi.advanceTimersByTime(firstDelay);
+    game.updateClientReadyStatus(PLAYER_1, true, firstDelay);
+    expect(playTrackSpy).not.toHaveBeenCalled();
 
-    // Fast-forward through the maximum guess time
-    vi.advanceTimersByTime(15_000);
+    vi.advanceTimersByTime(secondDelay);
+    expect(playTrackSpy).not.toHaveBeenCalled();
 
-    // The state should NOT be HOST_REVIEW because the roundAtStart check fails
-    expect(game.state.phase).not.toBe(GamePhase.HOST_REVIEW);
+    vi.advanceTimersByTime(RoundTimings.MAX_ROUND_START_DELAY - secondDelay - firstDelay);
+    expect(playTrackSpy).toHaveBeenCalled();
+  });
+
+  it('should respect the minimum round start delay when choosing the round start time', async () => {
+    const firstSetupTime = 150;
+    const secondSetupTime = 200;
+    const thirdSetupTime = 1000;
+    // Ensure we test the correct scenario
+    expect(thirdSetupTime).toBeLessThan(RoundTimings.MIN_ROUND_START_DELAY - RoundTimings.SAFETY_TOLERANCE);
+
+    game.updateClientReadyStatus(PLAYER_1, true, firstSetupTime);
+    game.updateClientReadyStatus(PLAYER_2, true, secondSetupTime);
+
+    vi.advanceTimersByTime(thirdSetupTime);
+    game.updateClientReadyStatus(PLAYER_3, true, thirdSetupTime);
+
+    const remainingWaitingTime = RoundTimings.MIN_ROUND_START_DELAY - thirdSetupTime;
+    const expectedStartTime = Date.now() + remainingWaitingTime + RoundTimings.COUNTDOWN_DURATION;
+    expect(playTrackSpy).toHaveBeenCalledWith(expectedStartTime);
+  });
+
+  it('should respect client latencies when choosing the round start time', async () => {
+    const LARGEST_LATENCY = 800;
+    game.clientLatencies.set(PLAYER_1, 5);
+    game.clientLatencies.set(PLAYER_2, 120);
+    game.clientLatencies.set(PLAYER_3, LARGEST_LATENCY);
+
+    const firstSetupTime = 150;
+    const secondSetupTime = 460;
+    const thirdSetupTime = 1600;
+
+    game.updateClientReadyStatus(PLAYER_1, true, firstSetupTime);
+    game.updateClientReadyStatus(PLAYER_2, true, secondSetupTime);
+
+    const expectedTimePassed = thirdSetupTime + LARGEST_LATENCY;
+    expect(expectedTimePassed).toBeGreaterThan(RoundTimings.MIN_ROUND_START_DELAY);
+    vi.advanceTimersByTime(expectedTimePassed);
+
+    game.updateClientReadyStatus(PLAYER_3, true, thirdSetupTime);
+
+    const requiredTimeBuffer = RoundTimings.COUNTDOWN_DURATION + RoundTimings.SAFETY_TOLERANCE;
+    const expectedStartTime = Date.now() + requiredTimeBuffer + LARGEST_LATENCY;
+    expect(playTrackSpy).toHaveBeenCalledWith(expectedStartTime);
+  });
+
+  it('should not overwrite an already scheduled or expired track playback', async () => {
+    playTrackSpy.mockReset(); // Restore the actual implementation of the playNextTrack method for this test
+    const finalSetupTime = 1600;
+
+    const checkIfUpdatesAreIgnored = () => {
+      game.updateClientReadyStatus(PLAYER_1, true, 100);
+      game.updateClientReadyStatus(PLAYER_3, true, 120);
+
+      game.updateClientReadyStatus(PLAYER_2, true, 200);
+      game.updateClientReadyStatus(PLAYER_2, false, 300);
+      game.updateClientReadyStatus(PLAYER_2, true, 400);
+
+      expect(playTrackSpy).not.toHaveBeenCalled();
+    };
+
+    // Players CAN correct their status while we are still waiting
+    game.updateClientReadyStatus(PLAYER_1, true, 100);
+    game.updateClientReadyStatus(PLAYER_2, true, 200);
+    game.updateClientReadyStatus(PLAYER_1, false, 400); // Correction!
+    game.updateClientReadyStatus(PLAYER_3, true, 450);
+
+    expect(playTrackSpy).not.toHaveBeenCalled(); // Player 1 updated their status to NOT ready!
+
+    vi.advanceTimersByTime(finalSetupTime);
+    game.updateClientReadyStatus(PLAYER_1, true, finalSetupTime);
+
+    expect(playTrackSpy).toHaveBeenCalled();
+    playTrackSpy.mockClear();
+
+    // However, once we have scheduled the next playback, subsequent ready status updates are ignored
+    expect(game.state.playback).not.toBe(null);
+    checkIfUpdatesAreIgnored();
+
+    // This still holds true during the active playback
+    vi.advanceTimersByTime(RoundTimings.COUNTDOWN_DURATION + RoundTimings.SAFETY_TOLERANCE + 1000);
+    expect(game.state.playback!.startTime).toBeLessThan(Date.now());
+    checkIfUpdatesAreIgnored();
+
+    // And before the next track has been selected
+    vi.advanceTimersByTime(ROUND_DURATION);
+    game.advanceRound();
+    expect(game.state.playback).toBe(null);
+    checkIfUpdatesAreIgnored();
   });
 });
 
-// TODO Add tests for new playNextTrack method
+describe('GameInstance - playNextTrack', () => {
+  const ROUND_DURATION = 10_000; // 10 seconds
+  let game: GameInstance;
 
-// TODO Add tests for updateClientReadyStatus that check if the round is started correctly
+  beforeEach(() => {
+    vi.useFakeTimers();
+    game = new GameInstance(INSTANCE_ID, HOST);
+
+    game.addUser(PLAYER_1);
+    game.addUser(PLAYER_2);
+
+    game.state = {
+      game: 1,
+      round: 1,
+      phase: GamePhase.PLAYING,
+      playback: null,
+    };
+    game.settings.maxGuessTime = ROUND_DURATION;
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('should correctly assign the playback state', async () => {
+    await game.selectNextTrack(SAMPLE_TRACK);
+
+    expect(game.state.phase).toBe(GamePhase.PLAYING);
+    expect(game.state.playback).toBe(null);
+
+    const chosenStartTime = Date.now() + 3120;
+    game.playNextTrack(chosenStartTime);
+
+    expect(game.state.playback).toBeDefined();
+    expect(game.state.playback).toStrictEqual({
+      startTime: chosenStartTime,
+      endTime: chosenStartTime + game.settings.maxGuessTime,
+      game: game.state.game,
+      round: game.state.round,
+    });
+    expect(game.state.phase).toBe(GamePhase.PLAYING); // we are still in the PLAYING phase
+  });
+
+  it('should transition to HOST_REVIEW automatically when guess time expires', async () => {
+    await game.selectNextTrack(SAMPLE_TRACK);
+
+    game.playNextTrack(Date.now());
+    expect(game.state.phase).toBe(GamePhase.PLAYING);
+
+    game.submitGuess(PLAYER_1, GAME_A);
+
+    // Check if we are still playing shortly before the max guess time
+    vi.advanceTimersByTime(ROUND_DURATION - 100);
+    expect(game.state.phase).toBe(GamePhase.PLAYING);
+
+    // Once we reach max guess time, the round automatically ends
+    vi.advanceTimersByTime(100);
+    expect(game.state.phase).toBe(GamePhase.HOST_REVIEW);
+  });
+
+  it('should refuse to start the playback if no track has been selected', async () => {
+    expect(game.state.phase).toBe(GamePhase.PLAYING);
+    expect(game.trackInfo).toBe(null);
+    expect(game.state.playback).toBe(null);
+
+    game.playNextTrack(Date.now());
+
+    expect(game.state.playback).toBe(null);
+    expect(game.trackInfo).toBe(null);
+    expect(game.state.phase).toBe(GamePhase.PLAYING);
+  });
+
+  it('should not transition if the round has already changed (Race Condition Check)', async () => {
+    await game.selectNextTrack(SAMPLE_TRACK);
+
+    game.playNextTrack(Date.now() + 1000);
+    expect(game.state.phase).toBe(GamePhase.PLAYING);
+
+    // Manually bump the round (simulating all players submitted their guess before the timeout fired)
+    game.state.round = 2;
+
+    // Fast-forward through the maximum guess time
+    vi.advanceTimersByTime(ROUND_DURATION + 2000);
+
+    // The state should NOT be HOST_REVIEW because the round check of the automatic transition failed
+    expect(game.state.phase).not.toBe(GamePhase.HOST_REVIEW);
+  });
+});
 
 describe('GameInstance - canUseJoker', () => {
   let game: GameInstance;
@@ -1038,7 +1268,7 @@ describe('GameInstance - getGlimpseHint', () => {
   let game: GameInstance;
 
   const rootDir: string = process.cwd();
-  const gameCoverDir: string = path.join(rootDir, STATIC_FILES_DIR, SAMPLE_DATA_DIR, 'game_covers');
+  const gameCoverDir: string = path.join(rootDir, STATIC_FILES_DIR, SAMPLE_DATA_DIR, GAME_COVERS_DIR);
   let testImagePath: string;
 
   const testCover = 'test.png';
@@ -1092,7 +1322,7 @@ describe('GameInstance - getGlimpseHint', () => {
 
     // Temp image is different from original image
     const originalImg = fs.readFileSync(
-      path.join(rootDir, STATIC_FILES_DIR, SAMPLE_DATA_DIR, 'game_covers', track.cover)
+      path.join(rootDir, STATIC_FILES_DIR, SAMPLE_DATA_DIR, GAME_COVERS_DIR, track.cover)
     );
     const modifiedImg = fs.readFileSync(path.join(instanceTempDir, modifiedImgName));
     expect(originalImg).not.toEqual(modifiedImg);
@@ -1112,13 +1342,16 @@ describe('GameInstance - getGlimpseHint', () => {
 
     const instanceTempDir = path.join(rootDir, STATIC_FILES_DIR, TEMP_FILES_DIR, game.instanceId);
     await game.selectNextTrack(track);
+    game.playNextTrack(Date.now());
 
     expect(fs.existsSync(instanceTempDir)).toBeTruthy();
     expect(fs.readdirSync(instanceTempDir)).toContain(`glimpse_${game.state.round}.jpg`);
 
     // Instance temp dir was removed after the round timer ran out
-    vi.advanceTimersByTime(game.settings.maxGuessTime + COUNTDOWN_DURATION + 100);
+    vi.advanceTimersByTime(game.settings.maxGuessTime + 100);
     expect(fs.existsSync(instanceTempDir)).toBeFalsy();
+
+    vi.useRealTimers();
   });
 
   it('should clean up its own temp directory after the last player has guessed', async () => {

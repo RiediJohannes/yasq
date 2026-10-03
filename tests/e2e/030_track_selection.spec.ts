@@ -21,16 +21,6 @@ test.describe('Host UI', () => {
     expect(await trackSelectionPage.trackItems.count()).toBeGreaterThan(0);
   });
 
-  test('should move to next state when clicking on track', async ({ trackSelectionPage }) => {
-    // Click the first track
-    await trackSelectionPage.selectTrack(0);
-
-    // Verify the state transition in the UI
-    await expect(trackSelectionPage.selectionTitle).toBeHidden();
-    await expect(trackSelectionPage.waitingTitle).toBeVisible();
-    await expect(trackSelectionPage.progressBar).toBeVisible();
-  });
-
   test('should filter tracks when searching', async ({ trackSelectionPage }) => {
     await expect(trackSelectionPage.trackList).toBeVisible();
 

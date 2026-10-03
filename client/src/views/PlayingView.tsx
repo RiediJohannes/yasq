@@ -5,13 +5,13 @@ import { audioPlayer, discordSdk, gameStatus, isMac, participants, useAuth } fro
 import * as backend from '../utils/backend';
 import * as connections from '../utils/connections';
 import {
-  COUNTDOWN_DURATION,
   getAvatarUrl,
   getDisplayName,
   Joker,
   LogLevel,
   MAX_GUESS_LENGTH,
   Playback,
+  RoundTimings,
   Tag,
 } from '@yasq/shared';
 import { ALL_JOKER_ICONS } from '../components/Icons';
@@ -341,12 +341,12 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
         // Check if it is time to show the countdown already
         const remainingMilliseconds = Math.abs(timeDifference);
 
-        if (remainingMilliseconds <= COUNTDOWN_DURATION) {
+        if (remainingMilliseconds <= RoundTimings.COUNTDOWN_DURATION) {
           // Only now start the numbered countdown
           currentViewPhase.value = PlayingViewPhase.COUNTDOWN;
 
           const remainingSeconds = Math.ceil(remainingMilliseconds / 1000);
-          countdownValue.value = Math.max(1, Math.min(COUNTDOWN_DURATION / 1000, remainingSeconds));
+          countdownValue.value = Math.max(1, Math.min(RoundTimings.COUNTDOWN_DURATION / 1000, remainingSeconds));
         } else {
           currentViewPhase.value = PlayingViewPhase.SETUP;
         }

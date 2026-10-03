@@ -15,7 +15,7 @@ import {
   getReachableTags,
   SortOption,
 } from '../utils/trackFiltering';
-import { GameEvent, Playlist } from '@yasq/shared';
+import { GAME_COVERS_DIR, GameEvent, Playlist } from '@yasq/shared';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { onGameEvent } from '../utils/connections';
 
@@ -189,7 +189,7 @@ export const TrackSelectionView = ({ isHost }: { isHost: boolean }) => {
             >
               <div className="cover-wrapper">
                 <NonDraggableImg
-                  src={track.cover ? `/game_covers/${track.cover}` : '/default.svg'}
+                  src={track.cover ? `/${GAME_COVERS_DIR}/${track.cover}` : '/default.svg'}
                   alt={`Cover of ${track.game}`}
                   onError={e => {
                     (e.currentTarget as HTMLImageElement).src = '/default.svg';

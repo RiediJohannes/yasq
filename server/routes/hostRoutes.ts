@@ -5,12 +5,12 @@ import { fileURLToPath } from 'url';
 
 import { GameInstance } from '../src/models/game_instance.js';
 import {
-  COUNTDOWN_DURATION,
   GamePhase,
   INSTANCE_PATH,
   INT32_MAX_VALUE,
   Joker,
   type Playlist,
+  RoundTimings,
   STATIC_FILES_DIR,
   TEMP_FILES_DIR,
   type Track,
@@ -87,7 +87,7 @@ export const setupHostRoutes = (
   router.post(`/${INSTANCE_PATH}/setup`, async (req, res) => {
     const settings = req.body?.settings;
     const game = req.game!;
-    const maxAllowedGuessTime: number = Math.floor(INT32_MAX_VALUE / 1000) - COUNTDOWN_DURATION;
+    const maxAllowedGuessTime: number = Math.floor(INT32_MAX_VALUE / 1000) - RoundTimings.COUNTDOWN_DURATION;
 
     if (settings.rounds <= 0 || settings.maxGuessTime <= 0) {
       throw new ApiError(400, 'Rounds and guess time must be greater than 0.', req);

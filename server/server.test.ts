@@ -3,7 +3,7 @@ import type { Server as HttpServer } from 'http';
 import { setupServer, validateDataSource } from './server.js';
 import fs from 'fs';
 import path from 'path';
-import { STATIC_FILES_DIR } from '@yasq/shared';
+import { STATIC_FILES_DIR, TRACK_AUDIO_DIR } from '@yasq/shared';
 
 async function queryServer(server: HttpServer, query: string): Promise<Response> {
   await new Promise<void>(resolve => server.listen(0, resolve));
@@ -51,7 +51,7 @@ describe('DATA_SOURCE Validation', () => {
     expect(activeServer).toBeDefined();
     expect(exitSpy).not.toHaveBeenCalled();
 
-    const response = await queryServer(activeServer!, '/music/track001.mp3');
+    const response = await queryServer(activeServer!, `/${TRACK_AUDIO_DIR}/track001.mp3`);
     expect(response.status).toBe(200);
   });
 
@@ -60,7 +60,7 @@ describe('DATA_SOURCE Validation', () => {
     vi.stubEnv('DATA_SOURCE', dataSourceValue);
 
     const testDirPath: string = path.join(DATA_ROOT, dataSourceValue);
-    const musicDirPath = path.join(testDirPath, 'music');
+    const musicDirPath = path.join(testDirPath, TRACK_AUDIO_DIR);
 
     // Ensure the test does not erase an existing directory
     expect(fs.existsSync(testDirPath)).toBe(false);
@@ -87,7 +87,7 @@ describe('DATA_SOURCE Validation', () => {
       expect(exitSpy).not.toHaveBeenCalled();
 
       // Verify correct file serving
-      const response = await queryServer(activeServer!, `/music/${testTrack}`);
+      const response = await queryServer(activeServer!, `/${TRACK_AUDIO_DIR}/${testTrack}`);
       expect(response.status).toBe(200);
 
       const fileText = await response.text();

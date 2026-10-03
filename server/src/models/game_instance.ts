@@ -2,8 +2,8 @@ import {
   AchievementBonusType,
   BASE_POINTS,
   BonusType,
-  COUNTDOWN_DURATION,
   EXPONENTIAL_DECAY_INTENSITY,
+  GAME_COVERS_DIR,
   GamePhase,
   GameSettings,
   GLIMPSE_BLUR_INTENSITY,
@@ -13,6 +13,7 @@ import {
   type Playback,
   type PlayerTimeBonusPoint,
   PointsBonus,
+  RoundTimings,
   STATIC_FILES_DIR,
   type Tag,
   TEMP_FILES_DIR,
@@ -20,6 +21,7 @@ import {
   type TimeBonusPoint,
   type TimeBonusSummary,
   type Track,
+  TRACK_AUDIO_DIR,
   type TrackInfo,
 } from '@yasq/shared';
 import MersenneTwister from 'mersenne-twister';
@@ -32,6 +34,7 @@ import { LogCategory, logger } from '../utils/logger.js';
 import { fileURLToPath } from 'url';
 import { Leaderboard, LeaderboardEntry, RoundResult, RoundSummary } from './leaderboard.js';
 import { GameStats } from './game_stats.js';
+import { clearTimeout } from 'node:timers';
 
 type UserId = string;
 
@@ -58,8 +61,8 @@ export class GameInstance {
 
   public onUpdate?: (game: GameInstance) => void;
 
-  private roundStartTimeout: NodeJS.Timeout | null = null;
-  private roundEndTimeout: NodeJS.Timeout | null = null;
+  private roundStartTimeout: NodeJS.Timeout | undefined;
+  private roundEndTimeout: NodeJS.Timeout | undefined;
 
   constructor(instanceId: string, hostId: UserId) {
     this.instanceId = instanceId;
@@ -126,7 +129,9 @@ export class GameInstance {
   public submitGuess(userId: UserId, guessText: string): { current: number; total: number } {
     this.guesses[this.state.round] ??= {};
 
-    const timeTaken = this.state.playback ? Date.now() - this.state.playback.startTime : this.settings.maxGuessTime;
+    const timeTaken = this.state.playback
+      ? Math.min(Date.now() - this.state.playback.startTime, this.settings.maxGuessTime)
+      : this.settings.maxGuessTime;
 
     this.guesses[this.state.round]![userId] = new UserGuess(guessText, timeTaken);
     const totalPlayers = Array.from(this.registeredUsers).filter(userId => !this.isHost(userId)).length;
@@ -351,6 +356,7 @@ export class GameInstance {
     this.readyClients.clear();
     this.currentRoundLostStreaks = {};
     this.state.playback = null;
+    this.trackInfo = null;
 
     if (this.state.round >= this.settings.rounds) {
       this.state.phase = GamePhase.FINAL_RESULTS;
@@ -368,9 +374,9 @@ export class GameInstance {
 
   public async selectNextTrack(track: Track): Promise<void> {
     this.trackInfo = {
-      url: `/music/${track.audio}`,
+      url: `/${TRACK_AUDIO_DIR}/${track.audio}`,
       track,
-      gameCoverUrl: `/game_covers/${track.cover}`,
+      gameCoverUrl: `/${GAME_COVERS_DIR}/${track.cover}`,
     };
     this.state.phase = GamePhase.PLAYING;
     this.trackHistory.push(track.audio);
@@ -380,10 +386,17 @@ export class GameInstance {
       await this.generateBlurredImage(track.cover);
     }
 
-    this.roundEndTimeout?.close();
+    clearTimeout(this.roundEndTimeout);
   }
 
-  public playNextTrack(startTime: number, endTime: number) {
+  public playNextTrack(startTime: number) {
+    if (!this.trackInfo) {
+      logger.error(`Tried to run playNextTrack without selecting a track first.`, LogCategory.GAME, this.instanceId);
+      return;
+    }
+
+    const endTime = startTime + this.settings.maxGuessTime;
+
     this.state.playback = {
       game: this.state.game,
       round: this.state.round,
@@ -401,7 +414,7 @@ export class GameInstance {
     );
 
     // Set a timer to automatically transition to HOST_REVIEW after maxGuessTime
-    this.roundEndTimeout?.close();
+    clearTimeout(this.roundEndTimeout);
     this.roundEndTimeout = setTimeout(() => {
       const playback = this.state.playback;
       if (!playback) return;
@@ -420,33 +433,33 @@ export class GameInstance {
   }
 
   public updateClientReadyStatus(userId: UserId, isReady: boolean, setupDurationMillis: number) {
-    const MIN_ROUND_START_DELAY = 1500;
-    const MAX_ROUND_START_DELAY = 5000;
-    const MAX_LATENCY_DELAY = 3000;
-    const SAFETY_TOLERANCE = 100;
+    const estimatedTimePassed = setupDurationMillis + (this.clientLatencies.get(userId) ?? 0);
+    const { COUNTDOWN_DURATION, MIN_ROUND_START_DELAY, MAX_ROUND_START_DELAY, MAX_LATENCY_DELAY, SAFETY_TOLERANCE } =
+      RoundTimings;
 
     // Calculate a fitting start/end time for the upcoming round and notify clients about this
     const scheduleRoundStart = (artificialDelay: number = 0) => {
-      this.roundStartTimeout?.close();
-      this.roundStartTimeout = null;
+      clearTimeout(this.roundStartTimeout);
 
-      if (this.state.playback !== null) return;
+      if (this.state.playback !== null || !this.trackInfo) return;
 
       // Respect reasonable client latencies and requested artificial delay
       const maxClientLatency = Math.min(MAX_LATENCY_DELAY, Math.max(...this.clientLatencies.values()));
       const minimumWaitingTime = Math.max(artificialDelay - SAFETY_TOLERANCE, maxClientLatency);
 
       const startTime = Date.now() + COUNTDOWN_DURATION + minimumWaitingTime + SAFETY_TOLERANCE;
-      const endTime = startTime + this.settings.maxGuessTime;
 
-      this.playNextTrack(startTime, endTime);
+      this.playNextTrack(startTime);
       this.notifyUpdate();
     };
 
     if (isReady) {
       // Start a fallback timeout once the first client is ready to automatically start the round after some maximum waiting time
       if (this.readyClients.size === 0 && !this.roundStartTimeout) {
-        setTimeout(() => scheduleRoundStart(), MAX_ROUND_START_DELAY - setupDurationMillis);
+        setTimeout(() => {
+          logger.debug(`Round start forced after ${MAX_ROUND_START_DELAY}ms`, LogCategory.GAME, this.instanceId);
+          scheduleRoundStart();
+        }, MAX_ROUND_START_DELAY - estimatedTimePassed);
       }
 
       this.readyClients.add(userId);
@@ -463,7 +476,7 @@ export class GameInstance {
     // Everyone is ready -> initiate round start
     if (this.readyClients.size >= this.registeredUsers.size) {
       // Let clients wait at least MIN_ROUND_START_DELAY in total before the countdown starts
-      const minimumWaitingTime = MIN_ROUND_START_DELAY - setupDurationMillis;
+      const minimumWaitingTime = Math.max(0, MIN_ROUND_START_DELAY - estimatedTimePassed);
       scheduleRoundStart(minimumWaitingTime);
     }
 
@@ -581,7 +594,7 @@ export class GameInstance {
     try {
       const outputPath = path.join(outputDir, `glimpse_${this.state.round}.jpg`);
 
-      await sharp(path.join(getFilePath('game_covers'), coverImageFile))
+      await sharp(path.join(getFilePath(GAME_COVERS_DIR), coverImageFile))
         .resize(500)
         .blur(GLIMPSE_BLUR_INTENSITY)
         .jpeg()
@@ -649,7 +662,8 @@ export class GameInstance {
   }
 
   public dispose(): void {
-    this.roundEndTimeout?.close();
+    clearTimeout(this.roundStartTimeout);
+    clearTimeout(this.roundEndTimeout);
     this.removeTempFiles();
   }
 
