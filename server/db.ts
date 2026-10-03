@@ -1,113 +1,143 @@
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
+
+import Database from 'better-sqlite3';
 import dotenv from 'dotenv';
-import pkg from 'pg';
 
 import type { Leaderboard } from './src/models/leaderboard.js';
 
-const { Pool } = pkg;
-
 dotenv.config({ path: '../.env' });
 
-export const pool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL }) : null;
+/** Open the database or return null (with a warning) if unconfigured or unopenable. */
+function openDatabase(): Database.Database | null {
+  const path = process.env.DATABASE_PATH;
+  if (!path) return null;
 
-async function getClient() {
-  if (!pool) {
-    console.warn('Database not configured (DATABASE_URL missing).');
-    return null;
-  }
   try {
-    return await pool.connect();
+    if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true });
+    const conn = new Database(path);
+    conn.pragma('journal_mode = WAL');
+    conn.pragma('foreign_keys = ON'); // otherwise ON DELETE CASCADE is silently ignored
+    return conn;
   } catch (error: any) {
-    console.warn('Failed to connect to database. Error:', error.message);
+    console.warn('Failed to open database. Error:', error.message);
     return null;
   }
 }
 
+const db: Database.Database | null = openDatabase();
+
+function getDb(): Database.Database | null {
+  if (!db) {
+    console.warn('Database not configured (DATABASE_PATH missing or unusable).');
+    return null;
+  }
+  return db;
+}
+
 export async function initDatabase() {
-  if (!pool) {
-    console.warn('Database not configured (DATABASE_URL missing). Skipping initDatabase.');
+  if (!db) {
+    console.warn('Database not configured (DATABASE_PATH missing or unusable). Skipping initDatabase.');
     return;
   }
 
-  await pool.query(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS users (
-      user_id VARCHAR(64) PRIMARY KEY,
-      username VARCHAR(255),
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      user_id TEXT PRIMARY KEY,
+      username TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS games (
-      game_id SERIAL PRIMARY KEY,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      game_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS entries (
-      entry_id SERIAL PRIMARY KEY,
-      game_id INT REFERENCES games(game_id) ON DELETE CASCADE,
-      user_id VARCHAR(64) REFERENCES users(user_id) ON DELETE CASCADE,
-      total_score INT NOT NULL
+      entry_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      game_id INTEGER REFERENCES games(game_id) ON DELETE CASCADE,
+      user_id TEXT REFERENCES users(user_id) ON DELETE CASCADE,
+      total_score INTEGER NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS rounds (
-      round_id SERIAL PRIMARY KEY,
-      entry_id INT REFERENCES entries(entry_id) ON DELETE CASCADE,
-      round_num INT NOT NULL,
-      guess VARCHAR(255) NOT NULL,
-      points INT NOT NULL,
-      score_value NUMERIC(3,2) NOT NULL,
-      is_first BOOLEAN NOT NULL,
-      time_taken VARCHAR(32) NOT NULL
+      round_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      entry_id INTEGER REFERENCES entries(entry_id) ON DELETE CASCADE,
+      round_num INTEGER NOT NULL,
+      guess TEXT NOT NULL,
+      points INTEGER NOT NULL,
+      score_value REAL NOT NULL,
+      is_first INTEGER NOT NULL,
+      time_taken TEXT NOT NULL
     );
   `);
 }
 
 export async function saveLeaderboard(leaderboard: Leaderboard): Promise<void> {
-  const client = await getClient();
-  if (!client) return;
+  const conn = getDb();
+  if (!conn) return;
 
-  try {
-    await client.query('BEGIN');
+  const insertGame = conn.prepare(`INSERT INTO games DEFAULT VALUES RETURNING game_id`);
+  const insertUser = conn.prepare(`INSERT INTO users (user_id) VALUES (?) ON CONFLICT (user_id) DO NOTHING`);
+  const insertEntry = conn.prepare(
+    `INSERT INTO entries (game_id, user_id, total_score) VALUES (?, ?, ?) RETURNING entry_id`
+  );
+  const insertRound = conn.prepare(
+    `INSERT INTO rounds (entry_id, round_num, guess, points, score_value, is_first, time_taken)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  );
 
+  // BEGIN/COMMIT automatically; ROLLBACK and rethrow if the callback throws
+  const save = conn.transaction(() => {
     // 1. Create a game session record in the `games` table
-    const gameResult = await client.query(`INSERT INTO games DEFAULT VALUES RETURNING game_id`);
-    const gameId = gameResult.rows[0].game_id;
+    const { game_id: gameId } = insertGame.get() as { game_id: number };
 
     for (const entry of leaderboard.getAll()) {
       // 2. Ensure the user exists in the `users` table
-      await client.query(`INSERT INTO users (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING`, [entry.userId]);
+      insertUser.run(entry.userId);
 
       // 3. Insert the player's entry into the `entries` table
-      const entryResult = await client.query(
-        `INSERT INTO entries (game_id, user_id, total_score) VALUES ($1, $2, $3) RETURNING entry_id`,
-        [gameId, entry.userId, entry.totalScore]
-      );
-      const entryId = entryResult.rows[0].entry_id;
+      const { entry_id: entryId } = insertEntry.get(gameId, entry.userId, entry.totalScore) as {
+        entry_id: number;
+      };
 
       // 4. Insert each round from the entry's roundHistory into the `rounds` table
       for (const r of entry.roundHistory) {
-        await client.query(
-          `INSERT INTO rounds (entry_id, round_num, guess, points, score_value, is_first, time_taken)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [entryId, r.round, r.guess ?? 'No guess submitted', r.points ?? 0, r.scoreValue, r.isFirst, r.time ?? '30.0']
+        insertRound.run(
+          entryId,
+          r.round,
+          r.guess ?? 'No guess submitted',
+          r.points ?? 0,
+          r.scoreValue,
+          r.isFirst ? 1 : 0, // better-sqlite3 refuses to bind JS booleans
+          r.time ?? '30.0'
         );
       }
     }
+  });
 
-    await client.query('COMMIT');
+  try {
+    save();
   } catch (error) {
-    await client.query('ROLLBACK');
     console.error('Failed to save leaderboard data:', error);
     throw error;
-  } finally {
-    client.release();
   }
 }
 
-export async function getPlayerRank(userId: string) {
-  const client = await getClient();
-  if (!client) return null;
+export interface PlayerRank {
+  user_id: string;
+  lifetime_points: number;
+  games_played: number;
+  rank: number;
+}
 
-  try {
-    const query = `
+export async function getPlayerRank(userId: string): Promise<PlayerRank | null> {
+  const conn = getDb();
+  if (!conn) return null;
+
+  const row = conn
+    .prepare(
+      `
       WITH lifetime_leaderboard AS (
         SELECT
           user_id,
@@ -119,21 +149,21 @@ export async function getPlayerRank(userId: string) {
       )
       SELECT *
       FROM lifetime_leaderboard
-      WHERE user_id = $1;
-    `;
-    const result = await client.query(query, [userId]);
-    return result.rows[0] || null;
-  } finally {
-    client.release();
-  }
+      WHERE user_id = ?;
+    `
+    )
+    .get(userId) as PlayerRank | undefined;
+
+  return row ?? null;
 }
 
-export async function getTopLifetimePlayers(limit: number = 5) {
-  const client = await getClient();
-  if (!client) return null;
+export async function getTopLifetimePlayers(limit: number = 5): Promise<PlayerRank[] | null> {
+  const conn = getDb();
+  if (!conn) return null;
 
-  try {
-    const query = `
+  return conn
+    .prepare(
+      `
       SELECT
         user_id,
         SUM(total_score) AS lifetime_points,
@@ -142,11 +172,13 @@ export async function getTopLifetimePlayers(limit: number = 5) {
       FROM entries
       GROUP BY user_id
       ORDER BY lifetime_points DESC
-      LIMIT $1;
-    `;
-    const result = await client.query(query, [limit]);
-    return result.rows;
-  } finally {
-    client.release();
-  }
+      LIMIT ?;
+    `
+    )
+    .all(limit) as PlayerRank[];
+}
+
+/** Close the database gracefully */
+export function closeDatabase(): void {
+  db?.close();
 }

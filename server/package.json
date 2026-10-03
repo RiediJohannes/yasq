@@ -16,6 +16,7 @@
   "dependencies": {
     "@discord/embedded-app-sdk": "^2.5.0",
     "@discordjs/voice": "^0.19.2",
+    "better-sqlite3": "^13.0.3",
     "discord.js": "^14.27.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
@@ -23,16 +24,15 @@
     "mersenne-twister": "^1.1.0",
     "node-fetch": "^3.3.2",
     "opusscript": "^0.0.8",
-    "pg": "^8.23.0",
     "sharp": "^0.35.3",
     "socket.io": "^4.8.3"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
     "@types/express": "^5.0.6",
     "@types/mersenne-twister": "^1.1.7",
     "@types/node": "^26.1.2",
     "@types/node-fetch": "^2.6.13",
-    "@types/pg": "^8.23.1",
     "@vitest/coverage-v8": "^4.1.8",
     "cross-env": "^10.1.0",
     "ts-node": "^10.9.2",
