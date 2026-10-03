@@ -1,5 +1,7 @@
-import { Locator, Page } from '@playwright/test';
+import { JSHandle, Locator, Page } from '@playwright/test';
 import { BasePage } from './BasePage';
+
+type CountdownRecorder = { records: string[]; stop: () => void };
 
 export class PlayingPage extends BasePage {
   // Player UI
@@ -27,6 +29,8 @@ export class PlayingPage extends BasePage {
   readonly summary: Locator;
   readonly tagsContainer: Locator;
   readonly tagBadges: Locator;
+
+  private countdownRecorder?: JSHandle<CountdownRecorder>;
 
   constructor(page: Page) {
     super(page);
@@ -64,5 +68,32 @@ export class PlayingPage extends BasePage {
 
   getSpyPlayerButton(username: string): Locator {
     return this.spyOverlay.locator('button').filter({ hasText: username });
+  }
+
+  /** Observe and record distinct values shown in #countdown-number. */
+  async startRecordingCountdown(): Promise<void> {
+    this.countdownRecorder = await this.page.evaluateHandle(() => {
+      const records: string[] = [];
+
+      const observer = new MutationObserver(() => {
+        const text = document.querySelector('#countdown-number')?.textContent?.trim();
+        if (text && records[records.length - 1] !== text) records.push(text);
+      });
+
+      observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+
+      return { records, stop: () => observer.disconnect() };
+    });
+  }
+
+  async getRecordedCountdown(): Promise<string[]> {
+    if (!this.countdownRecorder) throw new Error('Call startRecordingCountdown() first');
+    return this.countdownRecorder.evaluate(r => [...r.records]);
+  }
+
+  async stopRecordingCountdown(): Promise<void> {
+    await this.countdownRecorder?.evaluate(r => r.stop());
+    await this.countdownRecorder?.dispose();
+    this.countdownRecorder = undefined;
   }
 }

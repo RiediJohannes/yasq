@@ -1,6 +1,7 @@
 import { expect, test } from './test_setup.js';
 import AxeBuilder from '@axe-core/playwright';
 import sessionData from '../../mock_data/fixtures/playing.json';
+import { RoundTimings } from '@yasq/shared';
 
 test.describe('Host UI', () => {
   test.use({
@@ -11,11 +12,14 @@ test.describe('Host UI', () => {
     },
   });
 
-  test.beforeEach(async ({ session }) => {
+  test.beforeEach(async ({ session, playingPage }) => {
     const startTime = Date.now();
     const endTime = startTime + 300_000;
 
     await session.api.startPlayback(startTime, endTime);
+
+    // Wait until the countdown disappears
+    await expect(playingPage.countdownOverlay).toBeHidden({ timeout: 15_000 });
   });
 
   test('should display information about current track', async ({ playingPage }) => {
@@ -67,14 +71,39 @@ test.describe('Player UI', () => {
       await expect(playingPage.countdownText).toContainText('Ready?');
       await expect(playingPage.countdownNumber).not.toBeVisible();
     });
+
+    test('should count down 3-2-1 and then hide the countdown before the round starts', async ({
+      playingPage,
+      session,
+    }) => {
+      await playingPage.startRecordingCountdown();
+      await expect(playingPage.countdownOverlay).toBeVisible();
+
+      const startTime = Date.now() + 5000 + RoundTimings.COUNTDOWN_DURATION;
+      await session.api.startPlayback(startTime, startTime + 300_000);
+
+      await expect(playingPage.countdownText).toBeVisible();
+      await expect(playingPage.countdownText).not.toBeVisible({ timeout: 20_000 });
+
+      await expect.poll(() => playingPage.getRecordedCountdown(), { timeout: 20_000 }).toEqual(['3', '2', '1']);
+
+      await expect(playingPage.countdownOverlay).toBeHidden();
+      await expect(playingPage.guessInput).toBeVisible();
+      await expect(playingPage.guessInput).toBeFocused();
+
+      await playingPage.stopRecordingCountdown();
+    });
   });
 
   test.describe('During Round', () => {
-    test.beforeEach(async ({ session }) => {
+    test.beforeEach(async ({ session, playingPage }) => {
       const startTime = Date.now();
       const endTime = startTime + 300_000;
 
       await session.api.startPlayback(startTime, endTime);
+
+      // Wait until the countdown disappears
+      await expect(playingPage.countdownOverlay).toBeHidden({ timeout: 15_000 });
     });
 
     test('should show wait message after submitting a guess', async ({ playingPage, sidebar, session }) => {
