@@ -11,8 +11,8 @@ import {
   TimeBonus,
   TimeBonusSummary,
 } from '@yasq/shared';
-import { RoundResult } from './types';
-import { AbstractDiscordSdk } from './connections';
+import { RoundResult } from '../common/types';
+import { AbstractDiscordSdk } from '../globals';
 
 // Note: Do NOT change the property names to camelCase! This needs to match the naming of discord's authentication response payload.
 export interface AuthenticationResult {
@@ -47,8 +47,8 @@ interface ApiRequestPayload extends Omit<RequestInit, 'body'> {
 /**
  * A stateful abstraction layer, modelling all possible HTTP requests to the YASQ server component.
  */
-export class Backend {
-  /** The URL prefix (domain and path) that all backend requests are sent to. */
+export class BackendApiFacade {
+  /** The URL prefix (domain and path) that all API requests are sent to. */
   public static BASE_URL = '';
   /** The ID of the current Discord activity for which our backend authentication is valid. */
   public readonly instanceId: string;
@@ -56,7 +56,7 @@ export class Backend {
   private readonly sampleBonusCache = new Map<TimeBonus, TimeBonusPlotPayload>();
 
   public static async requestAccessToken(code: string): Promise<string> {
-    const response = await fetch(`${Backend.BASE_URL}/${API_ROOT}/auth/token`, {
+    const response = await fetch(`${BackendApiFacade.BASE_URL}/${API_ROOT}/auth/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code }),
@@ -68,11 +68,11 @@ export class Backend {
   /**
    * Creates a stateful abstraction layer, modelling all possible HTTP requests to the YASQ server component.
    *
-   * The creation of a new {@link Backend} instance requires a valid {@link AuthenticationResult}.<br/>
-   * **Hint:** Use {@link Backend.requestAccessToken} with an authorized client code (obtainable through
+   * The creation of a new {@link BackendApiFacade} instance requires a valid {@link AuthenticationResult}.<br/>
+   * **Hint:** Use {@link BackendApiFacade.requestAccessToken} with an authorized client code (obtainable through
    * {@link AbstractDiscordSdk.commands.authorize}) to retrieve a valid `accessToken`, which can in turn be used to
    * authenticate yourself with the Discord backend (see {@link AbstractDiscordSdk.commands.authenticate}).
-   * The resulting {@link AuthenticationResult} is needed to create this {@link Backend} instance, as it will be used
+   * The resulting {@link AuthenticationResult} is needed to create this {@link BackendApiFacade} instance, as it will be used
    * to prove your identity yourself with the YASQ server for subsequent requests via method calls.
    * @param instanceId The ID of the current Discord Activity (see {@link AbstractDiscordSdk.instanceId}).
    * @param auth A valid {@link AuthenticationResult} payload obtained through {@link AbstractDiscordSdk.commands.authenticate}.
@@ -91,7 +91,7 @@ export class Backend {
   }
 
   public async updateReadyStatus(isReady: boolean) {
-    return Backend.apiFetch(`/instance/${this.instanceId}/ready`, {
+    return BackendApiFacade.apiFetch(`/instance/${this.instanceId}/ready`, {
       method: 'PATCH',
       token: this.auth.access_token,
       body: { ready: isReady },
@@ -99,7 +99,7 @@ export class Backend {
   }
 
   public async updateReadyToPlayStatus(round: number, isReady: boolean, setupDurationMillis: number) {
-    return Backend.apiFetch(`/instance/${this.instanceId}/round/${round}/ready`, {
+    return BackendApiFacade.apiFetch(`/instance/${this.instanceId}/round/${round}/ready`, {
       method: 'PATCH',
       token: this.auth.access_token,
       body: {
@@ -110,7 +110,7 @@ export class Backend {
   }
 
   public async transferHostRole(newHostId: string) {
-    return Backend.apiFetch(`/${HOST_PREFIX}/instance/${this.instanceId}/transfer`, {
+    return BackendApiFacade.apiFetch(`/${HOST_PREFIX}/instance/${this.instanceId}/transfer`, {
       method: 'PUT',
       token: this.auth.access_token,
       body: { newHostId },
@@ -118,14 +118,14 @@ export class Backend {
   }
 
   public async restartGame() {
-    return Backend.apiFetch(`/${HOST_PREFIX}/instance/${this.instanceId}/new`, {
+    return BackendApiFacade.apiFetch(`/${HOST_PREFIX}/instance/${this.instanceId}/new`, {
       method: 'POST',
       token: this.auth.access_token,
     });
   }
 
   public async setupGame(settings: GameSettings<Joker[]>) {
-    return Backend.apiFetch(`/${HOST_PREFIX}/instance/${this.instanceId}/setup`, {
+    return BackendApiFacade.apiFetch(`/${HOST_PREFIX}/instance/${this.instanceId}/setup`, {
       method: 'POST',
       token: this.auth.access_token,
       body: {
@@ -138,21 +138,21 @@ export class Backend {
   }
 
   public async startGame() {
-    return Backend.apiFetch(`/${HOST_PREFIX}/instance/${this.instanceId}/start`, {
+    return BackendApiFacade.apiFetch(`/${HOST_PREFIX}/instance/${this.instanceId}/start`, {
       method: 'POST',
       token: this.auth.access_token,
     });
   }
 
   public async getTrackList() {
-    const response = await Backend.apiFetch(`/${HOST_PREFIX}/instance/${this.instanceId}/tracks`, {
+    const response = await BackendApiFacade.apiFetch(`/${HOST_PREFIX}/instance/${this.instanceId}/tracks`, {
       token: this.auth.access_token,
     });
     return response.json();
   }
 
   public async submitGuess(guess: string, timestamp: number) {
-    return Backend.apiFetch(`/instance/${this.instanceId}/guesses`, {
+    return BackendApiFacade.apiFetch(`/instance/${this.instanceId}/guesses`, {
       method: 'POST',
       token: this.auth.access_token,
       body: {
@@ -163,21 +163,21 @@ export class Backend {
   }
 
   public async getGuesses() {
-    const response = await Backend.apiFetch(`/${HOST_PREFIX}/instance/${this.instanceId}/guesses`, {
+    const response = await BackendApiFacade.apiFetch(`/${HOST_PREFIX}/instance/${this.instanceId}/guesses`, {
       token: this.auth.access_token,
     });
     return response.json();
   }
 
   public async getAvailableJokers() {
-    const response = await Backend.apiFetch(`/instance/${this.instanceId}/available-jokers`, {
+    const response = await BackendApiFacade.apiFetch(`/instance/${this.instanceId}/available-jokers`, {
       token: this.auth.access_token,
     });
     return response.json();
   }
 
   public async useJoker(jokerType: Joker, targetId?: string) {
-    return Backend.apiFetch(`/instance/${this.instanceId}/jokers`, {
+    return BackendApiFacade.apiFetch(`/instance/${this.instanceId}/jokers`, {
       method: 'PATCH',
       token: this.auth.access_token,
       body: { jokerType, targetId },
@@ -185,7 +185,7 @@ export class Backend {
   }
 
   public async playTrack(fileName: string) {
-    return Backend.apiFetch(`/${HOST_PREFIX}/instance/${this.instanceId}/tracks/play`, {
+    return BackendApiFacade.apiFetch(`/${HOST_PREFIX}/instance/${this.instanceId}/tracks/play`, {
       method: 'POST',
       token: this.auth.access_token,
       body: { fileName },
@@ -193,14 +193,14 @@ export class Backend {
   }
 
   public async getCurrentTrack() {
-    const response = await Backend.apiFetch(`/instance/${this.instanceId}/current-track`, {
+    const response = await BackendApiFacade.apiFetch(`/instance/${this.instanceId}/current-track`, {
       token: this.auth.access_token,
     });
     return response.json();
   }
 
   public async submitRoundResults(corrections: Record<string, number>) {
-    return Backend.apiFetch(`/${HOST_PREFIX}/instance/${this.instanceId}/round-results`, {
+    return BackendApiFacade.apiFetch(`/${HOST_PREFIX}/instance/${this.instanceId}/round-results`, {
       method: 'POST',
       token: this.auth.access_token,
       body: { corrections },
@@ -208,7 +208,9 @@ export class Backend {
   }
 
   public async getRoundResults() {
-    const response = await Backend.apiFetch(`/instance/${this.instanceId}/round-results?user_id=${this.userId}`);
+    const response = await BackendApiFacade.apiFetch(
+      `/instance/${this.instanceId}/round-results?user_id=${this.userId}`
+    );
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -236,7 +238,7 @@ export class Backend {
       return this.sampleBonusCache.get(bonusType)!;
     }
 
-    const response = await Backend.apiFetch(`/samples/time-bonus/${bonusType}/summary`);
+    const response = await BackendApiFacade.apiFetch(`/samples/time-bonus/${bonusType}/summary`);
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -252,19 +254,19 @@ export class Backend {
   }
 
   public async startNextRound() {
-    return Backend.apiFetch(`/${HOST_PREFIX}/instance/${this.instanceId}/rounds/next`, {
+    return BackendApiFacade.apiFetch(`/${HOST_PREFIX}/instance/${this.instanceId}/rounds/next`, {
       method: 'POST',
       token: this.auth.access_token,
     });
   }
 
   public async getFinalResults() {
-    const response = await Backend.apiFetch(`/instance/${this.instanceId}/final-results`);
+    const response = await BackendApiFacade.apiFetch(`/instance/${this.instanceId}/final-results`);
     return response.json();
   }
 
   public async downloadResultsImage(discordSdk: AbstractDiscordSdk) {
-    const base = typeof window !== 'undefined' ? window.location.origin : Backend.BASE_URL;
+    const base = typeof window !== 'undefined' ? window.location.origin : BackendApiFacade.BASE_URL;
     const targetUrl = `${base}/${API_ROOT}/instance/${this.instanceId}/final-results?download`;
 
     discordSdk.commands
@@ -273,7 +275,7 @@ export class Backend {
   }
 
   public async postResultsToDiscordChannel(channelId: string) {
-    return Backend.apiFetch(`/${HOST_PREFIX}/instance/${this.instanceId}/results/send`, {
+    return BackendApiFacade.apiFetch(`/${HOST_PREFIX}/instance/${this.instanceId}/results/send`, {
       method: 'POST',
       token: this.auth.access_token,
       body: { channelId },
@@ -281,16 +283,19 @@ export class Backend {
   }
 
   public async getDiscordChannels(guildId: string) {
-    const response = await Backend.apiFetch(`/${HOST_PREFIX}/instance/${this.instanceId}/guild/${guildId}/channels`, {
-      token: this.auth.access_token,
-    });
+    const response = await BackendApiFacade.apiFetch(
+      `/${HOST_PREFIX}/instance/${this.instanceId}/guild/${guildId}/channels`,
+      {
+        token: this.auth.access_token,
+      }
+    );
     return response.json();
   }
 
   public async logToServer(level: LogLevel, message: string, error?: Error | string) {
     const serializedError = error instanceof Error ? serializeError(error) : error;
 
-    return Backend.apiFetch('log', {
+    return BackendApiFacade.apiFetch('log', {
       method: 'POST',
       body: {
         level,
@@ -304,14 +309,14 @@ export class Backend {
 
   /**
    * This *static* method enables clients to send log messages to the YASQ server even before they have completed the necessary
-   * authentication steps to create a {@link Backend} instance.<br/>
-   * **Note:** Once you are in possession of an instantiated {@link Backend}, prefer the instance method {@link logToServer},
+   * authentication steps to create a {@link BackendApiFacade} instance.<br/>
+   * **Note:** Once you are in possession of an instantiated {@link BackendApiFacade}, prefer the instance method {@link logToServer},
    * as this will automatically attach **user and activity metadata** to the request.
    */
   public static async logToServerAnonymously(level: LogLevel, message: string, context: LogParams = {}) {
     const serializedError = context.error instanceof Error ? serializeError(context.error) : context.error;
 
-    return Backend.apiFetch('log', {
+    return BackendApiFacade.apiFetch('log', {
       method: 'POST',
       body: {
         level,
@@ -326,10 +331,10 @@ export class Backend {
    * Simple helper function to reduce boilerplate around sending HTTP API requests by automatically packaging the body
    * as a JSON payload and adding the respective Authorization header when an auth token is passed.
    *
-   * The HTTP request is sent to the server at {@link Backend.BASE_URL} using the {@link API_ROOT} plus the given `path` as the
+   * The HTTP request is sent to the server at {@link BackendApiFacade.BASE_URL} using the {@link API_ROOT} plus the given `path` as the
    * target endpoint.
    */
-  private static async apiFetch(path: string, payload: ApiRequestPayload = {}): Promise<Response> {
+  protected static async apiFetch(path: string, payload: ApiRequestPayload = {}): Promise<Response> {
     const { token, body, headers, ...customConfig } = payload;
 
     const requestHeaders: Record<string, string> = {
@@ -347,7 +352,7 @@ export class Backend {
     }
 
     const trimmedPath = path.startsWith('/') ? path.slice(1).trim() : path.trim();
-    const url = `${Backend.BASE_URL}/${API_ROOT}/${trimmedPath}`;
+    const url = `${BackendApiFacade.BASE_URL}/${API_ROOT}/${trimmedPath}`;
 
     return fetch(url, {
       ...customConfig,

@@ -1,8 +1,8 @@
 import { ComponentChildren, CSSProperties, TargetedKeyboardEvent, TargetedMouseEvent } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
 import { CrossIcon } from './Icons';
-import { CommonCSSProperties } from '../utils/types';
-import { isTouchDevice } from '../utils/helper';
+import { CommonCSSProperties } from '../../common/types';
+import { isTouchDevice } from '../../utils/helper';
 import { Signal } from '@preact/signals';
 
 export interface BaseModalProps {

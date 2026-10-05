@@ -1,14 +1,16 @@
 import { useSignal } from '@preact/signals';
 import { useEffect, useState } from 'preact/hooks';
-import { audioPlayer, discordSdk, gameStatus, participants, useBackend } from '../main';
-import { findUser } from '../utils/helper';
+
+import { audioPlayer, discordSdk, gameStatus, participants, useBackend } from '@yasq/client/src/globals';
 import { ACHIEVEMENT_BONUS_POINTS, getAvatarUrl, getDisplayName } from '@yasq/shared';
-import { RoundBubblesGroup } from '../components/RoundBubble';
-import { DiscordAvatar } from '../components/DiscordAvatar';
-import { ReadyButton } from '../components/ReadyButton';
-import { GameStatsSummary } from '../components/GameStatsSummary';
-import { LoadingSpinner } from '../components/LoadingSpinner';
-import { TooltipDiv } from '../components/Tooltip';
+import { findUser } from '../../utils/helper';
+
+import { RoundBubblesGroup } from '@components/RoundBubble';
+import { DiscordAvatar } from '@components/DiscordAvatar';
+import { ReadyButton } from '@components/ReadyButton';
+import { GameStatsSummary } from '@components/GameStatsSummary';
+import { LoadingSpinner } from '@components/LoadingSpinner';
+import { TooltipDiv } from '@components/Tooltip';
 
 export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
   const backend = useBackend();
@@ -26,7 +28,7 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
     audioPlayer.currentTime = 0;
     audioPlayer.src = '';
 
-    backend.getFinalResults().then(data => {
+    backend.getFinalResults().then((data: any) => {
       leaderboard.value = data.leaderboard;
       gameStats.value = data.gameStats;
       setCanExport(data.canExport);
@@ -59,7 +61,7 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
   useEffect(() => {
     if (!isHost) return;
 
-    backend.getDiscordChannels(discordSdk.guildId!).then(data => setChannels(data));
+    backend.getDiscordChannels(discordSdk.guildId!).then((data: any) => setChannels(data));
   }, [isHost]);
 
   const playersExcludingHost = participants.value.filter(p => p.id !== gameStatus.value.hostId);

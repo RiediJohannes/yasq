@@ -1,80 +1,36 @@
-import { createContext, render } from 'preact';
+import { render } from 'preact';
 import { signal } from '@preact/signals';
-import { useContext } from 'preact/hooks';
 
-import {
-  AbstractDiscordSdk,
-  authenticateWithDiscord,
-  establishServerConnection,
-  getDiscordSdk,
-  syncParticipants,
-} from './utils/connections';
-import { Backend } from './utils/backend';
-import { useKeyboardShortcut } from './hooks/useKeyboardShortcut';
-import { DEFAULT_VOLUME_SLIDER_VAL, GamePhase, GameSettings, GameStatus, MAX_VOLUME, Participant } from '@yasq/shared';
+import { backend, BackendContext, discordSdk, gameStatus, isMac, participants } from './globals';
+import { authenticateWithDiscord, establishServerConnection, syncParticipants } from './backend/connections';
+import { useKeyboardShortcut } from './frontend/hooks/useKeyboardShortcut';
+import { GamePhase } from '@yasq/shared';
 
-import { GameHeader, isHowToPlayOpen, isLocalSettingsOpen } from './components/GameHeader';
-import { HowToPlay } from './components/HowToPlay';
-import { LocalSettings } from './components/LocalSettings';
-import { Modal } from './components/Modal';
-import { Sidebar } from './components/Sidebar';
-import { LoadingState } from './components/LoadingSpinner';
+import { GameHeader, isHowToPlayOpen, isLocalSettingsOpen } from '@components/GameHeader';
+import { HowToPlay } from '@components/HowToPlay';
+import { LocalSettings } from '@components/LocalSettings';
+import { Modal } from '@components/Modal';
+import { Sidebar } from '@components/Sidebar';
+import { LoadingState } from '@components/LoadingSpinner';
 
-import { SetupView } from './views/SetupView';
-import { LobbyView } from './views/LobbyView';
-import { TrackSelectionView } from './views/TrackSelectionView';
-import { PlayingView } from './views/PlayingView';
-import { HostReviewView } from './views/HostReviewView';
-import { RoundResultsView } from './views/RoundResultsView';
-import { FinalResultsView } from './views/FinalResultsView';
+import { SetupView } from '@views/SetupView';
+import { LobbyView } from '@views/LobbyView';
+import { TrackSelectionView } from '@views/TrackSelectionView';
+import { PlayingView } from '@views/PlayingView';
+import { HostReviewView } from '@views/HostReviewView';
+import { RoundResultsView } from '@views/RoundResultsView';
+import { FinalResultsView } from '@views/FinalResultsView';
 
 import './style.css';
 
-export const discordSdk: AbstractDiscordSdk = getDiscordSdk();
-export const participants = signal<Participant[]>([]);
-const backend = signal<Backend | null>(null);
-
-export const gameStatus = signal<GameStatus>({
-  state: {
-    game: 1,
-    round: 0,
-    phase: GamePhase.LOBBY,
-    playback: null,
-  },
-  hostId: null,
-  readyPlayers: [],
-  guessedPlayers: [],
-  lastWinnerId: null,
-  settings: GameSettings.withJokerArray(),
-  streaks: {},
-  lostStreaks: {},
-});
-
-export const volume = signal(DEFAULT_VOLUME_SLIDER_VAL);
-
-export const audioPlayer = new Audio();
-audioPlayer.loop = true;
-const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-const source = audioContext.createMediaElementSource(audioPlayer);
-
-export const gainNode = audioContext.createGain();
-source.connect(gainNode);
-gainNode.connect(audioContext.destination);
-gainNode.gain.value = DEFAULT_VOLUME_SLIDER_VAL * MAX_VOLUME;
-
-export const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-
-export const isInitializing = signal<boolean>(true);
-export const initError = signal<string | null>(null);
+const isInitializing = signal<boolean>(true);
+const initError = signal<string | null>(null);
 
 export const triggerManualReconnect = async () => {
   if (isInitializing.value) return;
 
   await initializeApplication();
 };
-
-const BackendContext = createContext<Backend>(null!);
-export const useBackend = (): Backend => useContext(BackendContext);
 
 const App = () => {
   useKeyboardShortcut({ key: 'Q', altKey: !isMac, metaKey: isMac }, () => {
@@ -181,7 +137,7 @@ export const initializeApplication = async () => {
     // Establish a bidirectional socket connection to the YASQ server
     establishServerConnection(discordSdk.instanceId, backend.value.accessToken);
 
-    // Sync local information of the activity's participants with the backend
+    // Sync local information of the activity's participants with the Discord backend
     await syncParticipants(discordSdk, participants);
   } catch (error: any) {
     console.error('[INIT] Initialization Failed:', error);

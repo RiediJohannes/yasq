@@ -1,5 +1,5 @@
 import { Playlist } from '@yasq/shared';
-import { Track } from './types';
+import { Track } from '../common/types';
 
 export type SortOption = 'Default Order' | 'A-Z' | 'Z-A';
 

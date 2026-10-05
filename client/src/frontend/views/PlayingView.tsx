@@ -1,10 +1,7 @@
 import { useSignal } from '@preact/signals';
 import { useEffect, useRef } from 'preact/hooks';
 
-import { audioPlayer, gameStatus, isMac, participants, useBackend } from '../main';
-import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
-import * as connections from '../utils/connections';
-import { getSyncedServerTime } from '../utils/connections';
+import { audioPlayer, gameStatus, isMac, participants, useBackend } from '@yasq/client/src/globals';
 import {
   getAvatarUrl,
   getDisplayName,
@@ -15,12 +12,15 @@ import {
   RoundTimings,
   Tag,
 } from '@yasq/shared';
-import { ALL_JOKER_ICONS } from '../components/Icons';
-import { capitalize, findUser, getActionKeyLabel } from '../utils/helper';
-import { NonDraggableImg } from '../components/NonDraggableImg';
-import { DiscordAvatar } from '../components/DiscordAvatar';
-import { TooltipDiv, WithTooltip } from '../components/Tooltip';
-import { LoadingSpinner } from '../components/LoadingSpinner';
+import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
+import { getSyncedServerTime } from '../../backend/timing';
+import { capitalize, findUser, getActionKeyLabel } from '../../utils/helper';
+
+import { ALL_JOKER_ICONS } from '@components/Icons';
+import { NonDraggableImg } from '@components/NonDraggableImg';
+import { DiscordAvatar } from '@components/DiscordAvatar';
+import { TooltipDiv, WithTooltip } from '@components/Tooltip';
+import { LoadingSpinner } from '@components/LoadingSpinner';
 
 type JokerHint =
   | { type: Joker.OBFUSCATION; data: string }
@@ -322,7 +322,7 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
     const animateCountdownAndProgressBar = (_currentFrameStart: DOMHighResTimeStamp) => {
       if (abortSignal.aborted) return;
 
-      const now = connections.getSyncedServerTime();
+      const now = getSyncedServerTime();
       const timeDifference = now - startTime;
       const progressBar = progressBarRef.current;
 

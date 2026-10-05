@@ -1,6 +1,6 @@
 import { RadioGroup } from './RadioGroup';
-import { themePreference, ThemePreference } from '../utils/switchTheme';
-import { showKeyboardHints } from '../utils/showKeyboardHints';
+import { themePreference, ThemePreference } from '../../utils/switchTheme';
+import { showKeyboardHints } from '../../utils/showKeyboardHints';
 
 export const LocalSettings = () => {
   return (

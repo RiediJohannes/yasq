@@ -1,21 +1,19 @@
 import { useSignal } from '@preact/signals';
 
-import { gameStatus, participants, useBackend } from '../main';
-import { PLAYER_TIME_BONUS_LABELS } from '../utils/constants';
-import { capitalize, formatBonusMultiplier } from '../utils/helper';
-import { OptionalTimeBonus, TOptionalTimeBonus } from '../utils/types';
-
+import { gameStatus, participants, useBackend } from '@yasq/client/src/globals';
 import { AchievementBonusType, Joker } from '@yasq/shared';
-
-import { ALL_JOKER_ICONS, InfoIcon } from '../components/Icons';
-import { Modal } from '../components/Modal';
-import { ReadyButton } from '../components/ReadyButton';
-import { TimeBonusPlot } from '../components/TimeBonusPlot';
-import { TooltipDiv, WithTooltip } from '../components/Tooltip';
-
+import { PLAYER_TIME_BONUS_LABELS } from '../../common/constants';
+import { OptionalTimeBonus, TOptionalTimeBonus } from '../../common/types';
+import { capitalize, formatBonusMultiplier } from '../../utils/helper';
 import { useRovingTabIndex } from '../hooks/useRovingTabIndex';
 import { useTimeBonusSamples } from '../hooks/useTimeBonusSamples';
-import { InviteButton } from '../components/InviteButton';
+
+import { ALL_JOKER_ICONS, InfoIcon } from '@components/Icons';
+import { Modal } from '@components/Modal';
+import { ReadyButton } from '@components/ReadyButton';
+import { TimeBonusPlot } from '@components/TimeBonusPlot';
+import { TooltipDiv, WithTooltip } from '@components/Tooltip';
+import { InviteButton } from '@components/InviteButton';
 
 export const LobbyView = ({ isHost }: { isHost: boolean }) => {
   const backend = useBackend();

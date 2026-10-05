@@ -1,9 +1,9 @@
 import { useSignal } from '@preact/signals';
 
 import { DEFAULT_VOLUME_SLIDER_VAL, getAvatarUrl, getDisplayName, MAX_VOLUME } from '@yasq/shared';
-import { gainNode, gameStatus, isMac, participants, volume } from '../main';
+import { gainNode, gameStatus, isMac, participants, volume } from '@yasq/client/src/globals';
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
-import { getActionKeyLabel } from '../utils/helper';
+import { getActionKeyLabel } from '../../utils/helper';
 import { DiscordAvatar } from './DiscordAvatar';
 
 export const Sidebar = () => {

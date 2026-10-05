@@ -1,11 +1,9 @@
 import { computed, signal, useSignal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 
-import { useBackend } from '../main';
-import { Track } from '../utils/types';
-import { NonDraggableImg } from '../components/NonDraggableImg';
-import { TagFilterDropdown } from '../components/TagFilterComponent';
-import { SimpleDropdown } from '../components/SimpleDropdown';
+import { useBackend } from '@yasq/client/src/globals';
+import { GAME_COVERS_DIR, GameEvent, Playlist } from '@yasq/shared';
+import { Track } from '../../common/types';
 import {
   getAvailableTagsByType,
   getBaseFilteredTracks,
@@ -13,10 +11,13 @@ import {
   getRandomEligibleTrack,
   getReachableTags,
   SortOption,
-} from '../utils/trackFiltering';
-import { GAME_COVERS_DIR, GameEvent, Playlist } from '@yasq/shared';
-import { LoadingSpinner } from '../components/LoadingSpinner';
-import { onGameEvent } from '../utils/connections';
+} from '../../utils/trackFiltering';
+import { onGameEvent } from '../../backend/connections';
+
+import { LoadingSpinner } from '@components/LoadingSpinner';
+import { NonDraggableImg } from '@components/NonDraggableImg';
+import { TagFilterDropdown } from '@components/TagFilterComponent';
+import { SimpleDropdown } from '@components/SimpleDropdown';
 
 const selectedPlaylistName = signal<string>('All playlists');
 const selectedTags = signal<Record<string, string[]>>({});
@@ -220,7 +221,7 @@ export const TrackSelectionView = ({ isHost }: { isHost: boolean }) => {
                 onClick={async e => {
                   // Preact's way of preventing double-clicks:
                   // The button becomes disabled because tracks.value will update
-                  // or the state will change to 'PLAYING' via the backend call.
+                  // or the state will change to 'PLAYING' via the API call.
                   (e.currentTarget as HTMLButtonElement).disabled = true;
                   await backend.playTrack(track.audio);
                 }}

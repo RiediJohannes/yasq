@@ -128,7 +128,7 @@ test.describe('Player UI', () => {
     test('should switch to next state once all players have submitted a guess', async ({ playingPage, session }) => {
       // Other players submit guesses
       for (const index of [2, 4, 3]) {
-        await session.api.submitGuess(session.players[index].id, 'Some Game');
+        await session.api.submitGuessAs(session.players[index].id, 'Some Game');
       }
 
       // Submit own guess
@@ -198,7 +198,7 @@ test.describe('Player UI', () => {
 
       // Other players submit guesses
       for (const index of [2, 4, 3]) {
-        await session.api.submitGuess(session.players[index].id, 'Game A');
+        await session.api.submitGuessAs(session.players[index].id, 'Game A');
       }
 
       // Verify order of MockPlayers in list

@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AuthenticationResult, Backend } from '../../client/src/utils/backend';
+import { AuthenticationResult, BackendApiFacade } from '../../client/src/backend/apiFacade';
 import { setupServer } from '../../server';
 import {
   deserializeError,
@@ -13,7 +13,7 @@ import {
 } from '@yasq/shared';
 import type { Server } from 'http';
 import { AddressInfo } from 'net';
-import { TestApi, TestGameState } from '../utils/api.js';
+import { TestBackendApi, TestGameState } from '../utils/testApi';
 import { exchangeCodeForToken, getDiscordUser } from '../../server/src/utils/discord';
 import { LogCategory, logger } from '@yasq/server/src/utils/logger';
 import { Player } from '../utils/helper';
@@ -37,14 +37,13 @@ const fakeAuth = makeAuth('fake', 'NonAuthenticatedPlayer');
 const DEFAULT_PLAYERS: Player[] = [hostAuth.user, playerAuth.user];
 const DEFAULT_SESSION: [Player[], TestGameState] = [DEFAULT_PLAYERS, { phase: GamePhase.SETUP }];
 
-let baseUrl: string;
 let currentInstanceId: string;
 let httpServer: Server;
-let hostBackend: Backend;
-let player1Backend: Backend;
-let player2Backend: Backend;
-let unregisteredBackend: Backend;
-let api: TestApi;
+let hostFacade: BackendApiFacade;
+let player1Facade: BackendApiFacade;
+let player2Facade: BackendApiFacade;
+let unknownFacade: BackendApiFacade;
+let testBackend: TestBackendApi;
 let loggerSpy: ReturnType<typeof vi.spyOn>;
 
 vi.mock('../../server/src/utils/discord', () => ({
@@ -62,7 +61,7 @@ beforeAll(async () => {
       const address = httpServer.address() as AddressInfo;
       const port = address.port;
 
-      baseUrl = `http://localhost:${port}`;
+      BackendApiFacade.BASE_URL = `http://localhost:${port}`;
       resolve();
     });
   });
@@ -86,12 +85,12 @@ afterAll(async () => {
 beforeEach(async context => {
   currentInstanceId = `test-instance-${context.task.id}`;
 
-  api = new TestApi(baseUrl, currentInstanceId, true);
+  testBackend = new TestBackendApi(currentInstanceId);
 
-  hostBackend = new Backend(currentInstanceId, hostAuth);
-  player1Backend = new Backend(currentInstanceId, playerAuth);
-  player2Backend = new Backend(currentInstanceId, player2Auth);
-  unregisteredBackend = new Backend(currentInstanceId, fakeAuth);
+  hostFacade = new BackendApiFacade(currentInstanceId, hostAuth);
+  player1Facade = new BackendApiFacade(currentInstanceId, playerAuth);
+  player2Facade = new BackendApiFacade(currentInstanceId, player2Auth);
+  unknownFacade = new BackendApiFacade(currentInstanceId, fakeAuth);
 
   // NOTE: Remove this mock implementation to see logs during integration tests (for debugging)
   loggerSpy = vi.spyOn(logger, 'log').mockImplementation(() => {});
@@ -103,15 +102,15 @@ afterEach(async () => {
 
 describe('transferHostRole', () => {
   beforeEach(async () => {
-    await api.setupSession(...DEFAULT_SESSION);
+    await testBackend.setupSession(...DEFAULT_SESSION);
   });
 
   afterEach(async () => {
-    await api.deleteSession();
+    await testBackend.deleteSession();
   });
 
   it('should return 200 OK when host role is transferred by current host', async () => {
-    const response = await hostBackend.transferHostRole(playerAuth.user.id);
+    const response = await hostFacade.transferHostRole(playerAuth.user.id);
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -119,7 +118,7 @@ describe('transferHostRole', () => {
   });
 
   it('should return 403 Forbidden when non-host player tries to transfer the host role', async () => {
-    const response = await player1Backend.transferHostRole(playerAuth.user.id);
+    const response = await player1Facade.transferHostRole(playerAuth.user.id);
     const body = await response.json();
 
     expect(response.status).toBe(403);
@@ -127,7 +126,7 @@ describe('transferHostRole', () => {
   });
 
   it('should return 400 Bad Request when host role is transferred to non-registered player', async () => {
-    const response = await hostBackend.transferHostRole(fakeAuth.user.id);
+    const response = await hostFacade.transferHostRole(fakeAuth.user.id);
     const body = await response.json();
 
     expect(response.status).toBe(400);
@@ -137,15 +136,15 @@ describe('transferHostRole', () => {
 
 describe('setupGame', () => {
   beforeEach(async () => {
-    await api.setupSession(...DEFAULT_SESSION);
+    await testBackend.setupSession(...DEFAULT_SESSION);
   });
 
   afterEach(async () => {
-    await api.deleteSession();
+    await testBackend.deleteSession();
   });
 
   it('should return 200 OK when valid settings are provided', async () => {
-    const response = await hostBackend.setupGame({
+    const response = await hostFacade.setupGame({
       rounds: 5,
       maxGuessTime: 60,
       enabledJokers: [],
@@ -160,7 +159,7 @@ describe('setupGame', () => {
   });
 
   it('should return 400 Bad Request when rounds are set to 0', async () => {
-    const response = await hostBackend.setupGame({
+    const response = await hostFacade.setupGame({
       rounds: 0,
       maxGuessTime: 60,
       enabledJokers: [],
@@ -175,7 +174,7 @@ describe('setupGame', () => {
   });
 
   it('should return 400 Bad Request when guess time exceeds the maximum allowed value', async () => {
-    const response = await hostBackend.setupGame({
+    const response = await hostFacade.setupGame({
       rounds: 5,
       maxGuessTime: 999999999,
       enabledJokers: [],
@@ -190,7 +189,7 @@ describe('setupGame', () => {
   });
 
   it('should return 403 Forbidden when non-host player tries to setup game', async () => {
-    const response = await player1Backend.setupGame({
+    const response = await player1Facade.setupGame({
       rounds: 5,
       maxGuessTime: 60,
       enabledJokers: [],
@@ -207,15 +206,15 @@ describe('setupGame', () => {
 
 describe('playTrack', () => {
   beforeEach(async () => {
-    await api.setupSession(DEFAULT_PLAYERS, { phase: GamePhase.TRACK_SELECTION });
+    await testBackend.setupSession(DEFAULT_PLAYERS, { phase: GamePhase.TRACK_SELECTION });
   });
 
   afterEach(async () => {
-    await api.deleteSession();
+    await testBackend.deleteSession();
   });
 
   it('should return 200 OK when valid audio file is requested', async () => {
-    const response = await hostBackend.playTrack('track001.mp3');
+    const response = await hostFacade.playTrack('track001.mp3');
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -223,7 +222,7 @@ describe('playTrack', () => {
   });
 
   it('should return 404 Not Found when non-existent audio file is requested', async () => {
-    const response = await hostBackend.playTrack('bla.mp3');
+    const response = await hostFacade.playTrack('bla.mp3');
     const body = await response.json();
 
     expect(response.status).toBe(404);
@@ -231,7 +230,7 @@ describe('playTrack', () => {
   });
 
   it('should return 403 Forbidden when non-allowed audio file is requested', async () => {
-    const response = await hostBackend.playTrack('track002.mp3');
+    const response = await hostFacade.playTrack('track002.mp3');
     const body = await response.json();
 
     expect(response.status).toBe(403);
@@ -239,7 +238,7 @@ describe('playTrack', () => {
   });
 
   it('should return 403 Forbidden when non-host player tries to play track', async () => {
-    const response = await player1Backend.playTrack('track002.mp3');
+    const response = await player1Facade.playTrack('track002.mp3');
     const body = await response.json();
 
     expect(response.status).toBe(403);
@@ -249,15 +248,15 @@ describe('playTrack', () => {
 
 describe('submitGuess', () => {
   beforeEach(async () => {
-    await api.setupSession(DEFAULT_PLAYERS, { phase: GamePhase.PLAYING });
+    await testBackend.setupSession(DEFAULT_PLAYERS, { phase: GamePhase.PLAYING });
   });
 
   afterEach(async () => {
-    await api.deleteSession();
+    await testBackend.deleteSession();
   });
 
   it('should return 200 OK when guess is submitted by registered player', async () => {
-    const response = await player1Backend.submitGuess('guess', Date.now());
+    const response = await player1Facade.submitGuess('guess', Date.now());
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -265,7 +264,7 @@ describe('submitGuess', () => {
   });
 
   it('should return 403 Forbidden when guess is submitted by non-registered player', async () => {
-    const response = await unregisteredBackend.submitGuess('guess', Date.now());
+    const response = await unknownFacade.submitGuess('guess', Date.now());
     const body = await response.json();
 
     expect(response.status).toBe(403);
@@ -273,7 +272,7 @@ describe('submitGuess', () => {
   });
 
   it('should return 400 Bad Request when submitted guess is too long', async () => {
-    const response = await player1Backend.submitGuess(
+    const response = await player1Facade.submitGuess(
       'thisisaverylongguessthatislongerthantheallowedcharacterlimitof100charactersandisthereforerejectedbytheserver',
       Date.now()
     );
@@ -286,7 +285,7 @@ describe('submitGuess', () => {
 
 describe('useJoker', () => {
   beforeEach(async () => {
-    await api.setupSession(
+    await testBackend.setupSession(
       [hostAuth.user, playerAuth.user, player2Auth.user],
       {
         phase: GamePhase.PLAYING,
@@ -311,13 +310,13 @@ describe('useJoker', () => {
   });
 
   afterEach(async () => {
-    await api.deleteSession();
+    await testBackend.deleteSession();
   });
 
   it('should return 200 OK when OBFUSCATION joker is used', async () => {
-    await api.patchEnabledJokers([Joker.OBFUSCATION]);
+    await testBackend.patchEnabledJokers([Joker.OBFUSCATION]);
 
-    const response = await player1Backend.useJoker(Joker.OBFUSCATION);
+    const response = await player1Facade.useJoker(Joker.OBFUSCATION);
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -326,9 +325,9 @@ describe('useJoker', () => {
   });
 
   it('should return 200 OK when TRIVIA joker is used', async () => {
-    await api.patchEnabledJokers([Joker.TRIVIA]);
+    await testBackend.patchEnabledJokers([Joker.TRIVIA]);
 
-    const response = await player1Backend.useJoker(Joker.TRIVIA);
+    const response = await player1Facade.useJoker(Joker.TRIVIA);
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -340,9 +339,9 @@ describe('useJoker', () => {
   });
 
   it('should return 200 OK when MULTIPLE_CHOICE joker is used', async () => {
-    await api.patchEnabledJokers([Joker.MULTIPLE_CHOICE]);
+    await testBackend.patchEnabledJokers([Joker.MULTIPLE_CHOICE]);
 
-    const response = await player1Backend.useJoker(Joker.MULTIPLE_CHOICE);
+    const response = await player1Facade.useJoker(Joker.MULTIPLE_CHOICE);
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -351,11 +350,11 @@ describe('useJoker', () => {
   });
 
   it('should return 200 OK when GLIMPSE joker is used', async () => {
-    await api.patchEnabledJokers([Joker.GLIMPSE]);
+    await testBackend.patchEnabledJokers([Joker.GLIMPSE]);
 
-    await hostBackend.playTrack('track001.mp3');
+    await hostFacade.playTrack('track001.mp3');
 
-    const response = await player1Backend.useJoker(Joker.GLIMPSE);
+    const response = await player1Facade.useJoker(Joker.GLIMPSE);
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -364,9 +363,9 @@ describe('useJoker', () => {
   });
 
   it('should return 400 Bad Request when SPY joker is missing targetId', async () => {
-    await api.patchEnabledJokers([Joker.SPY]);
+    await testBackend.patchEnabledJokers([Joker.SPY]);
 
-    const response = await player1Backend.useJoker(Joker.SPY);
+    const response = await player1Facade.useJoker(Joker.SPY);
     const body = await response.json();
 
     expect(response.status).toBe(400);
@@ -374,9 +373,9 @@ describe('useJoker', () => {
   });
 
   it('should return 202 Accepted when SPY joker target has not submitted', async () => {
-    await api.patchEnabledJokers([Joker.SPY]);
+    await testBackend.patchEnabledJokers([Joker.SPY]);
 
-    const response = await player1Backend.useJoker(Joker.SPY, player2Auth.user.id);
+    const response = await player1Facade.useJoker(Joker.SPY, player2Auth.user.id);
     const body = await response.json();
 
     expect(response.status).toBe(202);
@@ -384,10 +383,10 @@ describe('useJoker', () => {
   });
 
   it('should return 200 OK when SPY joker is used with valid target', async () => {
-    await api.patchEnabledJokers([Joker.SPY]);
+    await testBackend.patchEnabledJokers([Joker.SPY]);
 
-    await player2Backend.submitGuess('guess', Date.now());
-    const response = await player1Backend.useJoker(Joker.SPY, player2Auth.user.id);
+    await player2Facade.submitGuess('guess', Date.now());
+    const response = await player1Facade.useJoker(Joker.SPY, player2Auth.user.id);
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -396,9 +395,9 @@ describe('useJoker', () => {
   });
 
   it('should return 403 Forbidden when joker is not enabled', async () => {
-    await api.patchEnabledJokers([Joker.TRIVIA, Joker.MULTIPLE_CHOICE, Joker.SPY]);
+    await testBackend.patchEnabledJokers([Joker.TRIVIA, Joker.MULTIPLE_CHOICE, Joker.SPY]);
 
-    const response = await player1Backend.useJoker(Joker.OBFUSCATION);
+    const response = await player1Facade.useJoker(Joker.OBFUSCATION);
     const body = await response.json();
 
     expect(response.status).toBe(403);
@@ -406,10 +405,10 @@ describe('useJoker', () => {
   });
 
   it('should return 410 Gone when joker already used', async () => {
-    await api.patchEnabledJokers([Joker.OBFUSCATION]);
+    await testBackend.patchEnabledJokers([Joker.OBFUSCATION]);
 
-    await player1Backend.useJoker(Joker.OBFUSCATION);
-    const response = await player1Backend.useJoker(Joker.OBFUSCATION);
+    await player1Facade.useJoker(Joker.OBFUSCATION);
+    const response = await player1Facade.useJoker(Joker.OBFUSCATION);
     const body = await response.json();
 
     expect(response.status).toBe(410);
@@ -419,15 +418,15 @@ describe('useJoker', () => {
 
 describe('clientLogs', () => {
   beforeEach(async () => {
-    await api.setupSession(...DEFAULT_SESSION);
+    await testBackend.setupSession(...DEFAULT_SESSION);
   });
 
   afterEach(async () => {
-    await api.deleteSession();
+    await testBackend.deleteSession();
   });
 
   it("should forward a valid client log to the server's logger including the client's userId and instanceId", async () => {
-    const response = await player1Backend.logToServer(LogLevel.INFO, 'Connection established');
+    const response = await player1Facade.logToServer(LogLevel.INFO, 'Connection established');
 
     expect(response.status).toBe(200);
     expect(loggerSpy).toHaveBeenCalledTimes(1);
@@ -454,7 +453,7 @@ describe('clientLogs', () => {
     ];
 
     for (const [errorInputValue, expectedReceivedValue] of testErrors) {
-      const response = await player2Backend.logToServer(LogLevel.ERROR, message, errorInputValue);
+      const response = await player2Facade.logToServer(LogLevel.ERROR, message, errorInputValue);
 
       expect(response.status).toBe(200);
       expect(loggerSpy).toHaveBeenCalledWith(LogLevel.ERROR, message, LogCategory.CLIENT, {
@@ -469,7 +468,7 @@ describe('clientLogs', () => {
     const expectedStatusCode = 400;
     const expectedMessage = 'Missing property: message';
 
-    const response = await player1Backend.logToServer(LogLevel.INFO, undefined);
+    const response = await player1Facade.logToServer(LogLevel.INFO, undefined);
 
     // Response includes the correct status code and error message
     expect(response.status).toBe(expectedStatusCode);
@@ -497,7 +496,7 @@ describe('clientLogs', () => {
     const invalidLogLevel = LogLevel.ERROR + 1;
     const expectedMessage = `Unknown log level ${invalidLogLevel}`;
 
-    const response = await player1Backend.logToServer(invalidLogLevel as LogLevel, 'Test message');
+    const response = await player1Facade.logToServer(invalidLogLevel as LogLevel, 'Test message');
 
     // Response includes the correct status code and error message
     expect(response.status).toBe(expectedStatusCode);

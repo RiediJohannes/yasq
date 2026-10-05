@@ -1,14 +1,16 @@
 import { useSignal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
-import { participants, useBackend } from '../main';
-import { capitalize, findUser } from '../utils/helper';
-import { ALL_JOKER_ICONS } from '../components/Icons';
-import { ReviewData } from '../utils/types';
+
+import { participants, useBackend } from '@yasq/client/src/globals';
 import { getAvatarUrl, getDisplayName } from '@yasq/shared';
-import { DiscordAvatar } from '../components/DiscordAvatar';
-import { TooltipDiv } from '../components/Tooltip';
-import { LoadingSpinner } from '../components/LoadingSpinner';
-import { RadioGroup } from '../components/RadioGroup';
+import { capitalize, findUser } from '../../utils/helper';
+import { ReviewData } from '../../common/types';
+
+import { ALL_JOKER_ICONS } from '@components/Icons';
+import { DiscordAvatar } from '@components/DiscordAvatar';
+import { TooltipDiv } from '@components/Tooltip';
+import { LoadingSpinner } from '@components/LoadingSpinner';
+import { RadioGroup } from '@components/RadioGroup';
 
 export const HostReviewView = ({ isHost }: { isHost: boolean }) => {
   const backend = useBackend();
@@ -17,7 +19,7 @@ export const HostReviewView = ({ isHost }: { isHost: boolean }) => {
 
   useEffect(() => {
     if (isHost) {
-      backend.getGuesses().then(data => {
+      backend.getGuesses().then((data: any) => {
         reviewData.value = data;
         // Pre-populate corrections with 0 (Wrong) for everyone who guessed
         const initial: Record<string, number> = {};

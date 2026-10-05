@@ -1,6 +1,6 @@
-import { test as base, expect } from '@playwright/test';
+import { expect, test as base } from '@playwright/test';
 import { generatePlayers, Player } from '../utils/helper';
-import { TestApi } from '../utils/api';
+import { TestBackendApi } from '../utils/testApi';
 import { SetupPage } from './pages/SetupPage';
 import { LobbyPage } from './pages/LobbyPage';
 import { TrackSelectionPage } from './pages/TrackSelectionPage';
@@ -11,6 +11,7 @@ import { FinalResultsPage } from './pages/FinalResultsPage';
 import { Sidebar } from './pages/components/Sidebar';
 import { Header } from './pages/components/Header';
 import { LocalSettingsModal } from './pages/components/LocalSettingsModal';
+import { BackendApiFacade } from '@yasq/client/src/backend/apiFacade';
 
 type GameOptions = {
   sessionConfig: {
@@ -21,7 +22,7 @@ type GameOptions = {
 };
 
 type GameFixtures = {
-  session: { players: Player[]; api: TestApi };
+  session: { players: Player[]; api: TestBackendApi };
   setupPage: SetupPage;
   lobbyPage: LobbyPage;
   trackSelectionPage: TrackSelectionPage;
@@ -53,8 +54,10 @@ export const test = base.extend<GameOptions & GameFixtures>({
         { allPlayers: players, user, instanceId }
       );
 
-      const api = new TestApi('http://localhost:3001', instanceId);
+      BackendApiFacade.BASE_URL = 'http://localhost:3001';
+      const api = new TestBackendApi(instanceId);
       const sessionData = sessionConfig.sessionData ?? {};
+
       await api.setupSession(players, sessionData.state, sessionData);
       await page.goto('/?mock=true');
 

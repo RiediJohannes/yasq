@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { TooltipDiv, WithTooltip } from '../../src/components/Tooltip';
+import { TooltipDiv, WithTooltip } from '@components/Tooltip';
 
 export const WrapBasicChild = () => (
   <div id="direct-parent">

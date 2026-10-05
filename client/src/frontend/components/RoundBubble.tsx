@@ -1,4 +1,4 @@
-import { RoundResult } from '../utils/types';
+import { RoundResult } from '../../common/types';
 import { TooltipDiv } from './Tooltip';
 import { useRovingTabIndex } from '../hooks/useRovingTabIndex';
 

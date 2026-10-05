@@ -16,7 +16,13 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "jsxImportSource": "preact",
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "baseUrl": ".",
+    "paths": {
+      "@views/*": ["src/frontend/views/*"],
+      "@components/*": ["src/frontend/components/*"],
+      "@mock/*": ["../mock_data/*"]
+    }
   },
   "include": ["src", "playwright", "vite.config.ts", "../package.json"]
 }

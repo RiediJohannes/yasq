@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { Modal } from '../../src/components/Modal';
+import { Modal } from '@components/Modal';
 import { useSignal } from '@preact/signals';
 
 interface BasicModalProps {

@@ -1,11 +1,12 @@
-import { DiscordSDK, Events } from '@discord/embedded-app-sdk';
-import { mockDiscordSdk } from '../../../mock_data/mockDiscordSdk';
-import { withTimeout } from './helper';
-import { AuthenticationResult, Backend } from './backend';
-import { gameStatus, participants } from '../main';
-import { io, Socket } from 'socket.io-client';
-import { GameEvent, Participant, TGameEvent } from '@yasq/shared';
+import { Events } from '@discord/embedded-app-sdk';
 import { Signal, signal } from '@preact/signals';
+import { io, Socket } from 'socket.io-client';
+
+import { GameEvent, Participant, TGameEvent } from '@yasq/shared';
+import { AbstractDiscordSdk, ApiCache, gameStatus, participants } from '@yasq/client/src/globals';
+import { withTimeout } from '../utils/helper';
+import { AuthenticationResult, BackendApiFacade } from './apiFacade';
+import { syncClockWithServer } from './timing';
 
 const CONNECTION_TIMEOUT_MILLIS_LONG: number = 10_000;
 const CONNECTION_TIMEOUT_MILLIS_SHORT: number = 3000;
@@ -14,39 +15,12 @@ const CLOCK_SYNC_INTERVAL_MILLIS: number = 30_000;
 const socketSignal = signal<Socket | null>(null);
 export const socketConnected = signal<boolean>(false);
 
-export type AbstractDiscordSdk = DiscordSDK | typeof mockDiscordSdk;
+export async function authenticateWithDiscord(discordSdk: AbstractDiscordSdk): Promise<BackendApiFacade> {
+  const cachedApiData = window.__API_CACHE__ as ApiCache;
 
-export function getDiscordSdk(): AbstractDiscordSdk {
-  const isMockMode = import.meta.env.VITE_MOCK_MODE === 'true';
-  let discordSdk: AbstractDiscordSdk;
-
-  if (isMockMode) {
-    console.log('[SDK] Using mocked Discord SDK');
-    discordSdk = mockDiscordSdk; // mock the discord SDK
-  } else if ((window as any).__DISCORD_SDK__) {
-    // Do not instantiate a new SDK if only the webpage got reloaded
-    console.log('[SDK] Restoring existing Discord SDK instance from window');
-    discordSdk = (window as any).__DISCORD_SDK__;
-  } else {
-    console.log('[SDK] Instantiating a new Discord SDK instance');
-    discordSdk = new DiscordSDK(import.meta.env.VITE_DISCORD_CLIENT_ID);
-    (window as any).__DISCORD_SDK__ = discordSdk;
-  }
-
-  return discordSdk;
-}
-
-interface BackendCache {
-  instanceId: string;
-  authResult: AuthenticationResult;
-}
-
-export async function authenticateWithDiscord(discordSdk: AbstractDiscordSdk): Promise<Backend> {
-  const cachedBackend = (window as any).__BACKEND_CACHE__ as BackendCache;
-
-  if (cachedBackend) {
-    console.log('[INIT] Using cached authorized backend - bypassing SDK authentication.');
-    return new Backend(cachedBackend.instanceId, cachedBackend.authResult);
+  if (cachedApiData) {
+    console.log('[INIT] Using cached, authorized ApiFacade - bypassing SDK authentication.');
+    return new BackendApiFacade(cachedApiData.instanceId, cachedApiData.authResult);
   }
 
   console.log('[INIT] Starting full Discord activity handshake...');
@@ -64,7 +38,7 @@ export async function authenticateWithDiscord(discordSdk: AbstractDiscordSdk): P
     'Discord Authorization reached timeout'
   );
 
-  const accessToken = await Backend.requestAccessToken(code);
+  const accessToken = await BackendApiFacade.requestAccessToken(code);
 
   const authResult: AuthenticationResult = await withTimeout<any>(
     discordSdk.commands.authenticate({ access_token: accessToken }),
@@ -72,11 +46,11 @@ export async function authenticateWithDiscord(discordSdk: AbstractDiscordSdk): P
     'Discord User Authentication reached timeout'
   );
 
-  // Cache the backend data in the current iframe
-  (window as any).__BACKEND_CACHE__ = { instanceId: discordSdk.instanceId, authResult } satisfies BackendCache;
+  // Cache the API metadata in the current iframe
+  window.__API_CACHE__ = { instanceId: discordSdk.instanceId, authResult } satisfies ApiCache;
 
-  console.log('[INIT] Authentication complete. Connected to Discord backend.');
-  return new Backend(discordSdk.instanceId, authResult);
+  console.log('[INIT] Authentication complete. Connected to Discord and YASQ backends.');
+  return new BackendApiFacade(discordSdk.instanceId, authResult);
 }
 
 export function establishServerConnection(instanceId: string, authToken: string) {
@@ -164,63 +138,6 @@ export async function syncParticipants(
   );
 }
 
-let serverClockOffset = 0; // (Server Time - Client Time) in milliseconds
-let latency = 0; // One-way communication delay to server in milliseconds
-
-/**
- * Returns the current timestamp synchronized with the server clock.
- */
-export const getSyncedServerTime = (): number => {
-  return Date.now() + serverClockOffset;
-};
-
-/**
- * Measures the offset of the client's device clock to the server's internal clock (accounting for both clock inaccuracy
- * and network latency) in order to calculate a server-synced current time.
- * **Hint:** Use {@link getSyncedServerTime} to obtain the server-synced time.
- */
-export const syncClockWithServer = async (sampleCount = 8): Promise<number> => {
-  const socket = socketSignal.value;
-  if (!socket || !socket.connected) return serverClockOffset;
-
-  const samples: Array<{ clientOffset: number; roundTripTime: number }> = [];
-
-  // Cristian's Algorithm (https://en.wikipedia.org/wiki/Cristian%27s_algorithm)
-  for (let i = 0; i < sampleCount && socket.connected; i++) {
-    await new Promise<void>(resolve => {
-      const sendTime = Date.now();
-
-      socket.emit(GameEvent.REQUEST_TIME, (serverTime: number) => {
-        const receiveTime = Date.now();
-        const roundTripTime = receiveTime - sendTime;
-
-        const estimatedServerTimeAtReceive = serverTime + roundTripTime / 2;
-        const offset = estimatedServerTimeAtReceive - receiveTime;
-
-        samples.push({ clientOffset: offset, roundTripTime });
-        resolve();
-      });
-    });
-
-    // Small delay between sampling pings
-    if (i < sampleCount - 1) {
-      await new Promise(r => setTimeout(r, 150));
-    }
-  }
-
-  // Sort by round-trip time (ascending)
-  samples.sort((a, b) => a.roundTripTime - b.roundTripTime);
-
-  // Use offset from the fastest packet exchange
-  serverClockOffset = samples[0]!.clientOffset;
-  latency = samples[0]!.roundTripTime / 2;
-  console.log(`[TimeSync] Clock synced. Offset: ${serverClockOffset.toFixed(2)}ms, latency: ${latency}ms)`);
-
-  socket.emit(GameEvent.TIME_SYNCED, -serverClockOffset, latency);
-
-  return serverClockOffset;
-};
-
 /**
  * Subscribes a handler to the given game event and returns an unsubscribe function for clean-up.
  */
@@ -251,8 +168,8 @@ export function onNextGameEvent<T = any>(event: TGameEvent, callback: (data: T) 
 }
 
 /**
- * Emits a {@link GameEvent} to the backend server.
+ * Emits a {@link GameEvent} to the YASQ backend server.
  */
-export function emitGameEvent<T = any>(event: TGameEvent, data: T) {
+export function emitGameEvent(event: TGameEvent, ...data: unknown[]) {
   socketSignal.value?.emit(event, data);
 }

@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef } from 'preact/hooks';
 import { cloneElement, HTMLAttributes, isValidElement, VNode } from 'preact';
-import { activeTooltipId, measureBounds } from '../utils/exclusiveTooltip';
+import { activeTooltipId, measureBounds } from '../../utils/exclusiveTooltip';
 import { ReactNode } from 'preact/compat';
 import { LONG_PRESS_MILLIS } from '@yasq/shared';
 

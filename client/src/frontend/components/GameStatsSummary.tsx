@@ -1,5 +1,5 @@
 import { getAvatarUrl, getDisplayName, Participant } from '@yasq/shared';
-import { findUser, getGameDuration } from '../utils/helper';
+import { findUser, getGameDuration } from '../../utils/helper';
 import { DiscordAvatar } from './DiscordAvatar';
 
 export const GameStatsSummary = ({ stats, participants }: { stats: any; participants: Participant[] }) => {

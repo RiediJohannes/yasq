@@ -1,17 +1,18 @@
 import { useSignal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
-import { gameStatus, participants, useBackend } from '../main';
-import { capitalize, findUser } from '../utils/helper';
-import { NonDraggableImg } from '../components/NonDraggableImg';
+import { gameStatus, participants, useBackend } from '@yasq/client/src/globals';
 import { getAvatarUrl, getDisplayName, Participant, Tag } from '@yasq/shared';
-import { RoundBubblesGroup } from '../components/RoundBubble';
-import { PointsCalculationTable } from '../components/PointsCalculationTable';
-import { RollingNumber } from '../components/RollingNumber';
-import { DiscordAvatar } from '../components/DiscordAvatar';
-import { TimeBonusPlot } from '../components/TimeBonusPlot';
-import { ReadyButton } from '../components/ReadyButton';
-import { TooltipDiv } from '../components/Tooltip';
-import { LoadingSpinner } from '../components/LoadingSpinner';
+import { capitalize, findUser } from '../../utils/helper';
+
+import { NonDraggableImg } from '@components/NonDraggableImg';
+import { RoundBubblesGroup } from '@components/RoundBubble';
+import { PointsCalculationTable } from '@components/PointsCalculationTable';
+import { RollingNumber } from '@components/RollingNumber';
+import { DiscordAvatar } from '@components/DiscordAvatar';
+import { TimeBonusPlot } from '@components/TimeBonusPlot';
+import { ReadyButton } from '@components/ReadyButton';
+import { TooltipDiv } from '@components/Tooltip';
+import { LoadingSpinner } from '@components/LoadingSpinner';
 
 export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
   const backend = useBackend();

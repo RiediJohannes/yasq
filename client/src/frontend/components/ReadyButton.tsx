@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
-import { gameStatus, isMac, useBackend } from '../main';
-import { getActionKeyLabel } from '../utils/helper';
+import { gameStatus, isMac, useBackend } from '@yasq/client/src/globals';
+import { getActionKeyLabel } from '../../utils/helper';
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
 
 // Custom hook to inform the backend about the user's ready status

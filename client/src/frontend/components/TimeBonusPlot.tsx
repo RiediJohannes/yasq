@@ -8,7 +8,7 @@ import {
   PlayerTimeBonusPoint,
   TimeBonusSummary,
 } from '@yasq/shared';
-import { findUser } from '../utils/helper';
+import { findUser } from '../../utils/helper';
 
 enum DataPointType {
   CURVE = 'curve',

@@ -1,7 +1,7 @@
 import { useSignal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 
-import { gameStatus, participants, useBackend } from '../main';
+import { gameStatus, participants, useBackend } from '@yasq/client/src/globals';
 import { getAvatarUrl, getDisplayName } from '@yasq/shared';
 import { DiscordAvatar } from './DiscordAvatar';
 
