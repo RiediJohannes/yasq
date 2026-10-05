@@ -179,3 +179,24 @@ export function getAudioDuration(filePath: string): string {
 
 export const hasQueryParams = (request: Request) => Object.keys(request.query).length > 0;
 export const hasPathParams = (request: Request) => Object.keys(request.params).length > 0;
+
+/** Coerce string URL params to numbers/booleans if applicable */
+export function coerceParam(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
+
+  const trimmed = value.trim();
+
+  if (trimmed === 'undefined') return undefined;
+  if (trimmed === 'null') return null;
+
+  // Coerce boolean strings to boolean literals
+  if (trimmed === 'true') return true;
+  if (trimmed === 'false') return false;
+
+  // Coerce numeric strings to numbers
+  if (trimmed !== '' && !isNaN(Number(trimmed))) {
+    return Number(trimmed);
+  }
+
+  return value; // just a string
+}

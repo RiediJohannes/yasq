@@ -60,7 +60,11 @@ export enum AchievementBonusType {
   HIGHEST_STREAK = 'HIGHEST_STREAK',
 }
 
-export type AchievementBonusMode = 'manual' | 'random' | 'off';
+export enum AchievementBonusMode {
+  MANUAL = 'manual',
+  RANDOM = 'random',
+  OFF = 'off',
+}
 
 export interface AchievementBonuses {
   mode: AchievementBonusMode;

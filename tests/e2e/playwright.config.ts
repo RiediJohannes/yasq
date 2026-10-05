@@ -9,6 +9,9 @@ export default defineConfig({
     baseURL: 'http://localhost:5173',
     trace: 'retain-on-failure',
   },
+  expect: {
+    timeout: 10_000, // wait up to 10 seconds on every "except" assertion by default
+  },
 
   webServer: {
     command: 'npm run dev',

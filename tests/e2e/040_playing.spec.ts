@@ -202,10 +202,11 @@ test.describe('Player UI', () => {
       }
 
       // Verify order of MockPlayers in list
-      await expect(playingPage.spyActionButtons.filter({ hasText: session.players[3].username })).toBeVisible();
-      const buttonTexts = await playingPage.spyActionButtons.allTextContents();
-      const expectedOrder = [session.players[2].username, session.players[4].username, session.players[3].username];
-      expect(buttonTexts).toEqual(expectedOrder);
+      await expect(playingPage.spyActionButtons).toHaveText([
+        session.players[2].username,
+        session.players[4].username,
+        session.players[3].username,
+      ]);
 
       // Select target
       await playingPage.getSpyPlayerButton(session.players[2].username).click();

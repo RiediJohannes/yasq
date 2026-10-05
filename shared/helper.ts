@@ -38,9 +38,8 @@ export function serializeError(err: Error): SerializedError {
   };
 }
 
-export function deserializeError(payload: SerializedError): Error | string | undefined {
-  if (!payload) return undefined;
-  if (typeof payload === 'string') return payload;
+export function deserializeError(payload: SerializedError | string | undefined): Error | string | undefined {
+  if (!payload || typeof payload === 'string') return payload;
 
   if (typeof payload === 'object') {
     const { name, message, stack } = payload;

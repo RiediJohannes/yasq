@@ -57,13 +57,5 @@ export default defineConfig(({ mode }) => {
         deny: isUITestMode ? ['**/*.test.ts'] : ['**/playwright/**', '**/*.test.ts'],
       },
     },
-    test: {
-      coverage: {
-        provider: 'v8',
-        include: ['src/**/*.ts'],
-        exclude: ['src/**/*.test.ts'],
-        reporter: ['text', 'html'],
-      },
-    },
   };
 });

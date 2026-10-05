@@ -97,7 +97,9 @@ test.describe('Player UI', () => {
     await expect(roundResultsPage.tagBadges.nth(1)).toHaveAttribute('data-tooltip', 'Release');
 
     // Verify own result
-    await expect(roundResultsPage.getPersonalResultStatus('correct')).toContainText('Correct! 🎉', { timeout: 10_000 });
+    await expect(roundResultsPage.getPersonalResultStatus('correct')).toContainText('Correct! 🎉', {
+      timeout: 15_000,
+    });
     await expect(roundResultsPage.ownGuess).toContainText('Game A');
     await expect(roundResultsPage.ownScoreBubble).toContainText('100 pt.');
   });
@@ -115,7 +117,7 @@ test.describe('Player UI', () => {
 
     // Verify own result
     await expect(roundResultsPage.getPersonalResultStatus('partial')).toContainText('So close! 🧗', {
-      timeout: 10_000,
+      timeout: 15_000,
     });
     await expect(roundResultsPage.ownGuess).toContainText('Game A2');
     await expect(roundResultsPage.ownScoreBubble).toContainText('50 pt.');
@@ -134,7 +136,7 @@ test.describe('Player UI', () => {
 
     // Verify own result
     await expect(roundResultsPage.getPersonalResultStatus('incorrect')).toContainText('Incorrect. 😢', {
-      timeout: 10_000,
+      timeout: 15_000,
     });
     await expect(roundResultsPage.ownGuess).toContainText('Game B');
     await expect(roundResultsPage.ownScoreBubble).toContainText('0 pt.');

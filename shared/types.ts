@@ -1,5 +1,6 @@
 import {
   type AchievementBonuses,
+  AchievementBonusMode,
   AchievementBonusType,
   BonusType,
   DEFAULT_ENABLED_JOKERS,
@@ -47,16 +48,6 @@ export interface Playlist {
   tracks: string[];
 }
 
-export interface GameSettingsOptions<T extends Iterable<Joker>> {
-  rounds?: number;
-  maxGuessTime?: number;
-  enabledJokers?: T;
-  firstBonusMultiplier?: FirstBonusMultiplier;
-  timeBonus?: TimeBonus | null;
-  streakBonusMultiplier?: StreakBonusMultiplier;
-  achievementBonuses?: AchievementBonuses;
-}
-
 export class GameSettings<T extends Iterable<Joker>> {
   public rounds: number;
   public maxGuessTime: number;
@@ -64,9 +55,9 @@ export class GameSettings<T extends Iterable<Joker>> {
   public firstBonusMultiplier: FirstBonusMultiplier;
   public timeBonus: TimeBonus | null;
   public streakBonusMultiplier: StreakBonusMultiplier;
-  public achievementBonuses?: AchievementBonuses;
+  public achievementBonuses?: AchievementBonuses | undefined;
 
-  private constructor(options: GameSettingsOptions<T> = {}) {
+  private constructor(options: Partial<GameSettings<T>> = {}) {
     this.rounds = options.rounds ?? DEFAULT_ROUNDS;
     this.maxGuessTime = options.maxGuessTime ?? DEFAULT_MAX_GUESS_TIME;
     this.enabledJokers = options.enabledJokers as T;
@@ -74,20 +65,20 @@ export class GameSettings<T extends Iterable<Joker>> {
     this.timeBonus = options.timeBonus ?? DEFAULT_TIME_BONUS;
     this.streakBonusMultiplier = options.streakBonusMultiplier ?? DEFAULT_STREAK_BONUS_MULTIPLIER;
     this.achievementBonuses = options.achievementBonuses ?? {
-      mode: 'manual',
+      mode: AchievementBonusMode.MANUAL,
       enabledTypes: Object.values(AchievementBonusType),
       randomCount: 1,
     };
   }
 
-  static withJokerArray(options: GameSettingsOptions<Joker[]> = {}): GameSettings<Joker[]> {
+  static withJokerArray(options: Partial<GameSettings<Joker[]>> = {}): GameSettings<Joker[]> {
     return new GameSettings({
       ...options,
       enabledJokers: options.enabledJokers ?? DEFAULT_ENABLED_JOKERS,
     });
   }
 
-  static withJokerSet(options: GameSettingsOptions<Set<Joker>> = {}): GameSettings<Set<Joker>> {
+  static withJokerSet(options: Partial<GameSettings<Set<Joker>>> = {}): GameSettings<Set<Joker>> {
     return new GameSettings({
       ...options,
       enabledJokers: options.enabledJokers ?? new Set(DEFAULT_ENABLED_JOKERS),

@@ -170,7 +170,7 @@ describe('setupGame', () => {
     const body = await response.json();
 
     expect(response.status).toBe(400);
-    expect(body.error).toContain('Rounds and guess time must be greater than 0.');
+    expect(body.error).toContain("Property 'rounds' must be a positive integer (greater than 0)");
   });
 
   it('should return 400 Bad Request when guess time exceeds the maximum allowed value', async () => {
@@ -185,7 +185,7 @@ describe('setupGame', () => {
     const body = await response.json();
 
     expect(response.status).toBe(400);
-    expect(body.error).toContain('Guess time must not exceed');
+    expect(body.error).toContain('Guess time must be between 1 and');
   });
 
   it('should return 403 Forbidden when non-host player tries to setup game', async () => {
@@ -279,7 +279,7 @@ describe('submitGuess', () => {
     const body = await response.json();
 
     expect(response.status).toBe(400);
-    expect(body.error).toContain('Guess must be between 1 and 100 characters.');
+    expect(body.error).toContain("Property 'guess' must be a string of 1 to 100 characters");
   });
 });
 

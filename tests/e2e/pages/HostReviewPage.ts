@@ -5,6 +5,7 @@ import { Joker } from '@yasq/shared';
 type ResultType = 'correct' | 'partial' | 'wrong';
 
 export class HostReviewPage extends BasePage {
+  readonly resultsContainer: Locator;
   readonly guessList: Locator;
   readonly resultsTitle: Locator;
   readonly resultsTrackName: Locator;
@@ -14,6 +15,7 @@ export class HostReviewPage extends BasePage {
   constructor(page: Page) {
     super(page);
 
+    this.resultsContainer = page.locator('#results');
     this.guessList = page.locator('#guess-list');
     this.resultsTitle = page.locator('main >> h2');
     this.resultsTrackName = page.locator('#results p >> strong');

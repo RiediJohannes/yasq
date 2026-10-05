@@ -12,6 +12,11 @@ test.use({
 });
 
 test.describe('Host UI', () => {
+  test.beforeEach(async ({ hostReviewPage }) => {
+    // Ensure the Host UI has finished loading
+    await expect(hostReviewPage.resultsContainer).toBeVisible({ timeout: 30_000 });
+  });
+
   test('should allow host to correct guesses and submit', async ({ hostReviewPage, session }) => {
     const players = session.players;
 

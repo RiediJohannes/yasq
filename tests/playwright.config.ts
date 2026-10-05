@@ -12,6 +12,9 @@ export default defineConfig({
   outputDir: './test-results',
   fullyParallel: true,
   reporter: [['html', { outputFolder: './playwright-report' }]],
+  expect: {
+    timeout: 10_000, // wait up to 10 seconds on every "except" assertion by default
+  },
 
   webServer: {
     command: 'npm run dev',

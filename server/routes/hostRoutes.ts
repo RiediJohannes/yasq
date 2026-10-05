@@ -2,27 +2,35 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import type { APIChannel } from 'discord-api-types/v10';
 
 import { GameInstance } from '../src/models/game_instance.js';
 import {
+  AchievementBonusMode,
+  AchievementBonusType,
+  FirstBonusMultiplier,
   GamePhase,
+  GameSettings,
   INSTANCE_PATH,
   INT32_MAX_VALUE,
   Joker,
   type Playlist,
   RoundTimings,
   STATIC_FILES_DIR,
+  StreakBonusMultiplier,
   TEMP_FILES_DIR,
+  TimeBonus,
   type Track,
 } from '@yasq/shared';
 import { filterDiscordTextChannels, getCachedDisplayName, userDataCache } from '../src/helper.js';
 import { isAllowed } from '../src/access_control.js';
 import { generateResultsImage } from '../src/export_results.js';
 import { LogCategory, logger } from '../src/utils/logger.js';
-import { authenticateUser, createFetchGameMiddleware, isHost } from './middleware.js';
-import type { APIChannel } from 'discord-api-types/v10';
 import { getChannelsForGuild, postResultsToChannel } from '../src/utils/discord.js';
+
+import { authenticateUser, createFetchGameMiddleware, isHost, validateBody, validateParams } from './middleware.js';
 import { ApiError } from './errors.js';
+import * as g from './guards.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -66,12 +74,10 @@ export const setupHostRoutes = (
   });
 
   router.put(`/${INSTANCE_PATH}/transfer`, async (req, res) => {
-    const { newHostId } = req.body;
     const game = req.game!;
-
-    if (!game.registeredUsers.has(newHostId)) {
-      throw new ApiError(400, 'New host must be a registered user', req);
-    }
+    const { newHostId } = validateBody(req, {
+      newHostId: g.isOneOf([...game.registeredUsers]).else('New host must be a registered user'),
+    });
 
     game.hostId = newHostId;
     game.readyPlayers.delete(newHostId); // New host is not required to be ready
@@ -85,16 +91,29 @@ export const setupHostRoutes = (
   });
 
   router.post(`/${INSTANCE_PATH}/setup`, async (req, res) => {
-    const settings = req.body?.settings;
-    const game = req.game!;
     const maxAllowedGuessTime: number = Math.floor(INT32_MAX_VALUE / 1000) - RoundTimings.COUNTDOWN_DURATION;
 
-    if (settings.rounds <= 0 || settings.maxGuessTime <= 0) {
-      throw new ApiError(400, 'Rounds and guess time must be greater than 0.', req);
-    }
-    if (settings.maxGuessTime > maxAllowedGuessTime) {
-      throw new ApiError(400, `Guess time must not exceed ${maxAllowedGuessTime}.`, req);
-    }
+    const { settings: validatedPayload } = validateBody(req, {
+      settings: g.isObjectWith({
+        rounds: g.isInteger.andPositive(),
+        maxGuessTime: g.isInteger
+          .inRange(1, maxAllowedGuessTime)
+          .else(`Guess time must be between 1 and ${maxAllowedGuessTime} seconds`),
+        enabledJokers: g.isArrayOf(g.isEnumValue(Joker)),
+        firstBonusMultiplier: g.isEnumValue(FirstBonusMultiplier),
+        timeBonus: g.isEnumValue(TimeBonus).orNull(),
+        streakBonusMultiplier: g.isEnumValue(StreakBonusMultiplier),
+        achievementBonuses: g
+          .isObjectWith({
+            mode: g.isEnumValue(AchievementBonusMode),
+            enabledTypes: g.isArrayOf(g.isEnumValue(AchievementBonusType)),
+            randomCount: g.isInteger.andNonNegative(),
+          })
+          .orUndefined(),
+      }),
+    });
+    const settings = GameSettings.withJokerArray(validatedPayload);
+    const game = req.game!;
 
     game.setupGame(settings);
     logger.debug(
@@ -138,7 +157,7 @@ export const setupHostRoutes = (
   });
 
   router.post(`/${INSTANCE_PATH}/tracks/play`, async (req, res) => {
-    const { fileName } = req.body;
+    const { fileName } = validateBody(req, { fileName: g.isString.andNonEmpty() });
     const userId = req.userId!;
     const game = req.game!;
 
@@ -156,7 +175,6 @@ export const setupHostRoutes = (
     if (!track) throw new ApiError(404, 'Track not found.', req);
 
     await game.selectNextTrack(track);
-
     logger.debug(`Selected ${fileName} as next track`, LogCategory.GAME, game.instanceId);
 
     game.notifyUpdate();
@@ -204,7 +222,7 @@ export const setupHostRoutes = (
   });
 
   router.post(`/${INSTANCE_PATH}/round-results`, async (req, res) => {
-    const { corrections } = req.body;
+    const { corrections } = validateBody(req, { corrections: g.isRecordOf(g.isNumber) });
     const game = req.game!;
 
     logger.debug(
@@ -260,7 +278,7 @@ export const setupHostRoutes = (
   });
 
   router.post(`/${INSTANCE_PATH}/results/send`, async (req, res) => {
-    const { channelId } = req.body;
+    const { channelId } = validateBody(req, { channelId: g.isString.andNonEmpty() });
     const game = req.game!;
 
     if (game.state.phase !== GamePhase.FINAL_RESULTS) {
@@ -294,7 +312,9 @@ export const setupHostRoutes = (
   });
 
   router.get(`/${INSTANCE_PATH}/guild/:guildId/channels`, fetchGame, async (req, res) => {
-    const guildId = req.params.guildId as string;
+    const { guildId } = validateParams(req, {
+      guildId: g.isString,
+    });
     const game = req.game!;
 
     // Return empty list if bot token is not set

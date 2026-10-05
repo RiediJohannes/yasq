@@ -1,5 +1,6 @@
 import { expect, test } from './test_setup.js';
 import {
+  AchievementBonusMode,
   DEFAULT_ENABLED_JOKERS,
   DEFAULT_FIRST_BONUS_MULTIPLIER,
   DEFAULT_MAX_GUESS_TIME,
@@ -162,7 +163,7 @@ test.describe('Host UI', () => {
     expect(isCheckedAfter).not.toBe(isCheckedBefore);
 
     // Switch mode to 'random' to reveal the random count input
-    await setupPage.setAchievementMode('random');
+    await setupPage.setAchievementMode(AchievementBonusMode.RANDOM);
 
     // Now that mode is 'random', tab to focus the random count input
     await page.keyboard.press('Tab');

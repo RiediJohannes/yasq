@@ -4,8 +4,9 @@ import { GameInstance } from '../src/models/game_instance.js';
 import { Leaderboard } from '../src/models/leaderboard.js';
 import { LogCategory, logger } from '../src/utils/logger.js';
 import { INSTANCE_PATH } from '@yasq/shared';
-import { createFetchGameMiddleware } from './middleware.js';
+import { createFetchGameMiddleware, validateParams } from './middleware.js';
 import { ApiError } from './errors.js';
+import * as g from './guards.js';
 
 export const setupMockRoutes = (
   instances: Record<string, GameInstance>,
@@ -15,9 +16,9 @@ export const setupMockRoutes = (
   const router = express.Router();
 
   router.post(`/${INSTANCE_PATH}`, (req, res) => {
-    const instanceId = (req.params as { instanceId?: string })?.instanceId;
-
-    if (!instanceId) throw new ApiError(400, 'Missing property: instanceId', req);
+    const { instanceId } = validateParams(req, {
+      instanceId: g.isString.andNonEmpty(),
+    });
 
     const createdGame = setMockState(req.body);
     createdGame.onUpdate = notifyGameSubscribers;

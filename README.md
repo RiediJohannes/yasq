@@ -10,7 +10,6 @@ A Multiplayer Soundtrack Quiz built as a Discord Activity.
 - **npm**
 - **Discord Developer Account**
 - **cloudflared** (or other tunnel service)
-- **postgres** (optional)
 
 ### Installation
 
@@ -45,7 +44,7 @@ DISCORD_CLIENT_SECRET=<Copy Client Secret from Discord Developer Portal>
 VITE_URL_MAPPING=<Fill Later>
 # Optional variables
 DISCORD_BOT_TOKEN=<Copy Bot Token from Discord Developer Portal>
-DATABASE_URL=<Postgres URL>
+DATABASE_URL=<Relative path to quiz database file> (See "Database")
 LOG_LEVEL=<options: debug, info, warn, error> (defaults to 'info')
 DATA_SOURCE=<Relative path to quiz data> (see "Game Setup")
 ```
@@ -161,9 +160,10 @@ Within a given quiz directory (`quizDir`), data must be structured in the follow
        }
    ]
    ```
-   - `whitelist`: Only users in `userIds` can see/play these files.
-   - `blacklist`: Everyone except users in `userIds` can see/play these files.
-   - Default: Files not listed in any set are public to everyone.
+
+- `whitelist`: Only users in `userIds` can see/play these files.
+- `blacklist`: Everyone except users in `userIds` can see/play these files.
+- Default: Files not listed in any set are public to everyone.
 
 #### Commands (Optional)
 
@@ -178,15 +178,15 @@ This requires a valid `DISCORD_BOT_TOKEN` to be set in the `.env` file.
 
 The following commands exist:
 
-| Command         | Description                           | Requirements      | Parameters                                                     |
-| :-------------- | :------------------------------------ | :---------------- | :------------------------------------------------------------- |
-| **`/test`**     | Test Command                          | None              | None                                                           |
-| **`/top`**      | View the top 5 YASQ players           | Postgres Database | None                                                           |
-| **`/rank`**     | View your YASQ rank                   | Postgres Database | `player` (User, Optional): Check another player's rank         |
-| **`/play`**     | Play your favourite YASQ track        | None              | `track` (String, Required): Search by track title or game name |
-| **`/playlist`** | Play your favourite YASQ playlist     | None              | `name` (String, Required): Search by playlist                  |
-| **`/skip`**     | Skip current track on YASQ playlist   | None              | None                                                           |
-| **`/leave`**    | Kick the bot out of the voice channel | None              | None                                                           |
+| Command         | Description                           | Requirements        | Parameters                                                     |
+| :-------------- | :------------------------------------ | :------------------ | :------------------------------------------------------------- |
+| **`/test`**     | Test Command                          | None                | None                                                           |
+| **`/top`**      | View the top 5 YASQ players           | `DATABASE_PATH` set | None                                                           |
+| **`/rank`**     | View your YASQ rank                   | `DATABASE_PATH` set | `player` (User, Optional): Check another player's rank         |
+| **`/play`**     | Play your favourite YASQ track        | None                | `track` (String, Required): Search by track title or game name |
+| **`/playlist`** | Play your favourite YASQ playlist     | None                | `name` (String, Required): Search by playlist                  |
+| **`/skip`**     | Skip current track on YASQ playlist   | None                | None                                                           |
+| **`/leave`**    | Kick the bot out of the voice channel | None                | None                                                           |
 
 This also allows players to launch the activity directly from the chat interface via an Entry Point Command.
 
@@ -195,7 +195,15 @@ This also allows players to launch the activity directly from the chat interface
 A local database can be set up to persist leaderboard data. For this, you need to set a local environment variable in your `.env` file:
 
 ```dotenv
-DATABASE_PATH=<name>.db
+DATABASE_PATH=<Relative path to quiz database file> (must end with `.db`)
+```
+
+The database file will be stored in `server/data/db/<DATABASE_PATH>`.
+
+Alternatively, you can keep the data in memory by setting:
+
+```dotenv
+DATABASE_PATH=:memory:
 ```
 
 Once the database is set up, the activity will write the final results to the database after every game, allowing users to query historic data via the bot.

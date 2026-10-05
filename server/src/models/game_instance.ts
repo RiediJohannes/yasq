@@ -89,7 +89,7 @@ export class GameInstance {
     this.clientLatencies.delete(userId);
   }
 
-  public setupGame(settings: GameSettings<Set<Joker>>): void {
+  public setupGame(settings: GameSettings<Iterable<Joker>>): void {
     this.settings = {
       ...settings,
       maxGuessTime: settings.maxGuessTime * 1000,

@@ -12,6 +12,7 @@ import {
   LogLevel,
   MAX_GUESS_LENGTH,
   type Participant,
+  type SerializedError,
   STATIC_FILES_DIR,
   TEMP_FILES_DIR,
   TimeBonus,
@@ -21,10 +22,13 @@ import {
 import { userDataCache } from '../src/helper.js';
 import { generateResultsImage, isPlaywrightExecutableInstalled } from '../src/export_results.js';
 import { LogCategory, type LogContext, logger } from '../src/utils/logger.js';
-import { authenticateUser, createFetchGameMiddleware } from './middleware.js';
 import { exchangeCodeForToken } from '../src/utils/discord.js';
 import { generateSampleTimeBonusSummary, SAMPLE_PARTICIPANTS } from '../src/utils/samples.js';
+
+import { authenticateUser, createFetchGameMiddleware, validateBody, validateParams } from './middleware.js';
 import { ApiError } from './errors.js';
+import type { Guard } from './guards.js';
+import * as g from './guards.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,11 +41,9 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
   router.use(`/${INSTANCE_PATH}`, fetchGame);
 
   router.post('/auth/token', async (req, res) => {
-    const { code } = req.body;
-
-    if (!code) {
-      throw new ApiError(400, 'Missing property: code', req);
-    }
+    const { code } = validateBody(req, {
+      code: g.isString.andNonEmpty(),
+    });
 
     try {
       const accessToken = await exchangeCodeForToken(code);
@@ -53,14 +55,19 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
   });
 
   router.post('/log', (req, res) => {
-    const { level, message, instanceId, userId, error } = req.body ?? {};
+    const isSerializedError: Guard<SerializedError> = g.isObjectWith({
+      name: g.isString.andNonEmpty(),
+      message: g.isString.andNonEmpty(),
+      stack: g.isString.orUndefined(),
+    });
 
-    if (!message) {
-      throw new ApiError(400, 'Missing property: message', req);
-    }
-    if (typeof level !== 'number' || !(level in LogLevel)) {
-      throw new ApiError(400, `Unknown log level ${level}`, req);
-    }
+    const { level, message, instanceId, userId, error } = validateBody(req, {
+      level: g.isEnumValue(LogLevel).else(val => `Unknown log level ${val}`),
+      message: g.isString.andNonEmpty(),
+      instanceId: g.isString.andNonEmpty().orUndefined(),
+      userId: g.isString.andNonEmpty().orUndefined(),
+      error: g.isEither(g.isString, isSerializedError).orUndefined(),
+    });
 
     const logContext: LogContext = {
       instanceId,
@@ -74,7 +81,10 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
   });
 
   router.patch(`/${INSTANCE_PATH}/ready`, authenticateUser, async (req, res) => {
-    const isReady = req.body.ready;
+    const { ready: isReady } = validateBody(req, {
+      ready: g.isBoolean,
+    });
+
     const userId = req.userId!;
     const game = req.game!;
 
@@ -92,27 +102,21 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
   });
 
   router.patch(`/${INSTANCE_PATH}/round/:roundNumber/ready`, authenticateUser, async (req, res) => {
-    const roundParam = req.params.roundNumber as string | undefined;
-    if (!roundParam) {
-      throw new ApiError(400, 'Missing path parameter: roundNumber', req);
-    }
+    const { roundNumber } = validateParams(req, {
+      roundNumber: g.isInteger.andPositive(),
+    });
 
-    const isReady = req.body.ready as boolean | undefined;
-    if (isReady === undefined) {
-      throw new ApiError(400, 'Missing property: ready', req);
-    }
-    const setupDuration = req.body.setupDuration as number | undefined;
-    if (setupDuration === undefined) {
-      throw new ApiError(400, 'Missing property: setupDuration', req);
-    }
+    const { ready: isReady, setupDuration } = validateBody(req, {
+      ready: g.isBoolean,
+      setupDuration: g.isNumber.andFinite(),
+    });
 
     const userId = req.userId!;
     const game = req.game!;
 
     // Check if current game state conflicts with the request
-    const targetRound = parseInt(roundParam, 10);
-    if (targetRound !== game.state.round) {
-      throw new ApiError(409, `Round ${targetRound} is not active. Current round: ${game.state.round}`, req);
+    if (roundNumber !== game.state.round) {
+      throw new ApiError(409, `Round ${roundNumber} is not active. Current round: ${game.state.round}`, req);
     }
     if (game.state.phase !== GamePhase.PLAYING || !game.trackInfo) {
       throw new ApiError(409, 'Game does not accept ready-to-play signals yet. No track selected', req);
@@ -164,7 +168,11 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
   });
 
   router.patch(`/${INSTANCE_PATH}/jokers`, authenticateUser, async (req, res) => {
-    const { jokerType, targetId } = req.body;
+    const { jokerType, targetId } = validateBody(req, {
+      jokerType: g.isEnumValue(Joker).else(val => `Invalid joker type: ${val}`),
+      targetId: g.isString.andNonEmpty().orUndefined(),
+    });
+
     const userId = req.userId!;
     const game = req.game!;
 
@@ -219,16 +227,15 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
   });
 
   router.post(`/${INSTANCE_PATH}/guesses`, authenticateUser, async (req, res) => {
-    const guess = req.body?.guess;
+    const { guess } = validateBody(req, {
+      guess: g.isString.ofLength(1, MAX_GUESS_LENGTH),
+    });
+
     const userId = req.userId!;
     const game = req.game!;
 
     if (!game.registeredUsers.has(userId)) {
       throw new ApiError(403, `User ${userId} is not registered with this instance.`, req);
-    }
-
-    if (guess.length > MAX_GUESS_LENGTH) {
-      throw new ApiError(400, `Guess must be between 1 and ${MAX_GUESS_LENGTH} characters.`, req);
     }
 
     const { current, total } = game.submitGuess(userId, guess);
@@ -318,14 +325,9 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
   });
 
   router.get(`/samples/time-bonus/:timeBonusType/summary`, async (req, res) => {
-    const bonusType = req.params.timeBonusType as TimeBonus | undefined;
-
-    if (!bonusType) {
-      return res.send({
-        participants: SAMPLE_PARTICIPANTS,
-        timeBonusSummary: null,
-      });
-    }
+    const { timeBonusType: bonusType } = validateParams(req, {
+      timeBonusType: g.isEnumValue(TimeBonus),
+    });
 
     const participants: Participant[] = SAMPLE_PARTICIPANTS;
     const timeBonusSummary: TimeBonusSummary = generateSampleTimeBonusSummary(bonusType);
