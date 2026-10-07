@@ -1,8 +1,10 @@
 import { useSignal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
+
+import { capitalize, getAvatarUrl, getDisplayName, Participant, Tag } from '@yasq/shared';
+
 import { gameStatus, participants, useBackend } from '@yasq/client/src/globals';
-import { getAvatarUrl, getDisplayName, Participant, Tag } from '@yasq/shared';
-import { capitalize, findUser } from '../../utils/helper';
+import { findUser } from '../../utils/helper';
 
 import { NonDraggableImg } from '@components/NonDraggableImg';
 import { RoundBubblesGroup } from '@components/RoundBubble';

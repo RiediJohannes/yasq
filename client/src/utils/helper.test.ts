@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
+
 import { Participant } from '@yasq/shared';
-import { capitalize, findUser, formatBonusMultiplier, getActionKeyLabel, getGameDuration } from './helper';
+
+import { findUser, formatBonusMultiplier, getActionKeyLabel, getGameDuration } from './helper';
 
 const mockParticipants: Participant[] = [
   { id: '1', username: 'MockPlayer1' },
@@ -25,16 +27,6 @@ describe('findUser', () => {
   it('should return default unknown user if not in participants list or cache', () => {
     const user = findUser(mockParticipants, '999');
     expect(user).toEqual({ id: '0', username: 'Unknown' });
-  });
-});
-
-describe('capitalize', () => {
-  it('should properly capitalize snake_case strings', () => {
-    expect(capitalize('hello_world')).toBe('Hello World');
-  });
-
-  it('should handle single words and casing correctly', () => {
-    expect(capitalize('TEST_STRING_value')).toBe('Test String Value');
   });
 });
 

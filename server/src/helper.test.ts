@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { validateToken, invalidateToken, filterDiscordTextChannels } from './helper.js';
 import { ChannelType } from 'discord-api-types/v10';
+import { execSync } from 'child_process';
+
+import { validateToken, invalidateToken, filterDiscordTextChannels, getAudioDuration } from './helper.js';
 
 describe('validateToken', () => {
   beforeEach(() => {
@@ -109,5 +111,52 @@ describe('filterDiscordTextChannels', () => {
 
   it('should handle an empty array gracefully', () => {
     expect(filterDiscordTextChannels([])).toEqual([]);
+  });
+});
+
+vi.mock('child_process', () => ({
+  execSync: vi.fn(),
+}));
+
+describe('getAudioDuration', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should correctly format valid seconds output from ffprobe', () => {
+    // Mock execSync to return 135.5 seconds (2 minutes 15 seconds)
+    vi.mocked(execSync).mockReturnValue('135.5\n' as any);
+
+    const duration = getAudioDuration('/path/to/track.mp3');
+
+    expect(duration).toBe('2:15');
+    expect(execSync).toHaveBeenCalledWith(expect.stringContaining('ffprobe'), expect.any(Object));
+  });
+
+  it('should pad single-digit seconds correctly', () => {
+    // Mock execSync to return 65 seconds (1 minute 5 seconds)
+    vi.mocked(execSync).mockReturnValue('65\n' as any);
+
+    const duration = getAudioDuration('/path/to/track.mp3');
+
+    expect(duration).toBe('1:05');
+  });
+
+  it('should return "Unknown" if ffprobe returns non-numeric output', () => {
+    vi.mocked(execSync).mockReturnValue('N/A\n' as any);
+
+    const duration = getAudioDuration('/path/to/track.mp3');
+
+    expect(duration).toBe('Unknown');
+  });
+
+  it('should return "Unknown" if execSync throws an error (e.g. file missing or ffprobe error)', () => {
+    vi.mocked(execSync).mockImplementation(() => {
+      throw new Error('Command failed');
+    });
+
+    const duration = getAudioDuration('/path/to/missing.mp3');
+
+    expect(duration).toBe('Unknown');
   });
 });

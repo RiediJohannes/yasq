@@ -83,6 +83,7 @@ export const SAMPLE_DATA_DIR: string = 'sample';
 export const TEMP_FILES_DIR: string = 'temp';
 export const GAME_COVERS_DIR: string = 'game_covers';
 export const TRACK_AUDIO_DIR: string = 'music';
+export const DATABASE_DIR: string = 'db';
 
 export const RoundTimings = {
   COUNTDOWN_DURATION: 3000,

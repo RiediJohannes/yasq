@@ -1,3 +1,11 @@
+import MersenneTwister from 'mersenne-twister';
+import sharp from 'sharp';
+import path from 'path';
+import fs from 'fs';
+import fsAsync from 'fs/promises';
+import { fileURLToPath } from 'url';
+import { clearTimeout } from 'node:timers';
+
 import {
   AchievementBonusType,
   BASE_POINTS,
@@ -24,17 +32,12 @@ import {
   TRACK_AUDIO_DIR,
   type TrackInfo,
 } from '@yasq/shared';
-import MersenneTwister from 'mersenne-twister';
+
 import { getCachedDisplayName, getFilePath, hash } from '../helper.js';
-import sharp from 'sharp';
-import path from 'path';
-import fs from 'fs';
-import fsAsync from 'fs/promises';
 import { LogCategory, logger } from '../utils/logger.js';
-import { fileURLToPath } from 'url';
 import { Leaderboard, LeaderboardEntry, RoundResult, RoundSummary } from './leaderboard.js';
 import { GameStats } from './game_stats.js';
-import { clearTimeout } from 'node:timers';
+import { saveLeaderboard } from '../db.js';
 
 type UserId = string;
 
@@ -364,6 +367,7 @@ export class GameInstance {
       this.leaderboard.sort();
       this.lastWinnerId = this.leaderboard.getWinnerId();
       this.gameStats.endTime = Date.now();
+      saveLeaderboard(this.leaderboard);
     } else {
       this.state.phase = GamePhase.TRACK_SELECTION;
       this.state.round += 1;

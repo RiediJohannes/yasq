@@ -1,10 +1,11 @@
 import { useSignal } from '@preact/signals';
 
+import { AchievementBonusType, capitalize, Joker } from '@yasq/shared';
+
 import { gameStatus, participants, useBackend } from '@yasq/client/src/globals';
-import { AchievementBonusType, Joker } from '@yasq/shared';
 import { PLAYER_TIME_BONUS_LABELS } from '../../common/constants';
 import { OptionalTimeBonus, TOptionalTimeBonus } from '../../common/types';
-import { capitalize, formatBonusMultiplier } from '../../utils/helper';
+import { formatBonusMultiplier } from '../../utils/helper';
 import { useRovingTabIndex } from '../hooks/useRovingTabIndex';
 import { useTimeBonusSamples } from '../hooks/useTimeBonusSamples';
 

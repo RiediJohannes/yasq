@@ -1,8 +1,8 @@
 import { useSignal } from '@preact/signals';
 import { useEffect, useRef } from 'preact/hooks';
 
-import { audioPlayer, gameStatus, isMac, participants, useBackend } from '@yasq/client/src/globals';
 import {
+  capitalize,
   getAvatarUrl,
   getDisplayName,
   Joker,
@@ -12,9 +12,11 @@ import {
   RoundTimings,
   Tag,
 } from '@yasq/shared';
+
+import { audioPlayer, gameStatus, isMac, participants, useBackend } from '@yasq/client/src/globals';
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
 import { getSyncedServerTime } from '../../backend/timing';
-import { capitalize, findUser, getActionKeyLabel } from '../../utils/helper';
+import { findUser, getActionKeyLabel } from '../../utils/helper';
 
 import { ALL_JOKER_ICONS } from '@components/Icons';
 import { NonDraggableImg } from '@components/NonDraggableImg';

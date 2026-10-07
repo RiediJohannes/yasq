@@ -1,10 +1,11 @@
 import { useSignal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 
+import { capitalize, getAvatarUrl, getDisplayName } from '@yasq/shared';
+
 import { participants, useBackend } from '@yasq/client/src/globals';
-import { getAvatarUrl, getDisplayName } from '@yasq/shared';
-import { capitalize, findUser } from '../../utils/helper';
 import { ReviewData } from '../../common/types';
+import { findUser } from '../../utils/helper';
 
 import { ALL_JOKER_ICONS } from '@components/Icons';
 import { DiscordAvatar } from '@components/DiscordAvatar';

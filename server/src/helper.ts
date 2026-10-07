@@ -2,6 +2,8 @@ import type { Server } from 'socket.io';
 import fs from 'fs';
 import path from 'path';
 import { type APIChannel, type APITextChannel, ChannelType } from 'discord-api-types/v10';
+import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 import type { Request } from 'express';
 
 import type { GameInstance } from './models/game_instance.js';
@@ -16,7 +18,6 @@ import {
   UI_UPDATES_DELAY_IN_E2E,
 } from '@yasq/shared';
 import { getDiscordUser } from './utils/discord.js';
-import { fileURLToPath } from 'url';
 
 const tokenCache = new Map<string, { userId: string; expires: number }>();
 const TTL = 10 * 60 * 1000; // Cache for 10 minutes
@@ -156,6 +157,24 @@ export function getFilePath(fileName: string) {
   return isMockMode()
     ? path.join(__dirname, '..', '..', 'mock_data', fileName)
     : path.join(__dirname, '..', STATIC_FILES_DIR, getDataSourceDir(), fileName);
+}
+
+export function getAudioDuration(filePath: string): string {
+  try {
+    // Uses ffprobe to get the duration in seconds
+    const output = execSync(
+      `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`,
+      { encoding: 'utf8' }
+    );
+    const totalSeconds = parseFloat(output.trim());
+    if (isNaN(totalSeconds)) return 'Unknown';
+
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  } catch {
+    return 'Unknown';
+  }
 }
 
 export const hasQueryParams = (request: Request) => Object.keys(request.query).length > 0;

@@ -121,14 +121,14 @@ export const BoundaryTest = () => {
       <TooltipDiv
         id="tooltip-left"
         text={longText}
-        style={{ position: 'absolute', top: 10, left: 10 }}
+        style={{ position: 'absolute', top: '10px', left: '10px' }}
       >
         Top Left
       </TooltipDiv>
       <TooltipDiv
         id="tooltip-right"
         text={longText}
-        style={{ position: 'absolute', top: 10, right: 10 }}
+        style={{ position: 'absolute', top: '10px', right: '10px' }}
       >
         Top Right
       </TooltipDiv>

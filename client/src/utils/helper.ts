@@ -15,14 +15,6 @@ export function findUser(participants: Participant[], userId: string): Participa
   return userCache.get(userId) || { id: '0', username: 'Unknown' };
 }
 
-export function capitalize(str: string) {
-  return str
-    .toLowerCase()
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
-
 export function formatBonusMultiplier(rate: number): string {
   if (rate === 0) return 'Off';
   const percent = (Math.round(rate * 100 * 10) / 10).toFixed(1);

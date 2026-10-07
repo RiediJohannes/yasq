@@ -10,6 +10,7 @@ A Multiplayer Soundtrack Quiz built as a Discord Activity.
 - **npm**
 - **Discord Developer Account**
 - **cloudflared** (or other tunnel service)
+- **postgres** (optional)
 
 ### Installation
 
@@ -27,12 +28,12 @@ npm install
   - Set Redirect URI in OAuth2 settings to `https://127.0.0.1`
   - Make sure to add all additional test players as `App Testers`
 - (Optional) Turn on `iOS` and `Android` under `Supported Platforms` in Activity settings to allow users to open the activity on mobile devices
-- (Optional) If you want to be able to export your game results directly to Discord:
+- (Optional) If you want to be able to export your game results directly to Discord or use bot functionality:
   - Generate a Bot Token in the Bot settings section
   - Generate Invite Link in OAuth2 settings:
     - Set scope to `bot`
     - Set bot permissions to `Send Messages`, `Attach Files` and `Read Message History`
-    - Add bot to server via the invite link
+    - Add bot to server via the invite link (Permissions Integer should be `100352`)
 
 3. **Set up Environment Variables**\
    Create a `.env` file in the root directory:
@@ -44,6 +45,7 @@ DISCORD_CLIENT_SECRET=<Copy Client Secret from Discord Developer Portal>
 VITE_URL_MAPPING=<Fill Later>
 # Optional variables
 DISCORD_BOT_TOKEN=<Copy Bot Token from Discord Developer Portal>
+DATABASE_URL=<Postgres URL>
 LOG_LEVEL=<options: debug, info, warn, error> (defaults to 'info')
 DATA_SOURCE=<Relative path to quiz data> (see "Game Setup")
 ```
@@ -163,9 +165,9 @@ Within a given quiz directory (`quizDir`), data must be structured in the follow
    - `blacklist`: Everyone except users in `userIds` can see/play these files.
    - Default: Files not listed in any set are public to everyone.
 
-#### Entry Point Command (Optional)
+#### Commands (Optional)
 
-You can register an entry point command to allow players to launch the quiz directly from the chat interface.
+You can register commands to allow players to access some functionality via a bot.
 
 ```bash
 cd server
@@ -174,9 +176,33 @@ node commands.ts
 
 This requires a valid `DISCORD_BOT_TOKEN` to be set in the `.env` file.
 
+The following commands exist:
+
+| Command         | Description                           | Requirements      | Parameters                                                     |
+| :-------------- | :------------------------------------ | :---------------- | :------------------------------------------------------------- |
+| **`/test`**     | Test Command                          | None              | None                                                           |
+| **`/top`**      | View the top 5 YASQ players           | Postgres Database | None                                                           |
+| **`/rank`**     | View your YASQ rank                   | Postgres Database | `player` (User, Optional): Check another player's rank         |
+| **`/play`**     | Play your favourite YASQ track        | None              | `track` (String, Required): Search by track title or game name |
+| **`/playlist`** | Play your favourite YASQ playlist     | None              | `name` (String, Required): Search by playlist                  |
+| **`/skip`**     | Skip current track on YASQ playlist   | None              | None                                                           |
+| **`/leave`**    | Kick the bot out of the voice channel | None              | None                                                           |
+
+This also allows players to launch the activity directly from the chat interface via an Entry Point Command.
+
+#### Database (Optional)
+
+A local database can be set up to persist leaderboard data. For this, you need to set a local environment variable in your `.env` file:
+
+```dotenv
+DATABASE_PATH=<name>.db
+```
+
+Once the database is set up, the activity will write the final results to the database after every game, allowing users to query historic data via the bot.
+
 ## Testing
 
-The project contains various unit tests for the client and the server using vitest, integration tests to verify client-server communication, as well as end-to-end (E2E) and component-specific tests using Playwright to test the full app including correct behaviour of the client UI. To run the tests, execute the respective `npm` script in the project root:
+The project contains various unit tests for the client, server, and the shared library using vitest, integration tests to verify client-server communication, as well as end-to-end (E2E) and component-specific tests using Playwright to test the full app including correct behaviour of the client UI. To run the tests, execute the respective `npm` script in the project root:
 
 ### Unit Tests
 
@@ -186,6 +212,7 @@ npm run test:unit:coverage # with coverage report
 
 npm run test:unit:client   # only client tests
 npm run test:unit:server   # only server tests
+npm run test:unit:shared   # only shared tests
 ```
 
 ### Integration Tests

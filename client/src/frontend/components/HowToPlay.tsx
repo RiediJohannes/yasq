@@ -1,9 +1,10 @@
 import { useSignal } from '@preact/signals';
 
+import { capitalize } from '@yasq/shared';
+
 import { RadioGroup } from './RadioGroup';
 import { NonDraggableImg } from './NonDraggableImg';
 import { ALL_JOKER_ICONS } from './Icons';
-import { capitalize } from '../../utils/helper';
 
 export const HowToPlay = ({ isHost }: { isHost: boolean }) => {
   const activeTab = useSignal<'player' | 'host'>(isHost ? 'host' : 'player');
