@@ -56,7 +56,11 @@ export const test = base.extend<GameOptions & GameFixtures>({
 
       BackendApiFacade.BASE_URL = 'http://localhost:3001';
       const api = new TestBackendApi(instanceId);
-      const sessionData = sessionConfig.sessionData ?? {};
+
+      // Deep-clone to avoid mutations of the sessionData object affecting other tests
+      const sessionData = sessionConfig.sessionData ? structuredClone(sessionConfig.sessionData) : { instanceId };
+
+      sessionData.instanceId = instanceId;
 
       await api.setupSession(players, sessionData.state, sessionData);
       await page.goto('/?mock=true');

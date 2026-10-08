@@ -8,5 +8,6 @@ export default defineConfig({
       exclude: ['src/**/*.test.ts'],
       reporter: ['text', 'html'],
     },
+    fsModuleCache: true,
   },
 });

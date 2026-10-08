@@ -28,9 +28,9 @@ import { generateResultsImage } from '../src/ssr/export_results.js';
 import { LogCategory, logger } from '../src/utils/logger.js';
 import { getChannelsForGuild, postResultsToChannel } from '../src/utils/discord.js';
 
-import { authenticateUser, createFetchGameMiddleware, isHost, validateBody, validateParams } from './middleware.js';
+import { authenticateUser, createFetchGameMiddleware, defineSchema, isHost, validateRequest } from './middleware.js';
 import { ApiError } from './errors.js';
-import * as g from './guards.js';
+import { z } from 'zod';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -75,9 +75,11 @@ export const setupHostRoutes = (
 
   router.put(`/${INSTANCE_PATH}/transfer`, async (req, res) => {
     const game = req.game!;
-    const { newHostId } = validateBody(req, {
-      newHostId: g.isOneOf([...game.registeredUsers]).else('New host must be a registered user'),
+
+    const transferHostBodySchema = defineSchema({
+      newHostId: z.literal([...game.registeredUsers], 'New host must be a registered user'),
     });
+    const { newHostId } = validateRequest(req, transferHostBodySchema);
 
     game.hostId = newHostId;
     game.readyPlayers.delete(newHostId); // New host is not required to be ready
@@ -90,29 +92,33 @@ export const setupHostRoutes = (
     res.send({ status: 'success' });
   });
 
-  router.post(`/${INSTANCE_PATH}/setup`, async (req, res) => {
-    const maxAllowedGuessTime: number = Math.floor(INT32_MAX_VALUE / 1000) - RoundTimings.COUNTDOWN_DURATION;
+  const maxAllowedGuessTime: number = Math.floor(INT32_MAX_VALUE / 1000) - RoundTimings.COUNTDOWN_DURATION;
 
-    const { settings: validatedPayload } = validateBody(req, {
-      settings: g.isObjectWith({
-        rounds: g.isInteger.andPositive(),
-        maxGuessTime: g.isInteger
-          .inRange(1, maxAllowedGuessTime)
-          .else(`Guess time must be between 1 and ${maxAllowedGuessTime} seconds`),
-        enabledJokers: g.isArrayOf(g.isEnumValue(Joker)),
-        firstBonusMultiplier: g.isEnumValue(FirstBonusMultiplier),
-        timeBonus: g.isEnumValue(TimeBonus).orNull(),
-        streakBonusMultiplier: g.isEnumValue(StreakBonusMultiplier),
-        achievementBonuses: g
-          .isObjectWith({
-            mode: g.isEnumValue(AchievementBonusMode),
-            enabledTypes: g.isArrayOf(g.isEnumValue(AchievementBonusType)),
-            randomCount: g.isInteger.andNonNegative(),
-          })
-          .orUndefined(),
-      }),
-    });
-    const settings = GameSettings.withJokerArray(validatedPayload);
+  const setupGameBodySchema = defineSchema({
+    settings: z.looseObject({
+      rounds: z.number().int().positive(),
+      maxGuessTime: z
+        .number()
+        .int()
+        .min(1, 'Guess time must be at least 1 second')
+        .max(maxAllowedGuessTime, `Guess time must not exceed ${maxAllowedGuessTime} seconds`),
+      enabledJokers: z.array(z.enum(Joker)),
+      firstBonusMultiplier: z.enum(FirstBonusMultiplier),
+      timeBonus: z.enum(TimeBonus).nullable(),
+      streakBonusMultiplier: z.enum(StreakBonusMultiplier),
+      achievementBonuses: z
+        .object({
+          mode: z.enum(AchievementBonusMode),
+          enabledTypes: z.array(z.enum(AchievementBonusType)),
+          randomCount: z.number().int().nonnegative(),
+        })
+        .optional(),
+    }),
+  });
+
+  router.post(`/${INSTANCE_PATH}/setup`, async (req, res) => {
+    const { settings: validatedSettings } = validateRequest(req, setupGameBodySchema);
+    const settings = GameSettings.withJokerArray(validatedSettings);
     const game = req.game!;
 
     game.setupGame(settings);
@@ -156,8 +162,12 @@ export const setupHostRoutes = (
     res.send({ status: GamePhase.TRACK_SELECTION });
   });
 
+  const playTrackBodySchema = defineSchema({
+    fileName: z.string().trim().nonempty(),
+  });
+
   router.post(`/${INSTANCE_PATH}/tracks/play`, async (req, res) => {
-    const { fileName } = validateBody(req, { fileName: g.isString.andNonEmpty() });
+    const { fileName } = validateRequest(req, playTrackBodySchema);
     const userId = req.userId!;
     const game = req.game!;
 
@@ -221,8 +231,12 @@ export const setupHostRoutes = (
     });
   });
 
+  const postRoundResultsBodySchema = defineSchema({
+    corrections: z.record(z.string(), z.number()),
+  });
+
   router.post(`/${INSTANCE_PATH}/round-results`, async (req, res) => {
-    const { corrections } = validateBody(req, { corrections: g.isRecordOf(g.isNumber) });
+    const { corrections } = validateRequest(req, postRoundResultsBodySchema);
     const game = req.game!;
 
     logger.debug(
@@ -278,8 +292,12 @@ export const setupHostRoutes = (
     res.send({ status: newState });
   });
 
+  const exportResultsBodySchema = defineSchema({
+    channelId: z.string().trim().nonempty(),
+  });
+
   router.post(`/${INSTANCE_PATH}/results/send`, async (req, res) => {
-    const { channelId } = validateBody(req, { channelId: g.isString.andNonEmpty() });
+    const { channelId } = validateRequest(req, exportResultsBodySchema);
     const game = req.game!;
 
     if (game.state.phase !== GamePhase.FINAL_RESULTS) {
@@ -313,10 +331,12 @@ export const setupHostRoutes = (
     }
   });
 
+  const getDiscordChannelsParamsSchema = defineSchema({
+    guildId: z.string().trim().nonempty(),
+  });
+
   router.get(`/${INSTANCE_PATH}/guild/:guildId/channels`, fetchGame, async (req, res) => {
-    const { guildId } = validateParams(req, {
-      guildId: g.isString,
-    });
+    const { guildId } = validateRequest(req, { params: getDiscordChannelsParamsSchema });
     const game = req.game!;
 
     // Return empty list if bot token is not set
