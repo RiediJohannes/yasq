@@ -3,7 +3,7 @@ import { Player } from './helper';
 import { AuthenticationResult, BackendApiFacade } from '@yasq/client/src/backend/apiFacade';
 
 export interface TestGameState {
-  phase: GamePhase;
+  phase: GamePhase | string;
   game?: number;
   round?: number;
   playback?: Playback | null;

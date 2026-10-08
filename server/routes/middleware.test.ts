@@ -1,17 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import type { Request } from 'express';
-import { validateBody, validateParams } from './middleware.js';
+import { z } from 'zod';
+import { defineSchema, SanitizationMode, type UntypedObject, validateRequest } from './middleware.js';
 import { ApiError } from './errors.js';
-import type { RawObject } from './guards.js';
-import * as g from './guards.js';
 
 interface MockRequestOptions {
-  body?: RawObject;
-  params?: RawObject;
-  query?: RawObject;
+  body?: UntypedObject;
+  params?: UntypedObject;
+  query?: UntypedObject;
 }
 
-/** Creates a minimum-viable Express Request object with the specified body, path params and query params or empty placeholders */
+/** Creates a mock express {@link Request} object with optional body, path params, and query params */
 const mockRequest = ({ body = {}, params = {}, query = {} }: MockRequestOptions = {}): Request =>
   ({
     body,
@@ -22,122 +21,110 @@ const mockRequest = ({ body = {}, params = {}, query = {} }: MockRequestOptions 
     url: '/test',
   }) as Request;
 
-describe('validateBody', () => {
-  it('should return an object with the given property values if the payload was valid', () => {
-    const payload = { isReady: true, rounds: 5, user: { id: '123', name: 'Player 1' } };
-    const req = mockRequest({ body: payload });
+describe('validateRequest', () => {
+  describe('Single Schema (Body) Validation', () => {
+    it('should validate a single body schema and return the parsed data', () => {
+      const bodySchema = z.object({
+        isReady: z.boolean(),
+        rounds: z.number().int().positive(),
+      });
 
-    const result = validateBody(req, {
-      isReady: g.isBoolean,
-      rounds: g.isInteger.andPositive(),
-      user: g.isObjectWith({
-        id: g.isString.andNonEmpty(),
-        name: g.isString,
-        age: g.isInteger.orUndefined(),
-      }),
+      const payload = { isReady: true, rounds: 5 };
+      const req = mockRequest({ body: payload });
+
+      const result = validateRequest(req, bodySchema);
+
+      expect(result).toEqual(payload);
     });
 
-    expect(result).toEqual(payload);
-  });
+    it('should throw ApiError 400 with "Missing body property" when a required field is absent', () => {
+      const schema = z.object({ title: z.string() });
+      const req = mockRequest({ body: {} });
 
-  it('should throw ApiError 400 with "Missing property" when encountering a missing required field', () => {
-    const schema = { isReady: g.isBoolean };
-    const req = mockRequest();
-
-    expect(() => validateBody(req, schema)).toThrow(ApiError);
-    expect(() => validateBody(req, schema)).toThrow('Missing property: isReady');
-  });
-
-  it("should throw ApiError 400 with the guard's description for an invalid property", () => {
-    const schema = { isReady: g.isBoolean };
-    const req = mockRequest({ body: { isReady: 'yes' } });
-
-    expect(() => validateBody(req, schema)).toThrow(ApiError);
-    expect(() => validateBody(req, schema)).toThrow("Property 'isReady' must be a boolean");
-  });
-
-  it('should allow optional properties to be absent without throwing', () => {
-    const schema = {
-      joker: g.isString.andNonEmpty(),
-      targetId: g.isString.orUndefined(),
-    };
-
-    const req1 = mockRequest({ body: { joker: 'someJoker' } });
-    const result1 = validateBody(req1, schema);
-    expect(result1.joker).toBe('someJoker');
-    expect(result1.targetId).toBeUndefined();
-
-    const req2 = mockRequest({ body: { joker: 'spyJoker', targetId: 'player2' } });
-    const result2 = validateBody(req2, schema);
-    expect(result2.joker).toBe('spyJoker');
-    expect(result2.targetId).toBe('player2');
-  });
-
-  it('should prioritize custom error message when throwing ApiError', () => {
-    const req = mockRequest({
-      body: {
-        settings: { maxGuessTime: 120 },
-      },
+      expect(() => validateRequest(req, schema)).toThrow(ApiError);
+      expect(() => validateRequest(req, schema)).toThrow('Missing body property: title');
     });
 
-    const schema = {
-      settings: g.isObjectWith({
-        maxGuessTime: g.isInteger.inRange(1, 100).else('Guess time must not exceed 100'),
-      }),
-    };
+    it('should throw ApiError 400 when a body property fails type validation', () => {
+      const schema = z.object({ isReady: z.boolean() });
+      const req = mockRequest({ body: { isReady: 'yes' } });
 
-    expect(() => validateBody(req, schema)).toThrow(ApiError);
-    expect(() => validateBody(req, schema)).toThrow('Guess time must not exceed 100');
-  });
-});
-
-describe('validateParams', () => {
-  it('should successfully parse and coerce path parameters to their typed equivalents', () => {
-    const req = mockRequest({
-      params: {
-        roundNumber: '3',
-        isActive: 'true',
-        instanceId: 'game-123',
-      },
-    });
-
-    const result = validateParams(req, {
-      roundNumber: g.isInteger.andPositive(),
-      isActive: g.isBoolean,
-      instanceId: g.isString.andNonEmpty(),
-    });
-
-    expect(result).toEqual({
-      roundNumber: 3,
-      isActive: true,
-      instanceId: 'game-123',
+      expect(() => validateRequest(req, schema)).toThrow(ApiError);
+      expect(() => validateRequest(req, schema)).toThrow(/Invalid body property 'isReady'/);
     });
   });
 
-  it('should throw ApiError 400 with "Missing path parameter" when encountering a missing required path parameter', () => {
-    const schema = { roundNumber: g.isInteger.andPositive() };
-    const req = mockRequest();
+  describe('Multi-Component Request Validation', () => {
+    it('should validate and flatten body, params, and query schemas into a single object', () => {
+      const schemas = {
+        params: z.object({ id: z.string() }),
+        query: z.object({ includeDetails: z.boolean() }),
+        body: z.object({ title: z.string() }),
+      };
 
-    expect(() => validateParams(req, schema)).toThrow(ApiError);
-    expect(() => validateParams(req, schema)).toThrow('Missing path parameter: roundNumber');
+      const req = mockRequest({
+        params: { id: 'abc-123' },
+        query: { includeDetails: true },
+        body: { title: 'Soundtrack Quiz' },
+      });
+
+      const result = validateRequest(req, schemas);
+
+      expect(result).toEqual({
+        id: 'abc-123',
+        includeDetails: true,
+        title: 'Soundtrack Quiz',
+      });
+    });
+
+    it('should correctly format missing property errors for parameters and query components', () => {
+      const schemas = {
+        params: z.object({ roundId: z.string() }),
+        query: z.object({ filter: z.string() }),
+      };
+
+      const reqMissingParam = mockRequest({ params: {}, query: { filter: 'all' } });
+      expect(() => validateRequest(reqMissingParam, schemas)).toThrow('Missing params parameter: roundId');
+
+      const reqMissingQuery = mockRequest({ params: { roundId: '1' }, query: {} });
+      expect(() => validateRequest(reqMissingQuery, schemas)).toThrow('Missing query parameter: filter');
+    });
+
+    it('should throw a plain Error when a property name collision occurs across components', () => {
+      const schemas = {
+        params: z.object({ id: z.string() }),
+        body: z.object({ id: z.number() }), // Collision on 'id'
+      };
+
+      const req = mockRequest({
+        params: { id: '123' },
+        body: { id: 456 },
+      });
+
+      expect(() => validateRequest(req, schemas)).toThrow(Error);
+      expect(() => validateRequest(req, schemas)).toThrow(
+        "Property collision detected: Key 'id' exists in multiple request component schemas."
+      );
+    });
   });
 
-  it("should throw ApiError 400 with the guard's description for an invalid path parameter", () => {
-    const schema = { roundNumber: g.isInteger.andPositive() };
-    const req = mockRequest({ params: { roundNumber: 'invalid_number' } });
+  describe('Sanitization Modes & defineSchema', () => {
+    it('should throw an ApiError under strict sanitization when unknown properties are present', () => {
+      const strictSchema = defineSchema({ name: z.string() }, SanitizationMode.ERROR_ON_UNKNOWN_PROPERTIES);
 
-    expect(() => validateParams(req, schema)).toThrow(ApiError);
-    expect(() => validateParams(req, schema)).toThrow("Path parameter 'roundNumber' must be a positive integer");
-  });
+      const req = mockRequest({ body: { name: 'Player 1', unknownField: true } });
 
-  it('should prioritize custom error message when throwing ApiError on parameter validation failure', () => {
-    const req = mockRequest({ params: { roundNumber: '99' } });
+      expect(() => validateRequest(req, strictSchema)).toThrow(ApiError);
+    });
 
-    const schema = {
-      roundNumber: g.isInteger.inRange(1, 10).else('Round number must be between 1 and 10'),
-    };
+    it('should strip unknown properties by default (normal sanitization mode)', () => {
+      const normalSchema = defineSchema({ name: z.string() }, SanitizationMode.STRIP_UNKNOWN_PROPERTIES);
 
-    expect(() => validateParams(req, schema)).toThrow(ApiError);
-    expect(() => validateParams(req, schema)).toThrow('Round number must be between 1 and 10');
+      const req = mockRequest({ body: { name: 'Player 1', unknownField: true } });
+      const result = validateRequest(req, normalSchema);
+
+      expect(result).toEqual({ name: 'Player 1' });
+      expect(result).not.toHaveProperty('unknownField');
+    });
   });
 });

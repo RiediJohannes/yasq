@@ -41,7 +41,7 @@ export function setupWebsocketServer(httpServer: HttpServer, instances: Record<s
 
     socket.on(GameEvent.TIME_SYNCED, (_clientClockOffset: number, connectionLatency: number) => {
       const userId = socket.data.userId;
-      const game = instances[socket.data.instanceI];
+      const game = instances[socket.data.instanceId];
 
       if (userId && game) {
         game.clientLatencies.set(userId, Math.max(0, connectionLatency));

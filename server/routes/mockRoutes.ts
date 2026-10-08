@@ -4,11 +4,11 @@ import { GameInstance } from '../src/models/game_instance.js';
 import { Leaderboard } from '../src/models/leaderboard.js';
 import { LogCategory, logger } from '../src/utils/logger.js';
 import { INSTANCE_PATH } from '@yasq/shared';
-import { createFetchGameMiddleware, validateParams } from './middleware.js';
+import { createFetchGameMiddleware, defineSchema, validateRequest } from './middleware.js';
 import { ApiError } from './errors.js';
-import * as g from './guards.js';
 import { AchievementBonusManager } from '../src/models/achievement_bonus.js';
 import { userDataCache } from '../src/helper.js';
+import { z } from 'zod';
 
 export const setupMockRoutes = (
   instances: Record<string, GameInstance>,
@@ -17,10 +17,12 @@ export const setupMockRoutes = (
   const fetchGame = createFetchGameMiddleware(instances);
   const router = express.Router();
 
+  const createInstanceParamsSchema = defineSchema({
+    instanceId: z.string().trim().nonempty(),
+  });
+
   router.post(`/${INSTANCE_PATH}`, (req, res) => {
-    const { instanceId } = validateParams(req, {
-      instanceId: g.isString.andNonEmpty(),
-    });
+    const { instanceId } = validateRequest(req, createInstanceParamsSchema);
 
     const createdGame = setMockState(req.body);
     createdGame.onUpdate = notifyGameSubscribers;

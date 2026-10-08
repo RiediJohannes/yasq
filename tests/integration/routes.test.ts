@@ -5,8 +5,10 @@ import {
   deserializeError,
   FirstBonusMultiplier,
   GamePhase,
+  INT32_MAX_VALUE,
   Joker,
   LogLevel,
+  RoundTimings,
   serializeError,
   StreakBonusMultiplier,
   TimeBonus,
@@ -170,7 +172,8 @@ describe('setupGame', () => {
     const body = await response.json();
 
     expect(response.status).toBe(400);
-    expect(body.error).toContain("Property 'rounds' must be a positive integer (greater than 0)");
+    expect(body.error).toContain('settings.rounds');
+    expect(body.error).toContain('Too small - expected number to be >0');
   });
 
   it('should return 400 Bad Request when guess time exceeds the maximum allowed value', async () => {
@@ -185,7 +188,9 @@ describe('setupGame', () => {
     const body = await response.json();
 
     expect(response.status).toBe(400);
-    expect(body.error).toContain('Guess time must be between 1 and');
+
+    const maxAllowedGuessTime: number = Math.floor(INT32_MAX_VALUE / 1000) - RoundTimings.COUNTDOWN_DURATION;
+    expect(body.error).toContain(`Guess time must not exceed ${maxAllowedGuessTime} seconds`);
   });
 
   it('should return 403 Forbidden when non-host player tries to setup game', async () => {
@@ -279,7 +284,7 @@ describe('submitGuess', () => {
     const body = await response.json();
 
     expect(response.status).toBe(400);
-    expect(body.error).toContain("Property 'guess' must be a string of 1 to 100 characters");
+    expect(body.error).toContain('Guess must be between 1 and 100 characters');
   });
 });
 
@@ -466,9 +471,9 @@ describe('clientLogs', () => {
 
   it('should return 400 Bad Request when log message is missing', async () => {
     const expectedStatusCode = 400;
-    const expectedMessage = 'Missing property: message';
+    const expectedMessage = 'Missing body property: message';
 
-    const response = await player1Facade.logToServer(LogLevel.INFO, undefined);
+    const response = await player1Facade.logToServer(LogLevel.INFO, undefined!);
 
     // Response includes the correct status code and error message
     expect(response.status).toBe(expectedStatusCode);
@@ -501,7 +506,7 @@ describe('clientLogs', () => {
     // Response includes the correct status code and error message
     expect(response.status).toBe(expectedStatusCode);
     const data = await response.json();
-    expect(data.error).toBe(expectedMessage);
+    expect(data.error).toContain(expectedMessage);
 
     // Additionally, a domain exception was logged on the server-side
     expect(loggerSpy).toHaveBeenCalledTimes(1);
@@ -512,7 +517,7 @@ describe('clientLogs', () => {
       expect.objectContaining({
         error: expect.objectContaining({
           name: 'ApiError',
-          message: expectedMessage,
+          message: expect.stringContaining(expectedMessage),
           statusCode: expectedStatusCode,
         }),
       })

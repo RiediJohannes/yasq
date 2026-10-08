@@ -12,7 +12,6 @@ import {
   LogLevel,
   MAX_GUESS_LENGTH,
   type Participant,
-  type SerializedError,
   STATIC_FILES_DIR,
   TEMP_FILES_DIR,
   TimeBonus,
@@ -25,10 +24,9 @@ import { LogCategory, type LogContext, logger } from '../src/utils/logger.js';
 import { exchangeCodeForToken } from '../src/utils/discord.js';
 import { generateSampleTimeBonusSummary, SAMPLE_PARTICIPANTS } from '../src/utils/samples.js';
 
-import { authenticateUser, createFetchGameMiddleware, validateBody, validateParams } from './middleware.js';
+import { authenticateUser, createFetchGameMiddleware, defineSchema, validateRequest } from './middleware.js';
 import { ApiError } from './errors.js';
-import type { Guard } from './guards.js';
-import * as g from './guards.js';
+import { z } from 'zod';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,10 +38,12 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
   // Automatically run this middleware for all paths starting with an instance resource identifier
   router.use(`/${INSTANCE_PATH}`, fetchGame);
 
+  const requestAuthTokenBodySchema = defineSchema({
+    code: z.string().trim().nonempty(),
+  });
+
   router.post('/auth/token', async (req, res) => {
-    const { code } = validateBody(req, {
-      code: g.isString.andNonEmpty(),
-    });
+    const { code } = validateRequest(req, requestAuthTokenBodySchema);
 
     try {
       const accessToken = await exchangeCodeForToken(code);
@@ -54,20 +54,25 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
     }
   });
 
-  router.post('/log', (req, res) => {
-    const isSerializedError: Guard<SerializedError> = g.isObjectWith({
-      name: g.isString.andNonEmpty(),
-      message: g.isString.andNonEmpty(),
-      stack: g.isString.orUndefined(),
-    });
+  const serializedErrorSchema = z.object({
+    name: z.string().trim().nonempty(),
+    message: z.string().trim().nonempty(),
+    stack: z.string().optional(),
+  });
 
-    const { level, message, instanceId, userId, error } = validateBody(req, {
-      level: g.isEnumValue(LogLevel).else(val => `Unknown log level ${val}`),
-      message: g.isString.andNonEmpty(),
-      instanceId: g.isString.andNonEmpty().orUndefined(),
-      userId: g.isString.andNonEmpty().orUndefined(),
-      error: g.isEither(g.isString, isSerializedError).orUndefined(),
-    });
+  const logSchema = defineSchema({
+    // Needs to replace LogLevel with Object.values(LogLevel) as [string, ...string[]] ?
+    level: z.enum(LogLevel, {
+      error: issue => `Unknown log level ${issue.input}`,
+    }),
+    message: z.string().trim().nonempty(),
+    instanceId: z.string().nonempty().optional(),
+    userId: z.string().nonempty().optional(),
+    error: z.union([z.string(), serializedErrorSchema]).optional(),
+  });
+
+  router.post('/log', (req, res) => {
+    const { level, message, instanceId, userId, error } = validateRequest(req, logSchema);
 
     const logContext: LogContext = {
       instanceId,
@@ -80,10 +85,12 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
     res.sendStatus(200);
   });
 
+  const setReadyBodySchema = defineSchema({
+    ready: z.boolean(),
+  });
+
   router.patch(`/${INSTANCE_PATH}/ready`, authenticateUser, async (req, res) => {
-    const { ready: isReady } = validateBody(req, {
-      ready: g.isBoolean,
-    });
+    const { ready: isReady } = validateRequest(req, setReadyBodySchema);
 
     const userId = req.userId!;
     const game = req.game!;
@@ -101,14 +108,23 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
     });
   });
 
-  router.patch(`/${INSTANCE_PATH}/round/:roundNumber/ready`, authenticateUser, async (req, res) => {
-    const { roundNumber } = validateParams(req, {
-      roundNumber: g.isInteger.andPositive(),
-    });
+  const setRoundReadyParamsSchema = defineSchema({
+    roundNumber: z.coerce.number().int().positive(),
+  });
 
-    const { ready: isReady, setupDuration } = validateBody(req, {
-      ready: g.isBoolean,
-      setupDuration: g.isNumber.andFinite(),
+  const setRoundReadyBodySchema = defineSchema({
+    ready: z.boolean(),
+    setupDuration: z.number(),
+  });
+
+  router.patch(`/${INSTANCE_PATH}/round/:roundNumber/ready`, authenticateUser, async (req, res) => {
+    const {
+      roundNumber,
+      ready: isReady,
+      setupDuration,
+    } = validateRequest(req, {
+      params: setRoundReadyParamsSchema,
+      body: setRoundReadyBodySchema,
     });
 
     const userId = req.userId!;
@@ -167,11 +183,13 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
     });
   });
 
+  const useJokerBodySchema = defineSchema({
+    jokerType: z.enum(Joker),
+    targetId: z.string().trim().nonempty().optional(),
+  });
+
   router.patch(`/${INSTANCE_PATH}/jokers`, authenticateUser, async (req, res) => {
-    const { jokerType, targetId } = validateBody(req, {
-      jokerType: g.isEnumValue(Joker).else(val => `Invalid joker type: ${val}`),
-      targetId: g.isString.andNonEmpty().orUndefined(),
-    });
+    const { jokerType, targetId } = validateRequest(req, useJokerBodySchema);
 
     const userId = req.userId!;
     const game = req.game!;
@@ -226,10 +244,12 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
     });
   });
 
+  const sendGuessBodySchema = defineSchema({
+    guess: z.string().max(MAX_GUESS_LENGTH, 'Guess must be between 1 and 100 characters'),
+  });
+
   router.post(`/${INSTANCE_PATH}/guesses`, authenticateUser, async (req, res) => {
-    const { guess } = validateBody(req, {
-      guess: g.isString.ofLength(1, MAX_GUESS_LENGTH),
-    });
+    const { guess } = validateRequest(req, sendGuessBodySchema);
 
     const userId = req.userId!;
     const game = req.game!;
@@ -326,10 +346,12 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
     });
   });
 
+  const getTimeBonusSampleBodySchema = defineSchema({
+    timeBonusType: z.enum(TimeBonus),
+  });
+
   router.get(`/samples/time-bonus/:timeBonusType/summary`, async (req, res) => {
-    const { timeBonusType: bonusType } = validateParams(req, {
-      timeBonusType: g.isEnumValue(TimeBonus),
-    });
+    const { timeBonusType: bonusType } = validateRequest(req, getTimeBonusSampleBodySchema);
 
     const participants: Participant[] = SAMPLE_PARTICIPANTS;
     const timeBonusSummary: TimeBonusSummary = generateSampleTimeBonusSummary(bonusType);

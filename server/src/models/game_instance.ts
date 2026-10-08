@@ -467,7 +467,7 @@ export class GameInstance {
     if (isReady) {
       // Start a fallback timeout once the first client is ready to automatically start the round after some maximum waiting time
       if (this.readyClients.size === 0 && !this.roundStartTimeout) {
-        setTimeout(() => {
+        this.roundStartTimeout = setTimeout(() => {
           logger.debug(`Round start forced after ${MAX_ROUND_START_DELAY}ms`, LogCategory.GAME, this.instanceId);
           scheduleRoundStart();
         }, MAX_ROUND_START_DELAY - estimatedTimePassed);
