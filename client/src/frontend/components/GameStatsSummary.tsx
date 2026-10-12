@@ -1,20 +1,25 @@
-import { getAvatarUrl, getDisplayName, Participant } from '@yasq/shared';
+import { capitalize, getAvatarUrl, getDisplayName, Participant } from '@yasq/shared';
 import { findUser, getGameDuration } from '../../utils/helper';
 import { DiscordAvatar } from './DiscordAvatar';
 
-export const GameStatsSummary = ({ stats, participants }: { stats: any; participants: Participant[] }) => {
+export const GameStatsSummary = ({
+  stats,
+  achievements,
+  participants,
+}: {
+  stats: any;
+  achievements: Record<string, any>;
+  participants: Participant[];
+}) => {
   const highestTimeBonus = stats.bestScoringRound?.timeBonusSum ?? 0;
   const leastTimeBonus = stats.leastScoringRound?.timeBonusSum ?? 0;
 
-  const highestStreakUsers = stats.highestStreak?.userIds
-    ? stats.highestStreak.userIds.map((id: string) => findUser(participants, id)).filter(Boolean)
-    : [];
-
-  const fastestCorrectGuessUser = stats.fastestCorrectGuess
-    ? findUser(participants, stats.fastestCorrectGuess.roundResults.userId)
-    : null;
-
-  const statItems = [
+  const statItems: Array<{
+    label: string;
+    users: Participant[];
+    value: string | string[];
+    subValue?: string;
+  }> = [
     {
       label: 'Duration',
       users: [],
@@ -32,20 +37,17 @@ export const GameStatsSummary = ({ stats, participants }: { stats: any; particip
       value: stats.leastScoringRound ? `Round ${stats.leastScoringRound.roundResults[0]?.round || 'N/A'}` : 'N/A',
       subValue: `${leastTimeBonus} pts`,
     },
-    {
-      label: 'Highest Streak',
-      users: highestStreakUsers,
-      value: highestStreakUsers.map((u: Participant) => getDisplayName(u)),
-      subValue: stats.highestStreak ? `🔥 ${stats.highestStreak.streak}` : '',
-    },
-    {
-      label: 'Fastest Correct Guess',
-      users: fastestCorrectGuessUser ? [fastestCorrectGuessUser] : [],
-      value: fastestCorrectGuessUser ? [getDisplayName(fastestCorrectGuessUser)] : ['None'],
-      subValue: stats.fastestCorrectGuess
-        ? `${stats.fastestCorrectGuess.roundResults.time || 'N/A'}s (Round ${stats.fastestCorrectGuess.roundResults.round || 'N/A'})`
-        : '',
-    },
+    ...Object.entries(achievements).map(([ruleId, state]: [string, any]) => {
+      const users = state.userIds.map((id: string) => findUser(participants, id)).filter(Boolean);
+      const ruleName = capitalize(ruleId);
+
+      return {
+        label: ruleName,
+        users,
+        value: users.length > 0 ? users.map((u: Participant) => getDisplayName(u)) : ['None'],
+        subValue: formatSubValue(state),
+      };
+    }),
   ];
 
   return (
@@ -95,3 +97,20 @@ export const GameStatsSummary = ({ stats, participants }: { stats: any; particip
     </div>
   );
 };
+
+function formatSubValue(state: any): string {
+  if (!state.value && state.value !== 0) return '';
+
+  if (state.rule && state.rule.metric === 'guessTime') {
+    if (state.rule.aggregate === 'average') {
+      return `⌚ ${state.value.toFixed(1)}s`;
+    }
+    return `⌚ ${state.value.toFixed(1)}s (Round ${state.extraData?.round || 'N/A'})`;
+  }
+
+  if (state.rule && state.rule.metric === 'streak') {
+    return `🔥 ${state.value}`;
+  }
+
+  return `${state.value}`;
+}

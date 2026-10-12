@@ -4,20 +4,14 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { createServer } from 'http';
+import MockDate from 'mockdate';
 
 import { setupCommonRoutes } from './routes/commonRoutes.js';
 import { setupHostRoutes } from './routes/hostRoutes.js';
 import { handleErrors, handleNotFound } from './routes/errors.js';
 import { setMockState, setupMockRoutes } from './routes/mockRoutes.js';
 import { GameInstance } from './src/models/game_instance.js';
-import {
-  broadcastGameStatus,
-  getDataSourceDir,
-  getFilePath,
-  isMockMode,
-  setupTempDir,
-  userDataCache,
-} from './src/helper.js';
+import { broadcastGameStatus, getDataSourceDir, getFilePath, isMockMode, setupTempDir } from './src/helper.js';
 import {
   API_ROOT,
   GAME_COVERS_DIR,
@@ -157,11 +151,6 @@ function loadMockState(instances: Record<string, GameInstance>) {
 
     const game = setMockState(stateData);
 
-    userDataCache.clear();
-    for (const user of stateData.userData) {
-      userDataCache.set(user.id, user);
-    }
-
     instances[game.instanceId] = game;
 
     console.log(`[MOCK] Pre-loaded game state for instance: ${game.instanceId} from ${stateFile}`);
@@ -174,6 +163,7 @@ export function setupServer() {
   const instances: Record<string, GameInstance> = {};
 
   if (isMockMode()) {
+    MockDate.set('2026-02-01T12:00:00.000Z');
     loadMockState(instances);
   }
 

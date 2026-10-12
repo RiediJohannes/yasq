@@ -24,7 +24,7 @@ import {
 } from '@yasq/shared';
 import { filterDiscordTextChannels, getCachedDisplayName, userDataCache } from '../src/helper.js';
 import { isAllowed } from '../src/access_control.js';
-import { generateResultsImage } from '../src/export_results.js';
+import { generateResultsImage } from '../src/ssr/export_results.js';
 import { LogCategory, logger } from '../src/utils/logger.js';
 import { getChannelsForGuild, postResultsToChannel } from '../src/utils/discord.js';
 
@@ -259,7 +259,8 @@ export const setupHostRoutes = (
         game.temporaryDirectory(true),
         game.leaderboard,
         userDataCache,
-        game.gameStats
+        game.gameStats,
+        game.achievementBonusManager
       );
       logger.debug(
         `Final leaderboard: ${JSON.stringify(game.leaderboard.getAll(), null, 2)}`,
@@ -292,7 +293,8 @@ export const setupHostRoutes = (
         game.temporaryDirectory(true),
         game.leaderboard,
         userDataCache,
-        game.gameStats
+        game.gameStats,
+        game.achievementBonusManager
       );
     }
 

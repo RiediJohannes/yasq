@@ -17,10 +17,9 @@
     "jsx": "react-jsx",
     "jsxImportSource": "preact",
     "types": ["vite/client"],
-    "baseUrl": ".",
     "paths": {
-      "@views/*": ["src/frontend/views/*"],
-      "@components/*": ["src/frontend/components/*"],
+      "@views/*": ["./src/frontend/views/*"],
+      "@components/*": ["./src/frontend/components/*"],
       "@mock/*": ["../mock_data/*"]
     }
   },

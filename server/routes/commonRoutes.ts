@@ -20,7 +20,7 @@ import {
   type Track,
 } from '@yasq/shared';
 import { userDataCache } from '../src/helper.js';
-import { generateResultsImage, isPlaywrightExecutableInstalled } from '../src/export_results.js';
+import { generateResultsImage, isPlaywrightExecutableInstalled } from '../src/ssr/export_results.js';
 import { LogCategory, type LogContext, logger } from '../src/utils/logger.js';
 import { exchangeCodeForToken } from '../src/utils/discord.js';
 import { generateSampleTimeBonusSummary, SAMPLE_PARTICIPANTS } from '../src/utils/samples.js';
@@ -303,7 +303,8 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
           game.temporaryDirectory(true),
           game.leaderboard,
           userDataCache,
-          game.gameStats
+          game.gameStats,
+          game.achievementBonusManager
         );
       }
 
@@ -320,6 +321,7 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
     res.send({
       leaderboard: game.leaderboard.getAll() || [],
       gameStats: game.gameStats || {},
+      achievementBonuses: Object.fromEntries(game.achievementBonusManager.achievements || []),
       canExport: isPlaywrightExecutableInstalled(),
     });
   });

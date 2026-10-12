@@ -1,9 +1,4 @@
-import {
-  ACHIEVEMENT_BONUS_POINTS,
-  type AchievementBonusType,
-  type PointsBonus,
-  type TimeBonusSummary,
-} from '@yasq/shared';
+import { type AchievementBonusType, type PointsBonus, type TimeBonusSummary } from '@yasq/shared';
 
 export class RoundResult {
   constructor(
@@ -12,7 +7,7 @@ export class RoundResult {
     public points: number | null,
     public scoreValue: number,
     public isFirst: boolean,
-    public time: string | null,
+    public time: number | null,
     public awardedBonuses: PointsBonus[] = []
   ) {}
 }
@@ -25,7 +20,7 @@ export class LeaderboardEntry {
   public userId: string;
   public totalScore: number = 0;
   public roundHistory: RoundResult[] = [];
-  public achievementBonuses: Set<AchievementBonusType> = new Set();
+  public achievementBonuses: Map<AchievementBonusType, number> = new Map<AchievementBonusType, number>();
 
   constructor(userId: string) {
     this.userId = userId;
@@ -39,14 +34,14 @@ export class LeaderboardEntry {
     this.recalculateTotal();
   }
 
-  addAchievementBonus(type: AchievementBonusType) {
-    this.achievementBonuses.add(type);
+  addAchievementBonus(type: AchievementBonusType, reward: number) {
+    this.achievementBonuses.set(type, reward);
     this.recalculateTotal();
   }
 
   private recalculateTotal() {
     const roundPoints = this.roundHistory.reduce((sum, r) => sum + (r.points || 0), 0);
-    const achievementPoints = this.achievementBonuses.size * ACHIEVEMENT_BONUS_POINTS;
+    const achievementPoints = Array.from(this.achievementBonuses.values()).reduce((sum, reward) => sum + reward, 0);
     this.totalScore = roundPoints + achievementPoints;
   }
 
@@ -62,7 +57,9 @@ export class LeaderboardEntry {
     entry.roundHistory = (data.roundHistory || []).map(
       (r: any) => new RoundResult(r.round, r.guess, r.points, r.scoreValue, r.isFirst, r.time, r.awardedBonuses)
     );
-    entry.achievementBonuses = new Set(data.achievementBonuses || []);
+    entry.achievementBonuses = new Map<AchievementBonusType, number>(
+      data.achievementBonuses ? (Object.entries(data.achievementBonuses) as [AchievementBonusType, number][]) : []
+    );
     entry.recalculateTotal();
     return entry;
   }

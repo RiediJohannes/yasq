@@ -39,7 +39,7 @@
             "points": 220,
             "scoreValue": 1.0,
             "isFirst": true,
-            "time": "1.5",
+            "time": 1.5,
             "awardedBonuses": [
               { "type": "TIME_BONUS", "multiplier": 1.0 },
               { "type": "FIRST_BONUS", "multiplier": 0.2 }
@@ -57,7 +57,7 @@
             "points": 156,
             "scoreValue": 1.0,
             "isFirst": false,
-            "time": "27.0",
+            "time": 27.0,
             "awardedBonuses": [{ "type": "TIME_BONUS", "multiplier": 0.56 }]
           }
         ]
@@ -72,7 +72,7 @@
             "points": 0,
             "scoreValue": 0,
             "isFirst": false,
-            "time": "60.0",
+            "time": 60.0,
             "awardedBonuses": []
           }
         ]

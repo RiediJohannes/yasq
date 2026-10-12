@@ -1,15 +1,22 @@
 {
   "compilerOptions": {
     /* File Layout */
-    "rootDir": "./", // Or "./src" if your code is in a src folder
     "outDir": "./dist",
+    "noEmit": true,
 
     /* Environment Settings */
-    "module": "NodeNext", // Essential for modern Node.js ESM
+    "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "target": "ESNext",
-    "lib": ["ESNext"], // Modern JS features
-    "types": ["node"], // Tells TS to look for @types/node
+    "lib": ["ESNext"],
+    "types": ["node"],
+
+    "paths": {
+      "@components/*": ["../client/src/frontend/components/*"],
+      "react": ["../node_modules/preact/compat"],
+      "react/jsx-runtime": ["../node_modules/preact/jsx-runtime"],
+      "react-dom": ["../node_modules/preact/compat"]
+    },
 
     /* Other Outputs */
     "sourceMap": true,
@@ -22,7 +29,8 @@
     "exactOptionalPropertyTypes": true,
 
     /* Recommended Options */
-    "jsx": "react-jsx", // Keep this if you have React, otherwise remove
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact",
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "skipLibCheck": true, // Speeds up build by skipping type checks of node_modules

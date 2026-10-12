@@ -38,6 +38,7 @@ import { LogCategory, logger } from '../utils/logger.js';
 import { Leaderboard, LeaderboardEntry, RoundResult, RoundSummary } from './leaderboard.js';
 import { GameStats } from './game_stats.js';
 import { saveLeaderboard } from '../db.js';
+import { ACHIEVEMENT_BONUS_RULES, AchievementBonusManager, AchievementBonusMetric } from './achievement_bonus.js';
 
 type UserId = string;
 
@@ -60,6 +61,7 @@ export class GameInstance {
   public streaks: Record<UserId, number> = {};
   public currentRoundLostStreaks: Record<UserId, number> = {};
   public gameStats: GameStats = new GameStats();
+  public achievementBonusManager: AchievementBonusManager = new AchievementBonusManager(ACHIEVEMENT_BONUS_RULES);
   public activeAchievementBonuses: AchievementBonusType[] = [];
 
   public onUpdate?: (game: GameInstance) => void;
@@ -244,7 +246,7 @@ export class GameInstance {
           pointsEarned,
           data?.scoreValue || 0.0,
           isFirst,
-          data ? (data.timeTaken / 1000).toFixed(1) : (this.settings.maxGuessTime / 1000).toFixed(1),
+          data ? data.timeTaken / 1000 : this.settings.maxGuessTime / 1000,
           awardedBonuses
         )
       );
@@ -257,7 +259,7 @@ export class GameInstance {
       const roundResults = this.leaderboard.getRoundResults(this.state.round);
       this.gameStats.updateBestScoringRound(roundResults, this.trackInfo.track);
       this.gameStats.updateLeastScoringRound(roundResults, this.trackInfo.track);
-      this.gameStats.updateFastestCorrectGuess(roundResults, this.trackInfo.track);
+      this.achievementBonusManager.processRound(roundResults, this.trackInfo.track);
     }
   }
 
@@ -272,7 +274,12 @@ export class GameInstance {
       this.streaks[userId] = 0;
     }
 
-    this.gameStats.updateHighestStreak(userId, this.streaks[userId]);
+    this.achievementBonusManager.updateMetric(
+      userId,
+      AchievementBonusMetric.STREAK,
+      this.streaks[userId],
+      (current, incoming) => incoming > current
+    );
   }
 
   public calculateLostStreaks(): Record<UserId, number> {
@@ -641,21 +648,20 @@ export class GameInstance {
   }
 
   private applyAchievementBonuses(): void {
-    // 1. Fastest Correct Guess Achievement Bonus
-    if (this.activeAchievementBonuses.includes(AchievementBonusType.FASTEST_CORRECT_GUESS)) {
-      const fastestUserId = this.gameStats.fastestCorrectGuess?.roundResults?.userId;
-      if (fastestUserId) {
-        const entry = this.leaderboard.getOrCreate(fastestUserId);
-        entry.addAchievementBonus(AchievementBonusType.FASTEST_CORRECT_GUESS);
+    // Loop through all active achievements
+    for (const [ruleId, state] of this.achievementBonusManager.achievements.entries()) {
+      // Check if this achievement type is active/enabled for this game
+      if (!this.activeAchievementBonuses.includes(ruleId as AchievementBonusType)) {
+        continue;
       }
-    }
 
-    // 2. Highest Streak Achievement Bonus
-    if (this.activeAchievementBonuses.includes(AchievementBonusType.HIGHEST_STREAK)) {
-      if (this.gameStats.highestStreak?.userIds) {
-        for (const userId of this.gameStats.highestStreak.userIds) {
+      // Apply the bonus and its configured reward to all users who hold or share the record
+      if (state.userIds && state.userIds.length > 0) {
+        const reward = state.rule.reward ?? 0;
+
+        for (const userId of state.userIds) {
           const entry = this.leaderboard.getOrCreate(userId);
-          entry.addAchievementBonus(AchievementBonusType.HIGHEST_STREAK);
+          entry.addAchievementBonus(ruleId as AchievementBonusType, reward);
         }
       }
     }

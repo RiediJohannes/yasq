@@ -7,6 +7,8 @@ import { INSTANCE_PATH } from '@yasq/shared';
 import { createFetchGameMiddleware, validateParams } from './middleware.js';
 import { ApiError } from './errors.js';
 import * as g from './guards.js';
+import { AchievementBonusManager } from '../src/models/achievement_bonus.js';
+import { userDataCache } from '../src/helper.js';
 
 export const setupMockRoutes = (
   instances: Record<string, GameInstance>,
@@ -136,6 +138,17 @@ export function setMockState(stateData: any): GameInstance {
 
   if (stateData.leaderboard) {
     game.leaderboard = Leaderboard.fromJSON(stateData.leaderboard);
+  }
+
+  if (stateData.achievements) {
+    game.achievementBonusManager = AchievementBonusManager.fromJSON(stateData.achievements);
+  }
+
+  if (stateData.userData) {
+    userDataCache.clear();
+    for (const user of stateData.userData) {
+      userDataCache.set(user.id, user);
+    }
   }
 
   return game;

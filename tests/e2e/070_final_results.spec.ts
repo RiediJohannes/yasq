@@ -2,15 +2,55 @@ import { expect, test } from './test_setup.js';
 import AxeBuilder from '@axe-core/playwright';
 import sessionData from '../../mock_data/fixtures/final_results.json';
 
-test.use({
-  sessionConfig: {
-    playerCount: 4,
-    userIndex: 1,
-    sessionData: sessionData,
-  },
+import * as crypto from 'crypto';
+import sharp from 'sharp';
+
+test.describe('Host UI', () => {
+  test.use({
+    sessionConfig: {
+      playerCount: 4,
+      userIndex: 0,
+      sessionData: sessionData,
+    },
+  });
+
+  test('should download the results image with the expected hash', async ({ page, finalResultsPage }) => {
+    await finalResultsPage.imageDownloadBtn.waitFor({ state: 'visible' });
+    const downloadPromise = page.waitForEvent('download');
+    await finalResultsPage.imageDownloadBtn.click();
+    const download = await downloadPromise;
+
+    const filePath = './tests/e2e/test-results/downloaded-results.png';
+    await download.saveAs(filePath);
+
+    const metadata = await sharp(filePath).metadata();
+
+    expect(metadata.format).toBe('png');
+    expect(metadata.width).toBe(1300);
+    expect(metadata.height).toBe(1842);
+
+    // crop date to get fixed content
+    const badgeBuffer = await sharp(filePath).extract({ left: 0, top: 0, width: 1300, height: 1750 }).png().toBuffer();
+    const currentHash = crypto.createHash('sha256').update(badgeBuffer).digest('hex');
+
+    const allowedHashes = [
+      '80d79220f78167d070a82a25276f9d5364486f8b479f6be9eb4bd7e3e0abdac7', // Windows
+      '036487e2b6bf91e495a43189063a972a253d78c8baabe846eab3d2bfc8021346', // CI Pipeline
+    ];
+
+    expect(allowedHashes).toContain(currentHash);
+  });
 });
 
 test.describe('Player UI', () => {
+  test.use({
+    sessionConfig: {
+      playerCount: 4,
+      userIndex: 1,
+      sessionData: sessionData,
+    },
+  });
+
   test('should display final leaderboard with correct scores and round history', async ({ finalResultsPage }) => {
     // Verify total count
     await expect(finalResultsPage.playerCards).toHaveCount(3);
@@ -70,19 +110,19 @@ test.describe('Player UI', () => {
     await expect(leastRoundItem.value).toHaveText('Round 1');
     await expect(leastRoundItem.subValue).not.toBeEmpty();
 
-    // 4. Highest Streak
-    const streakItem = finalResultsPage.getStatItem(3);
+    // 4. Fastest Correct Guess
+    const fastestItem = finalResultsPage.getStatItem(3);
+    await expect(fastestItem.label).toHaveText('Fastest Correct Guess');
+    await expect(fastestItem.value).toContainText('MockPlayer2');
+    await expect(fastestItem.subValue).toContainText('0.5s (Round 3)');
+    await expect(fastestItem.avatar).toBeVisible();
+
+    // 5. Highest Streak
+    const streakItem = finalResultsPage.getStatItem(4);
     await expect(streakItem.label).toHaveText('Highest Streak');
     await expect(streakItem.value).toContainText('MockPlayer1');
     await expect(streakItem.subValue).toContainText('3');
     await expect(streakItem.avatar).toBeVisible();
-
-    // 5. Fastest Correct Guess
-    const fastestItem = finalResultsPage.getStatItem(4);
-    await expect(fastestItem.label).toHaveText('Fastest Correct Guess');
-    await expect(fastestItem.value).toContainText('MockPlayer2');
-    await expect(fastestItem.subValue).toHaveText('0.5s (Round 3)');
-    await expect(fastestItem.avatar).toBeVisible();
   });
 
   test('should display winner badge in sidebar', async ({ sidebar, session }) => {

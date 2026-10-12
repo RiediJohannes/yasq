@@ -7,6 +7,7 @@ export class FinalResultsPage extends BasePage {
   readonly restartBtn: Locator;
   readonly gameStats: Locator;
   readonly statItems: Locator;
+  readonly imageDownloadBtn: Locator;
 
   constructor(page: Page) {
     super(page);
@@ -16,6 +17,7 @@ export class FinalResultsPage extends BasePage {
     this.restartBtn = page.locator('#btn-restart');
     this.gameStats = page.locator('.game-stats');
     this.statItems = this.gameStats.locator('.game-stat-item');
+    this.imageDownloadBtn = page.locator('#btn-download-image');
   }
 
   getPlayerCard(index: number) {

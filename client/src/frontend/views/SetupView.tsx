@@ -4,6 +4,7 @@ import { TargetedEvent } from 'preact';
 import { audioPlayer, gameStatus, useBackend } from '@yasq/client/src/globals';
 import {
   AchievementBonuses,
+  AchievementBonusMode,
   AchievementBonusType,
   DEFAULT_ENABLED_JOKERS,
   DEFAULT_MAX_GUESS_TIME,
@@ -46,7 +47,7 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
 
   const achievementBonuses = useSignal<AchievementBonuses>(
     gameStatus.value.settings.achievementBonuses || {
-      mode: 'manual',
+      mode: AchievementBonusMode.MANUAL,
       enabledTypes: Object.values(AchievementBonusType),
       randomCount: 1,
     }

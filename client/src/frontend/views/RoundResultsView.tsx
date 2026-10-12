@@ -145,7 +145,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
                         rounds={[res]}
                         userId={res.userId}
                       />
-                      <span className="time-display">{res.time}s</span>
+                      <span className="time-display">{res.time.toFixed(1)}s</span>
                     </div>
                   </div>
                 );

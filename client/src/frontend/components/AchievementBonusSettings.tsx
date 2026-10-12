@@ -28,11 +28,13 @@ export function AchievementBonusSettingsPanel({ settingsSignal }: AchievementBon
         name="achievement-mode"
         value={mode}
         onChange={val => update({ mode: val as AchievementBonusMode })}
-        options={[
-          { label: 'Off', value: 'off' },
-          { label: 'Manual', value: 'manual' },
-          { label: 'Random', value: 'random' },
-        ]}
+        options={
+          [
+            { label: 'Off', value: 'off' },
+            { label: 'Manual', value: 'manual' },
+            { label: 'Random', value: 'random' },
+          ] as { label: string; value: AchievementBonusMode }[]
+        }
       />
 
       {mode === 'manual' && (

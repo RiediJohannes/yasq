@@ -58,6 +58,8 @@ export enum BonusType {
 export enum AchievementBonusType {
   FASTEST_CORRECT_GUESS = 'FASTEST_CORRECT_GUESS',
   HIGHEST_STREAK = 'HIGHEST_STREAK',
+  SLOWEST_AVERAGE_GUESS_TIME = 'SLOWEST_AVERAGE_GUESS_TIME',
+  MOST_PARTIALLY_CORRECT_GUESSES = 'MOST_PARTIALLY_CORRECT_GUESSES',
 }
 
 export enum AchievementBonusMode {
@@ -108,7 +110,6 @@ export const DEFAULT_ENABLED_JOKERS: Joker[] = [
 ];
 
 export const BASE_POINTS: number = 100;
-export const ACHIEVEMENT_BONUS_POINTS = 100;
 export const MAX_TIME_MULTIPLIER: number = 1.0;
 export const MIN_TIME_MULTIPLIER: number = 0.0;
 export const EXPONENTIAL_DECAY_INTENSITY: number = 2.5;
