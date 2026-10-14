@@ -67,7 +67,7 @@ test.describe('Player UI', () => {
     },
   });
 
-  test('should display correct status and points earned', async ({ roundResultsPage, session }) => {
+  test('should display correct status and points earned', async ({ roundResultsPage, session, page }) => {
     const { players, api } = session;
 
     // User submitted correct guess
@@ -77,6 +77,8 @@ test.describe('Player UI', () => {
         roundHistory: [{ round: 1, scoreValue: 1, points: 100, guess: 'Game A' }],
       },
     ]);
+
+    await page.reload();
 
     // Verify the Round Summary display
     await expect(roundResultsPage.resultsContainer.locator('h2')).toContainText('Results');
@@ -104,7 +106,7 @@ test.describe('Player UI', () => {
     await expect(roundResultsPage.ownScoreBubble).toContainText('100 pt.');
   });
 
-  test('should display partial correct status and points earned', async ({ roundResultsPage, session }) => {
+  test('should display partial correct status and points earned', async ({ roundResultsPage, session, page }) => {
     const { players, api } = session;
 
     // User submitted partially correct guess
@@ -115,6 +117,8 @@ test.describe('Player UI', () => {
       },
     ]);
 
+    await page.reload();
+
     // Verify own result
     await expect(roundResultsPage.getPersonalResultStatus('partial')).toContainText('So close! 🧗', {
       timeout: 15_000,
@@ -123,7 +127,7 @@ test.describe('Player UI', () => {
     await expect(roundResultsPage.ownScoreBubble).toContainText('50 pt.');
   });
 
-  test('should display incorrect status and zero points', async ({ roundResultsPage, session }) => {
+  test('should display incorrect status and zero points', async ({ roundResultsPage, session, page }) => {
     const { players, api } = session;
 
     // User submitted incorrect guess
@@ -134,6 +138,8 @@ test.describe('Player UI', () => {
       },
     ]);
 
+    await page.reload();
+
     // Verify own result
     await expect(roundResultsPage.getPersonalResultStatus('incorrect')).toContainText('Incorrect. 😢', {
       timeout: 15_000,
@@ -143,15 +149,7 @@ test.describe('Player UI', () => {
   });
 
   test('should display ready button and toggle status', async ({ roundResultsPage, sidebar, session }) => {
-    const { players, api } = session;
-
-    // User submitted correct guess
-    await api.patchLeaderboard([
-      {
-        userId: players[1].id,
-        roundHistory: [{ round: 1, scoreValue: 1, points: 100, guess: 'Game A' }],
-      },
-    ]);
+    const { players } = session;
 
     // Ready Up Interaction
     await expect(roundResultsPage.readyBtn).toHaveText('Ready for Next Round');
@@ -165,7 +163,7 @@ test.describe('Player UI', () => {
     await expect(sidebar.getBadge(players[1].username, 'ready')).toBeVisible();
   });
 
-  test('should display correct number of correct guesses', async ({ roundResultsPage, session }) => {
+  test('should display correct number of correct guesses', async ({ roundResultsPage, session, page }) => {
     const { players, api } = session;
 
     await api.patchLeaderboard([
@@ -190,6 +188,8 @@ test.describe('Player UI', () => {
         roundHistory: [{ round: 1, scoreValue: 1, points: 100, guess: 'Game A' }],
       },
     ]);
+
+    await page.reload();
 
     await expect(roundResultsPage.correctPlayersContainer).toContainText('(2)');
   });

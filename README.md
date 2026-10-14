@@ -33,6 +33,7 @@ npm install
     - Set scope to `bot`
     - Set bot permissions to `Send Messages`, `Attach Files` and `Read Message History`
     - Add bot to server via the invite link (Permissions Integer should be `100352`)
+  - Activate in `Server Members Intent` under `Privileged Gateway Intents` in the Bot settings if you want the bot to be able to use the server nicknames for image generation
 
 3. **Set up Environment Variables**\
    Create a `.env` file in the root directory:

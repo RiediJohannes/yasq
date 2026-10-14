@@ -12,6 +12,7 @@ import type { Leaderboard } from '../models/leaderboard.js';
 import { LogCategory, logger } from '../utils/logger.js';
 import type { GameStats } from '../models/game_stats.js';
 import type { AchievementBonusManager } from '../models/achievement_bonus.js';
+import { enrichParticipantsWithGuildNicknames } from '../utils/discord.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -65,7 +66,9 @@ export async function generateResultsImage(
   const achievementsObj = achievementBonusManager?.achievements
     ? Object.fromEntries(achievementBonusManager.achievements)
     : {};
+
   const participantsList = Array.from(userData.values());
+  await enrichParticipantsWithGuildNicknames(participantsList, instanceId);
 
   // Render Preact components straight to HTML strings on the backend
   const leaderboardHtml = renderToString(
@@ -131,6 +134,11 @@ export async function generateResultsImage(
           .shimmer-layer::after {
             animation: none !important;
             display: none !important;
+          }
+
+          .stats-and-controls, .badge {
+            opacity: 1 !important;
+            animation: none !important;
           }
         </style>
       </head>

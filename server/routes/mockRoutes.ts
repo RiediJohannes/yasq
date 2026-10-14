@@ -116,6 +116,13 @@ export function setMockState(stateData: any): GameInstance {
 
   const game = new GameInstance(instanceId, hostId);
 
+  if (stateData.state) {
+    stateData.state = {
+      ...game.state,
+      ...stateData.state,
+    };
+  }
+
   // Assign standard properties
   Object.assign(game, stateData);
 
