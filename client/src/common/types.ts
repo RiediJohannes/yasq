@@ -1,4 +1,8 @@
-import { Joker, PointsBonus, Tag, TimeBonus } from '@yasq/shared';
+/**
+ * Types used exclusively in the presentation layer to store data within a view.
+ */
+
+import { Joker, Tag, TimeBonus } from '@yasq/shared';
 import { CSSProperties } from 'preact';
 
 /** Extension of the {@link TimeBonus} enum for selection in the UI */
@@ -10,7 +14,7 @@ export const OptionalTimeBonus = {
 // Derive TypeScript type from the runtime object
 export type TOptionalTimeBonus = (typeof OptionalTimeBonus)[keyof typeof OptionalTimeBonus];
 
-export interface Track {
+export interface TrackViewModel {
   game: string;
   title: string;
   audio: string;
@@ -20,20 +24,11 @@ export interface Track {
   originalIndex?: number;
 }
 
-export interface ReviewData {
+export interface ReviewDataViewModel {
   round: number;
   answer: string;
   guesses: Record<string, { text: string; joker: Joker }>;
   timedOut: string[];
-}
-
-export interface RoundResult {
-  round?: number;
-  scoreValue: number;
-  points: number;
-  guess?: string;
-  isFirst?: boolean;
-  awardedBonuses?: PointsBonus[];
 }
 
 export type CommonCSSProperties = {

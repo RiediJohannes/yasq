@@ -94,6 +94,7 @@ export const SAMPLE_DATA_DIR: string = 'sample';
 export const TEMP_FILES_DIR: string = 'temp';
 export const GAME_COVERS_DIR: string = 'game_covers';
 export const TRACK_AUDIO_DIR: string = 'music';
+export const APP_SOUNDS_DIR: string = 'sound';
 export const DATABASE_DIR: string = 'db';
 
 export const RoundTimings = {
@@ -130,7 +131,7 @@ export const DEFAULT_ACHIEVEMENT_BONUSES: AchievementBonuses = {
   enabledTypes: DEFAULT_ENABLED_ACHIEVEMENT_TYPES,
 } as const;
 
-export const DEFAULT_SETTINGS = {
+export const DEFAULT_GAME_SETTINGS = {
   rounds: DEFAULT_ROUNDS,
   maxGuessTime: DEFAULT_MAX_GUESS_TIME,
   enabledJokers: DEFAULT_ENABLED_JOKERS,
@@ -138,6 +139,13 @@ export const DEFAULT_SETTINGS = {
   timeBonus: DEFAULT_TIME_BONUS,
   streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
   achievementBonuses: DEFAULT_ACHIEVEMENT_BONUSES,
+} as const;
+export const DEFAULT_APP_SETTINGS = {
+  sounds: {},
+} as const;
+export const DEFAULT_SETTINGS = {
+  gameSettings: DEFAULT_GAME_SETTINGS,
+  appSettings: DEFAULT_APP_SETTINGS,
 } as const;
 
 export const GLIMPSE_BLUR_INTENSITY: number = 25;

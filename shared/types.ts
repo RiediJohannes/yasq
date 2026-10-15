@@ -1,3 +1,7 @@
+/**
+ * Shared types used across the client and server component as the main data model.
+ */
+
 import {
   type AchievementBonuses,
   BonusType,
@@ -80,6 +84,13 @@ export class GameSettings<T extends Iterable<Joker>> {
       enabledJokers: options.enabledJokers ? new Set(options.enabledJokers) : new Set(DEFAULT_ENABLED_JOKERS),
     });
   }
+}
+
+export interface AppSettings {
+  sounds: {
+    finalResultsJingle?: string | null | undefined;
+    finalResultsLoop?: string | null | undefined;
+  };
 }
 
 export interface TimeBonusPoint {

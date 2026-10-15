@@ -16,7 +16,7 @@ import {
 import { audioPlayer, gameStatus, isMac, participants, useBackend } from '@globals';
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
 import { getSyncedServerTime } from '../../backend/timing';
-import { findUser, getActionKeyLabel } from '../../utils/helper';
+import { findUser, getActionKeyLabel, UrlToAudioSource } from '../../utils/helper';
 
 import { ALL_JOKER_ICONS } from '@components/Icons';
 import { NonDraggableImg } from '@components/NonDraggableImg';
@@ -266,7 +266,7 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
       if (isHost) activeTrackInfo.value = trackData;
 
       // Pre-buffer the track
-      await bufferAudio(window.location.origin + trackData.url, abortSignal);
+      await bufferAudio(UrlToAudioSource(trackData.url), abortSignal);
       if (abortSignal.aborted) return;
 
       // Notify the server that we are ready to start the round now

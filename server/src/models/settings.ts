@@ -3,6 +3,9 @@ import { z } from 'zod';
 import {
   AchievementBonusMode,
   AchievementBonusType,
+  type AppSettings,
+  DEFAULT_APP_SETTINGS,
+  DEFAULT_GAME_SETTINGS,
   DEFAULT_SETTINGS,
   FirstBonusMultiplier,
   GameSettings,
@@ -21,34 +24,41 @@ interface FallbackWarning {
 }
 
 let warnings: FallbackWarning[] = [];
-let userDefinedDefaultSettings: GameSettings<Set<Joker>> | null = null;
+let userDefinedGameSettings: GameSettings<Set<Joker>> | null = null;
+let userDefinedAppSettings: AppSettings | null = null;
 
 /**
  * Loads the default settings of any new {@link GameInstance} from a given config file. Upon passing validation,
  * the settings are exposed globally via the {@link getDefaultGameSettings} function.
  */
-export function loadDefaultGameSettings(configPath: string): GameSettings<Set<Joker>> {
-  const settings = readGameSettings(configPath);
+export function loadSettingsConfig(configPath: string): GameSettings<Set<Joker>> {
+  const settings = readSettings(configPath);
 
-  userDefinedDefaultSettings = {
-    ...settings,
-    enabledJokers: new Set(settings.enabledJokers),
+  userDefinedGameSettings = {
+    ...settings.gameSettings,
+    enabledJokers: new Set(settings.gameSettings.enabledJokers),
   };
+  userDefinedAppSettings = settings.appSettings;
 
-  return userDefinedDefaultSettings;
+  return userDefinedGameSettings;
 }
 
 /**
  * Returns the default settings that shall be applied to any new {@link GameInstance} based on hard-coded defaults,
- * optionally overridden by a user-defined settings config applied through {@link loadDefaultGameSettings}.
+ * optionally overridden by a user-defined settings config applied through {@link loadSettingsConfig}.
  */
 export function getDefaultGameSettings(): GameSettings<Set<Joker>> {
-  const baseSettings = userDefinedDefaultSettings ?? {
-    ...DEFAULT_SETTINGS,
-    enabledJokers: new Set(DEFAULT_SETTINGS.enabledJokers),
+  const baseSettings = userDefinedGameSettings ?? {
+    ...DEFAULT_GAME_SETTINGS,
+    enabledJokers: new Set(DEFAULT_GAME_SETTINGS.enabledJokers),
   };
 
   return structuredClone(baseSettings);
+}
+
+export function getAppSettings(): AppSettings {
+  const appSettings = userDefinedAppSettings ?? DEFAULT_APP_SETTINGS;
+  return structuredClone(appSettings);
 }
 
 /**
@@ -56,7 +66,8 @@ export function getDefaultGameSettings(): GameSettings<Set<Joker>> {
  * within `root` according to the property keys listed in `path` and returns the **value of the property** reached at the end
  * of this path.
  *
- * If resolving the path fails at any point, the function simply returns the `root` object/value.
+ * If resolving the path reaches a primitive value at any point, the function simply returns the `root` object/value.
+ * If resolving the path reaches an object that does not contain the next key in the path, the function returns `undefined`.
  */
 const resolveProperty = (root: unknown, path: readonly PropertyKey[] | undefined): unknown => {
   let current: unknown = root;
@@ -66,7 +77,7 @@ const resolveProperty = (root: unknown, path: readonly PropertyKey[] | undefined
       if (typeof current !== 'object' || current === null) return root; // Failure: Current has no properties
 
       current = (current as Record<PropertyKey, unknown>)[key];
-      if (current === undefined) return root; // Failure: Property [key] did not exist
+      if (current === undefined) return undefined; // Failure: Property [key] did not exist
     }
   }
 
@@ -108,52 +119,77 @@ const formatFallbackWarning = (warning: FallbackWarning, warningIndex: number): 
 };
 
 const gameSettingsSchema = z.object({
-  rounds: z.number().int().positive().catch(fallbackWithWarning('rounds', DEFAULT_SETTINGS.rounds)),
+  rounds: z.number().int().positive().catch(fallbackWithWarning('rounds', DEFAULT_GAME_SETTINGS.rounds)),
   maxGuessTime: z
     .number()
     .int()
     .positive()
-    .catch(fallbackWithWarning('maxGuessTime', Math.round(DEFAULT_SETTINGS.maxGuessTime / 1000)))
+    .catch(fallbackWithWarning('maxGuessTime', Math.round(DEFAULT_GAME_SETTINGS.maxGuessTime / 1000)))
     .transform(timeSeconds => timeSeconds * 1000),
-  enabledJokers: z.array(z.enum(Joker)).catch(fallbackWithWarning('enabledJokers', DEFAULT_SETTINGS.enabledJokers)),
+  enabledJokers: z
+    .array(z.enum(Joker))
+    .catch(fallbackWithWarning('enabledJokers', DEFAULT_GAME_SETTINGS.enabledJokers)),
   firstBonusMultiplier: z
     .enum(FirstBonusMultiplier)
-    .catch(fallbackWithWarning('firstBonusMultiplier', DEFAULT_SETTINGS.firstBonusMultiplier)),
+    .catch(fallbackWithWarning('firstBonusMultiplier', DEFAULT_GAME_SETTINGS.firstBonusMultiplier)),
   timeBonus: z
     .union([z.enum(TimeBonus), z.literal('off')])
     .nullable()
     .transform(val => (val === 'off' ? null : val))
-    .catch(fallbackWithWarning('timeBonus', DEFAULT_SETTINGS.timeBonus)),
+    .catch(fallbackWithWarning('timeBonus', DEFAULT_GAME_SETTINGS.timeBonus)),
   streakBonusMultiplier: z
     .enum(StreakBonusMultiplier)
-    .catch(fallbackWithWarning('streakBonusMultiplier', DEFAULT_SETTINGS.streakBonusMultiplier)),
+    .catch(fallbackWithWarning('streakBonusMultiplier', DEFAULT_GAME_SETTINGS.streakBonusMultiplier)),
   achievementBonuses: z
-    .union([
-      z.object({
-        mode: z.literal(AchievementBonusMode.MANUAL),
-        enabledTypes: z.array(z.enum(AchievementBonusType)),
-      }),
-      z.object({
-        mode: z.literal(AchievementBonusMode.RANDOM),
-        randomCount: z
-          .number()
-          .int()
-          .positive()
-          .max(Object.keys(AchievementBonusType).length - 1, {
-            error: `'randomCount' must be smaller than the total number of available achievement bonus types (${Object.keys(AchievementBonusType).length})`,
+    .preprocess(
+      val => (val === 'off' ? null : val),
+      z
+        .discriminatedUnion('mode', [
+          z.object({ mode: z.literal('off') }).transform(() => null),
+          z.object({
+            mode: z.literal(AchievementBonusMode.MANUAL),
+            enabledTypes: z.array(z.enum(AchievementBonusType)),
           }),
-      }),
-      z.literal('off'),
-    ])
-    .nullable()
-    .transform(val => (val === 'off' ? null : val))
-    .catch(fallbackWithWarning('achievementBonuses', DEFAULT_SETTINGS.achievementBonuses)),
+          z.object({
+            mode: z.literal(AchievementBonusMode.RANDOM),
+            randomCount: z
+              .number()
+              .int()
+              .positive()
+              .lt(Object.keys(AchievementBonusType).length, {
+                error: `'randomCount' must be smaller than the total number of available achievement bonus types (${Object.keys(AchievementBonusType).length})`,
+              }),
+          }),
+        ])
+        .nullable()
+    )
+    .catch(fallbackWithWarning('achievementBonuses', DEFAULT_GAME_SETTINGS.achievementBonuses)),
 });
 
-function readGameSettings(configPath: string): GameSettings<Joker[]> {
+const appSoundsSchema = z.object({
+  sounds: z
+    .object({
+      finalResultsJingle: z.string().nullish(),
+      finalResultsLoop: z.string().nullish(),
+    })
+    .catch(fallbackWithWarning('sounds', DEFAULT_APP_SETTINGS.sounds)),
+});
+
+const fullSettingsSchema = z.object({
+  gameSettings: gameSettingsSchema.readonly().catch(DEFAULT_GAME_SETTINGS),
+  appSettings: appSoundsSchema.readonly().catch(DEFAULT_APP_SETTINGS),
+});
+
+type Settings = z.infer<typeof fullSettingsSchema>;
+
+/**
+ * Parses the configurable settings from a JSON file at the given path and validates the contents against
+ * the schema of {@link Settings}.
+ */
+function readSettings(configPath: string): Settings {
   if (!fs.existsSync(configPath)) {
     logger.info(
-      `No settings config found at '${configPath}'. Initializing game with default settings.`,
+      `No settings config found at '${configPath}'. Initializing app with default settings.`,
       LogCategory.SETUP
     );
     return DEFAULT_SETTINGS;
@@ -164,9 +200,9 @@ function readGameSettings(configPath: string): GameSettings<Joker[]> {
     const parsedConfig = JSON.parse(fileContent);
 
     warnings = [];
-    const validatedSettings = gameSettingsSchema.parse(parsedConfig);
+    const validatedSettings = fullSettingsSchema.parse(parsedConfig);
 
-    logger.debug(`Loading game settings from '${configPath}'.`, LogCategory.SETUP);
+    logger.debug(`Loading settings from '${configPath}'.`, LogCategory.SETUP);
 
     if (warnings.length > 0) {
       const pluralized = warnings.length === 1 ? 'property' : 'properties';
@@ -179,7 +215,7 @@ function readGameSettings(configPath: string): GameSettings<Joker[]> {
     return validatedSettings;
   } catch (error) {
     logger.error(
-      `Failed to parse game settings from '${configPath}'. Falling back to default settings.`,
+      `Failed to parse app settings from '${configPath}'. Falling back to default settings.`,
       LogCategory.SETUP,
       null,
       error instanceof Error ? error : String(error)

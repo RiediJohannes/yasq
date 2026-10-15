@@ -1,13 +1,17 @@
 import type { UserRoundResult } from './leaderboard.js';
 import { BASE_POINTS, BonusType, type TrackInfo } from '@yasq/shared';
 
+export interface RoundStats {
+  roundResults: UserRoundResult[];
+  trackInfo: TrackInfo;
+  timeBonusSum: number;
+}
+
 export class GameStats {
   public startTime: number | null = null;
   public endTime: number | null = null;
-  public bestScoringRound: { roundResults: UserRoundResult[]; trackInfo: TrackInfo; timeBonusSum: number } | null =
-    null;
-  public leastScoringRound: { roundResults: UserRoundResult[]; trackInfo: TrackInfo; timeBonusSum: number } | null =
-    null;
+  public bestScoringRound: RoundStats | null = null;
+  public leastScoringRound: RoundStats | null = null;
 
   constructor() {}
 

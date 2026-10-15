@@ -15,6 +15,16 @@ export function findUser(participants: Participant[], userId: string): Participa
   return userCache.get(userId) || { id: '0', username: 'Unknown' };
 }
 
+export function UrlToAudioSource(url: string | null): string {
+  if (!url) return '';
+
+  try {
+    return new URL(url, window.location.origin).href;
+  } catch {
+    return '';
+  }
+}
+
 export function formatBonusMultiplier(rate: number, nullValue = 'Off'): string {
   if (rate === 0) return nullValue;
   const percent = (Math.round(rate * 100 * 10) / 10).toFixed(1);

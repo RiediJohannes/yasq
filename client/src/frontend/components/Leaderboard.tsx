@@ -1,12 +1,19 @@
-import { capitalize, getAvatarUrl, getDisplayName, type Participant } from '@yasq/shared';
+import {
+  AchievementStateDto,
+  capitalize,
+  getAvatarUrl,
+  getDisplayName,
+  type LeaderboardEntryDto,
+  type Participant,
+} from '@yasq/shared';
 import { findUser } from '../../utils/helper';
 import { RoundBubblesGroup } from './RoundBubble';
 import { DiscordAvatar } from './DiscordAvatar';
 import { TooltipDiv } from './Tooltip';
 
 interface LeaderboardProps {
-  leaderboard: any[];
-  achievements: Record<string, any>;
+  leaderboard: LeaderboardEntryDto[];
+  achievements: Record<string, AchievementStateDto>;
   participants: Participant[];
 }
 
@@ -25,7 +32,7 @@ export const Leaderboard = ({ leaderboard, achievements, participants }: Leaderb
         const isThird = index === 2;
 
         const playerAchievements = Object.entries(achievements || {}).filter(
-          ([_, state]: [string, any]) =>
+          ([_, state]: [string, AchievementStateDto]) =>
             state?.userIds &&
             state.userIds.includes(player.userId) &&
             player.achievementBonuses &&
@@ -59,7 +66,7 @@ export const Leaderboard = ({ leaderboard, achievements, participants }: Leaderb
 
                 {playerAchievements.length > 0 && (
                   <div className="player-achievements">
-                    {playerAchievements.map(([ruleId, state]: [string, any], aIndex: number) => {
+                    {playerAchievements.map(([ruleId, state]: [string, AchievementStateDto], aIndex: number) => {
                       const points = state.rule?.reward || 0;
                       const label = capitalize(ruleId);
                       const icon =

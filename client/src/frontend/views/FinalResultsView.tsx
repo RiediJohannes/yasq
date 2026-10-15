@@ -1,17 +1,23 @@
 import { useSignal } from '@preact/signals';
 import { useEffect, useState } from 'preact/hooks';
 
+import { UrlToAudioSource } from '../../utils/helper';
+import { AchievementStateDto, FinalResultsResponse, GameStatsDto, LeaderboardEntryDto } from '@yasq/shared';
+
 import { audioPlayer, discordSdk, gameStatus, participants, useBackend } from '@globals';
 import { Leaderboard } from '@components/Leaderboard';
 import { LoadingSpinner } from '@components/LoadingSpinner';
 import { GameStatsSummary } from '@components/GameStatsSummary';
 import { ReadyButton } from '@components/ReadyButton';
 
+const DEFAULT_RESULTS_JINGLE = '/final_results_default_jingle.mp3';
+const DEFAULT_RESULTS_LOOP = '/final_results_default_loop.mp3';
+
 export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
   const backend = useBackend();
-  const leaderboard = useSignal<any[]>([]);
-  const gameStats = useSignal<any>({});
-  const achievements = useSignal<Record<string, any>>({});
+  const leaderboard = useSignal<LeaderboardEntryDto[]>([]);
+  const gameStats = useSignal<GameStatsDto | null>(null);
+  const achievements = useSignal<Record<string, AchievementStateDto>>({});
   const [canExport, setCanExport] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
@@ -20,11 +26,16 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
   const [selectedChannel, setSelectedChannel] = useState('');
 
   useEffect(() => {
+    let viewIsActive = true;
+    let playResultsLoopTrack: (() => void) | null = null;
+
     audioPlayer.pause();
     audioPlayer.currentTime = 0;
     audioPlayer.src = '';
 
-    backend.getFinalResults().then((data: any) => {
+    backend.getFinalResults().then((data: FinalResultsResponse) => {
+      if (!viewIsActive) return;
+
       leaderboard.value = data.leaderboard.map((player: any) => ({
         ...player,
         achievementBonuses: new Map(player.achievementBonuses || []),
@@ -32,7 +43,40 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
       gameStats.value = data.gameStats;
       achievements.value = data.achievementBonuses;
       setCanExport(data.canExport);
+
+      // Preserve explicit 'null' values but replace missing properties (undefined) with the default tracks
+      const { jingleUrl = DEFAULT_RESULTS_JINGLE, loopUrl = DEFAULT_RESULTS_LOOP } = data.music ?? {};
+
+      playResultsLoopTrack = () => {
+        if (!viewIsActive) return;
+        audioPlayer.currentTime = 0;
+        audioPlayer.src = UrlToAudioSource(loopUrl);
+        audioPlayer.loop = true;
+        void audioPlayer.play();
+      };
+
+      if (jingleUrl) {
+        audioPlayer.src = UrlToAudioSource(jingleUrl);
+        audioPlayer.loop = false;
+        void audioPlayer.play();
+
+        audioPlayer.addEventListener('ended', playResultsLoopTrack);
+      } else {
+        playResultsLoopTrack();
+      }
     });
+
+    // Clean-up on component unmount
+    return () => {
+      viewIsActive = false;
+      audioPlayer.pause();
+      audioPlayer.loop = true;
+      audioPlayer.src = '';
+
+      if (playResultsLoopTrack) {
+        audioPlayer.removeEventListener('ended', playResultsLoopTrack);
+      }
+    };
   }, []);
 
   const handleDownload = async () => {
@@ -98,11 +142,13 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
         className="stats-and-controls"
         style={{ animationDelay: `${statsAndControlsAnimationDelay}s` }}
       >
-        <GameStatsSummary
-          stats={gameStats.value}
-          achievements={achievements.value}
-          participants={participants.value}
-        />
+        {gameStats.value && (
+          <GameStatsSummary
+            stats={gameStats.value}
+            achievements={achievements.value}
+            participants={participants.value}
+          />
+        )}
 
         {isHost ? (
           <div>

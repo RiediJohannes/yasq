@@ -65,13 +65,15 @@ export const gameStatus = signal<GameStatus>({
 
 export const volume = signal(DEFAULT_VOLUME_SLIDER_VAL);
 
+// Route any audio from the global audio player through the window's audio context
 export const audioPlayer = new Audio();
 audioPlayer.loop = true;
 const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-const source = audioContext.createMediaElementSource(audioPlayer);
+const audioSource = audioContext.createMediaElementSource(audioPlayer);
 
+// Insert a gain node (amplifier/attenuator) between the audio source and the audio output device (destination)
 export const gainNode = audioContext.createGain();
-source.connect(gainNode);
+audioSource.connect(gainNode);
 gainNode.connect(audioContext.destination);
 gainNode.gain.value = DEFAULT_VOLUME_SLIDER_VAL * MAX_VOLUME;
 

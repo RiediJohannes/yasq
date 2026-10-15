@@ -13,17 +13,18 @@
     "preview": "vite preview --port 5173",
     "test": "cross-env NODE_ENV=test vitest run"
   },
+  "dependencies": {
+    "@yasq/shared": "*",
+    "@discord/embedded-app-sdk": "^2.5.0",
+    "@preact/signals": "^2.9.1",
+    "preact": "^11.0.0",
+    "socket.io-client": "^4.8.3"
+  },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.5",
     "@types/node": "^26.1.2",
     "typescript": "^7.0.2",
     "vite": "^8.0.16",
     "vitest": "^5.0.3"
-  },
-  "dependencies": {
-    "@discord/embedded-app-sdk": "^2.5.0",
-    "@preact/signals": "^2.9.1",
-    "preact": "^11.0.0",
-    "socket.io-client": "^4.8.3"
   }
 }

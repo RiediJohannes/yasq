@@ -6,16 +6,18 @@ import {
   getRandomEligibleTrack,
   getReachableTags,
 } from './trackFiltering';
-import { Track } from '../common/types';
+import { TrackViewModel } from '../common/types';
 import mockTracksData from '@mock/tracks.json';
 import { Playlist } from '@yasq/shared';
 
 // Map the raw JSON data to satisfy the `Track` interface by adding default values for optional/required runtime fields
-const mockTracks: Track[] = (mockTracksData as Omit<Track, 'played' | 'originalIndex'>[]).map((t, index) => ({
-  ...t,
-  played: index === 1, // Make the second track played for testing hidePlayed
-  originalIndex: index,
-}));
+const mockTracks: TrackViewModel[] = (mockTracksData as Omit<TrackViewModel, 'played' | 'originalIndex'>[]).map(
+  (t, index) => ({
+    ...t,
+    played: index === 1, // Make the second track played for testing hidePlayed
+    originalIndex: index,
+  })
+);
 
 const mockPlaylists: Playlist[] = [
   {

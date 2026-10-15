@@ -3,7 +3,7 @@ import { useEffect } from 'preact/hooks';
 
 import { useBackend } from '@globals';
 import { GAME_COVERS_DIR, GameEvent, Playlist } from '@yasq/shared';
-import { Track } from '../../common/types';
+import { TrackViewModel } from '../../common/types';
 import {
   getAvailableTagsByType,
   getBaseFilteredTracks,
@@ -27,12 +27,12 @@ const sortOrder = signal<SortOption>('Default Order');
 
 export const TrackSelectionView = ({ isHost }: { isHost: boolean }) => {
   const backend = useBackend();
-  const tracks = useSignal<Track[] | null>(null);
+  const tracks = useSignal<TrackViewModel[] | null>(null);
   const playlists = useSignal<Playlist[]>([]);
 
   const fetchTracksAndPlaylists = () => {
     backend.getTrackList().then(data => {
-      tracks.value = data.tracks.map((t: Track, i: number) => ({
+      tracks.value = data.tracks.map((t: TrackViewModel, i: number) => ({
         ...t,
         originalIndex: i,
       }));

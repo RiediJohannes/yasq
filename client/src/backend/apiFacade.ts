@@ -1,18 +1,19 @@
 import {
   API_ROOT,
   BonusType,
+  FinalResultsResponse,
   GameSettings,
   HOST_PREFIX,
   Joker,
   LogLevel,
   Participant,
   PointsBonus,
+  RoundResultDto,
   serializeError,
   TimeBonus,
   TimeBonusSummary,
 } from '@yasq/shared';
-import { RoundResult } from '../common/types';
-import { AbstractDiscordSdk } from '../globals';
+import { AbstractDiscordSdk } from '@globals';
 
 // Note: Do NOT change the property names to camelCase! This needs to match the naming of discord's authentication response payload.
 export interface AuthenticationResult {
@@ -221,7 +222,7 @@ export class BackendApiFacade {
 
     const roundData = await response.json();
 
-    roundData.result = roundData.result.map((roundResult: RoundResult) => {
+    roundData.result = roundData.result.map((roundResult: RoundResultDto) => {
       roundResult.awardedBonuses =
         roundResult.awardedBonuses?.map(
           (bonus: { type: BonusType; multiplier: number }) => new PointsBonus(bonus.type, bonus.multiplier)
@@ -260,7 +261,7 @@ export class BackendApiFacade {
     });
   }
 
-  public async getFinalResults() {
+  public async getFinalResults(): Promise<FinalResultsResponse> {
     const response = await BackendApiFacade.apiFetch(`/instance/${this.instanceId}/final-results`);
     return response.json();
   }

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 
 import type { GameInstance } from '../src/models/game_instance.js';
 import {
+  APP_SOUNDS_DIR,
   deserializeError,
   GamePhase,
   INSTANCE_PATH,
@@ -27,6 +28,7 @@ import { generateSampleTimeBonusSummary, SAMPLE_PARTICIPANTS } from '../src/util
 import { authenticateUser, createFetchGameMiddleware, defineSchema, validateRequest } from './middleware.js';
 import { ApiError } from './errors.js';
 import { z } from 'zod';
+import { getAppSettings } from '../src/models/settings.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -337,20 +339,31 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
       });
     }
 
+    const soundSettings = getAppSettings().sounds;
+
     res.send({
       leaderboard: game.leaderboard.getAll() || [],
       gameStats: game.gameStats || {},
       achievementBonuses: Object.fromEntries(game.achievementBonusManager.achievements || []),
+      music: {
+        // Preserve distinction: null = deliberately no music, undefined = sound file property was not set by the user
+        loopUrl: soundSettings.finalResultsLoop
+          ? `/${APP_SOUNDS_DIR}/${soundSettings.finalResultsLoop}`
+          : soundSettings.finalResultsLoop,
+        jingleUrl: soundSettings.finalResultsJingle
+          ? `/${APP_SOUNDS_DIR}/${soundSettings.finalResultsJingle}`
+          : soundSettings.finalResultsJingle,
+      },
       canExport: isPlaywrightExecutableInstalled(),
     });
   });
 
-  const getTimeBonusSampleBodySchema = defineSchema({
+  const getTimeBonusSampleParamsSchema = defineSchema({
     timeBonusType: z.enum(TimeBonus),
   });
 
   router.get(`/samples/time-bonus/:timeBonusType/summary`, async (req, res) => {
-    const { timeBonusType: bonusType } = validateRequest(req, { params: getTimeBonusSampleBodySchema });
+    const { timeBonusType: bonusType } = validateRequest(req, { params: getTimeBonusSampleParamsSchema });
 
     const participants: Participant[] = SAMPLE_PARTICIPANTS;
     const timeBonusSummary: TimeBonusSummary = generateSampleTimeBonusSummary(bonusType);

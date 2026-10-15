@@ -1,4 +1,12 @@
-import { capitalize, getAvatarUrl, getDisplayName, Participant, TrackInfo } from '@yasq/shared';
+import {
+  AchievementStateDto,
+  capitalize,
+  GameStatsDto,
+  getAvatarUrl,
+  getDisplayName,
+  Participant,
+  TrackInfo,
+} from '@yasq/shared';
 import { findUser, getGameDuration } from '../../utils/helper';
 import { DiscordAvatar } from './DiscordAvatar';
 import { NonDraggableImg } from './NonDraggableImg';
@@ -9,8 +17,8 @@ export const GameStatsSummary = ({
   achievements,
   participants,
 }: {
-  stats: any;
-  achievements: Record<string, any>;
+  stats: GameStatsDto;
+  achievements: Record<string, AchievementStateDto>;
   participants: Participant[];
 }) => {
   const highestTimeBonus = stats.bestScoringRound?.timeBonusSum ?? 0;
@@ -36,7 +44,7 @@ export const GameStatsSummary = ({
       value: stats.bestScoringRound ? `Round ${stats.bestScoringRound.roundResults[0]?.round || 'N/A'}` : 'N/A',
       subValue: `${highestTimeBonus} pts`,
       tooltipText: 'The easiest track for the group, featuring the most fastest correct guesses.',
-      trackInfo: stats.bestScoringRound.trackInfo,
+      trackInfo: stats.bestScoringRound?.trackInfo,
     },
     {
       label: 'Worst Round',
@@ -44,9 +52,9 @@ export const GameStatsSummary = ({
       value: stats.leastScoringRound ? `Round ${stats.leastScoringRound.roundResults[0]?.round || 'N/A'}` : 'N/A',
       subValue: `${leastTimeBonus} pts`,
       tooltipText: 'The hardest track for the group, featuring the fewest and slowest correct guesses.',
-      trackInfo: stats.leastScoringRound.trackInfo,
+      trackInfo: stats.leastScoringRound?.trackInfo,
     },
-    ...Object.entries(achievements).map(([ruleId, state]: [string, any]) => {
+    ...Object.entries(achievements).map(([ruleId, state]: [string, AchievementStateDto]) => {
       const users = state.userIds.map((id: string) => findUser(participants, id)).filter(Boolean);
       const ruleName = capitalize(ruleId);
 
@@ -147,7 +155,7 @@ export const GameStatsSummary = ({
   );
 };
 
-function formatSubValue(state: any): string {
+function formatSubValue(state: AchievementStateDto): string {
   if (!state.value && state.value !== 0) return '';
 
   if (state.rule && state.rule.metric === 'guessTime') {

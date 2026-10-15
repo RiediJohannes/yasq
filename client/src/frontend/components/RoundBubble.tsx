@@ -1,9 +1,9 @@
-import { RoundResult } from '../../common/types';
+import type { RoundResultDto } from '@yasq/shared';
 import { TooltipDiv } from './Tooltip';
 import { useRovingTabIndex } from '../hooks/useRovingTabIndex';
 
 interface RoundBubblesGroupProps {
-  rounds: RoundResult[];
+  rounds: RoundResultDto[];
   userId: string;
 }
 
@@ -26,7 +26,7 @@ export const RoundBubblesGroup = ({ rounds, userId }: RoundBubblesGroupProps) =>
 };
 
 interface RoundBubbleProps {
-  roundResult: RoundResult;
+  roundResult: RoundResultDto;
   userId: string;
   elementRef?: (el: HTMLElement | null) => void;
   tabIndex?: number;

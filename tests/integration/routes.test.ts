@@ -5,6 +5,8 @@ import { AddressInfo } from 'net';
 import {
   AchievementBonusMode,
   AchievementBonusType,
+  APP_SOUNDS_DIR,
+  AppSettings,
   deserializeError,
   FirstBonusMultiplier,
   GamePhase,
@@ -22,7 +24,13 @@ import { setupServer } from '../../server';
 import { TestBackendApi, TestGameState } from '../utils/testApi';
 import { exchangeCodeForToken, getDiscordUser } from '../../server/src/utils/discord';
 import { LogCategory, logger } from '@yasq/server/src/utils/logger';
+import { getAppSettings } from '../../server/src/models/settings';
 import { Player } from '../utils/helper';
+
+vi.mock('../../server/src/models/settings', async importOriginal => ({
+  ...(await importOriginal()),
+  getAppSettings: vi.fn(),
+}));
 
 const makeAuth = (id: string, username: string): AuthenticationResult =>
   ({
@@ -533,6 +541,60 @@ describe('clientLogs', () => {
           statusCode: expectedStatusCode,
         }),
       })
+    );
+  });
+});
+
+describe('App Settings', () => {
+  describe('Final Results Music', () => {
+    beforeEach(async () => {
+      await testBackend.setupSession(DEFAULT_PLAYERS, { phase: GamePhase.FINAL_RESULTS });
+    });
+
+    it('should send the correct audio URLs when the properties are defined in the settings', async () => {
+      vi.mocked(getAppSettings).mockReturnValue({
+        sounds: {
+          finalResultsJingle: 'my_jingle.mp3',
+          finalResultsLoop: 'my_loop.mp3',
+        },
+      } satisfies AppSettings);
+
+      const response = await player1Facade.getFinalResults();
+
+      expect(response.music.jingleUrl).toBe(`/${APP_SOUNDS_DIR}/my_jingle.mp3`);
+      expect(response.music.loopUrl).toBe(`/${APP_SOUNDS_DIR}/my_loop.mp3`);
+    });
+
+    it('should not send any final results music when the properties are missing in the settings', async () => {
+      vi.mocked(getAppSettings).mockReturnValue({
+        sounds: {},
+      } as AppSettings);
+
+      const response = await player1Facade.getFinalResults();
+
+      expect(response.music.jingleUrl).toBeUndefined();
+      expect(response.music.loopUrl).toBeUndefined();
+    });
+
+    // Also checks if the correct property is set to null (easy to mix up finalResultsJingle and finalResultsLoop in code)
+    it.each([
+      [undefined, null],
+      [null, undefined],
+    ])(
+      'should explicitly send null values when the properties are set to null in the settings',
+      async (jingle, loop) => {
+        vi.mocked(getAppSettings).mockReturnValue({
+          sounds: {
+            finalResultsJingle: jingle,
+            finalResultsLoop: loop,
+          },
+        } as AppSettings);
+
+        const response = await player1Facade.getFinalResults();
+
+        expect(response.music.jingleUrl).toBe(jingle);
+        expect(response.music.loopUrl).toBe(loop);
+      }
     );
   });
 });

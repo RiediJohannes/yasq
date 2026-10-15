@@ -4,7 +4,7 @@ import { useEffect } from 'preact/hooks';
 import { capitalize, getAvatarUrl, getDisplayName } from '@yasq/shared';
 
 import { participants, useBackend } from '@globals';
-import { ReviewData } from '../../common/types';
+import { ReviewDataViewModel } from '../../common/types';
 import { findUser } from '../../utils/helper';
 
 import { ALL_JOKER_ICONS } from '@components/Icons';
@@ -15,7 +15,7 @@ import { RadioGroup } from '@components/RadioGroup';
 
 export const HostReviewView = ({ isHost }: { isHost: boolean }) => {
   const backend = useBackend();
-  const reviewData = useSignal<ReviewData | null>(null);
+  const reviewData = useSignal<ReviewDataViewModel | null>(null);
   const corrections = useSignal<Record<string, number>>({});
 
   useEffect(() => {

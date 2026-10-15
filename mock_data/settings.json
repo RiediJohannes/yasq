@@ -1,17 +1,25 @@
 {
-  "rounds": 5,
-  "maxGuessTime": 60,
-  "enabledJokers": ["OBFUSCATION", "TRIVIA", "MULTIPLE_CHOICE", "SPY", "GLIMPSE"],
-  "firstBonusMultiplier": 0.2,
-  "streakBonusMultiplier": 0.1,
-  "timeBonus": "LINEAR",
-  "achievementBonuses": {
-    "mode": "manual",
-    "enabledTypes": [
-      "FASTEST_CORRECT_GUESS",
-      "HIGHEST_STREAK",
-      "SLOWEST_AVERAGE_GUESS_TIME",
-      "MOST_PARTIALLY_CORRECT_GUESSES"
-    ]
+  "gameSettings": {
+    "rounds": 5,
+    "maxGuessTime": 60,
+    "enabledJokers": ["OBFUSCATION", "TRIVIA", "MULTIPLE_CHOICE", "SPY", "GLIMPSE"],
+    "firstBonusMultiplier": 0.2,
+    "streakBonusMultiplier": 0.1,
+    "timeBonus": "LINEAR",
+    "achievementBonuses": {
+      "mode": "manual",
+      "enabledTypes": [
+        "FASTEST_CORRECT_GUESS",
+        "HIGHEST_STREAK",
+        "SLOWEST_AVERAGE_GUESS_TIME",
+        "MOST_PARTIALLY_CORRECT_GUESSES"
+      ]
+    }
+  },
+  "appSettings": {
+    "sounds": {
+      "finalResultsJingle": "final_results_2_jingle.mp3",
+      "finalResultsLoop": "final_results_2_loop.mp3"
+    }
   }
 }

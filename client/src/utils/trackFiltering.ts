@@ -1,5 +1,5 @@
 import { Playlist } from '@yasq/shared';
-import { Track } from '../common/types';
+import { TrackViewModel } from '../common/types';
 
 export type SortOption = 'Default Order' | 'A-Z' | 'Z-A';
 
@@ -7,12 +7,12 @@ export type SortOption = 'Default Order' | 'A-Z' | 'Z-A';
  * Filters tracks based on playlist, search keyword, and played status.
  */
 export function getBaseFilteredTracks(
-  tracks: Track[] | null,
+  tracks: TrackViewModel[] | null,
   playlists: Playlist[],
   selectedPlaylistName: string,
   searchTerm: string,
   hidePlayed: boolean
-): Track[] {
+): TrackViewModel[] {
   if (!tracks) return [];
 
   return tracks.filter(track => {
@@ -39,12 +39,12 @@ export function getBaseFilteredTracks(
  * Applies tag filters and sorting logic to the base filtered tracks.
  */
 export function getFilteredAndSortedTracks(
-  baseTracks: Track[],
+  baseTracks: TrackViewModel[],
   playlists: Playlist[],
   selectedPlaylistName: string,
   sortOrder: SortOption,
   selectedTags: Record<string, string[]>
-): Track[] {
+): TrackViewModel[] {
   const activeCategories = Object.entries(selectedTags).filter(([_, vals]) => vals.length > 0);
 
   let results = [...baseTracks];
@@ -86,7 +86,7 @@ export function getFilteredAndSortedTracks(
  * Selects a random eligible track from a filtered list of tracks.
  * Returns null if no eligible (unplayed) tracks are available.
  */
-export function getRandomEligibleTrack(filteredTracks: Track[]): Track | null {
+export function getRandomEligibleTrack(filteredTracks: TrackViewModel[]): TrackViewModel | null {
   const eligibleTracks = filteredTracks.filter(t => !t.played);
   if (eligibleTracks.length === 0) return null;
 
@@ -96,7 +96,7 @@ export function getRandomEligibleTrack(filteredTracks: Track[]): Track | null {
 /**
  * Extracts available tag groups by type from the track list.
  */
-export function getAvailableTagsByType(tracks: Track[] | null): Record<string, string[]> {
+export function getAvailableTagsByType(tracks: TrackViewModel[] | null): Record<string, string[]> {
   const groups: Record<string, string[]> = {};
   tracks?.forEach(track => {
     track.tags?.forEach(tag => {
@@ -111,7 +111,7 @@ export function getAvailableTagsByType(tracks: Track[] | null): Record<string, s
  * Calculates reachable tag counts for dynamic filter UI hints.
  */
 export function getReachableTags(
-  tracks: Track[] | null,
+  tracks: TrackViewModel[] | null,
   playlists: Playlist[],
   selectedPlaylistName: string,
   searchTerm: string,

@@ -44,6 +44,7 @@ export default defineConfig(({ mode }) => {
         },
         '/music': 'http://localhost:3001',
         '/game_covers': 'http://localhost:3001',
+        '/sound': 'http://localhost:3001',
       },
       hmr: {
         clientPort: isMockMode ? 5173 : 443,
