@@ -1,12 +1,11 @@
 import { useEffect, useId, useRef } from 'preact/hooks';
-import { cloneElement, HTMLAttributes, isValidElement, VNode } from 'preact';
-import { activeTooltipId, measureBounds } from '../../utils/exclusiveTooltip';
-import { ReactNode } from 'preact/compat';
+import { cloneElement, HTMLAttributes, isValidElement, ComponentChildren, VNode } from 'preact';
+import { activeTooltipId, activeTooltipContent, measureBounds } from '../../utils/exclusiveTooltip';
 import { LONG_PRESS_MILLIS } from '@yasq/shared';
 
 interface WithTooltipProps {
-  /** The text content to display in the tooltip */
-  text: string;
+  /** The text content or rich VNode to display in the tooltip */
+  text: ComponentChildren;
   /** Single child element extended by the dynamic tooltip */
   children: VNode<any>;
   /** Optional custom ID. If omitted, useId() generates a unique stable ID */
@@ -38,18 +37,26 @@ export const WithTooltip = ({ text, children, id, disabled = false, elementRef }
 
   const handleOpen = (el: HTMLElement) => {
     measureBounds(el);
+    activeTooltipContent.value = text;
     activeTooltipId.value = tooltipId;
   };
 
   const handleClose = () => {
     if (activeTooltipId.value === tooltipId) {
       activeTooltipId.value = null;
+      activeTooltipContent.value = null;
     }
   };
 
   const handleToggle = (el: HTMLElement) => {
     measureBounds(el);
-    activeTooltipId.value = isTooltipOpen ? null : tooltipId;
+    if (isTooltipOpen) {
+      activeTooltipId.value = null;
+      activeTooltipContent.value = null;
+    } else {
+      activeTooltipContent.value = text;
+      activeTooltipId.value = tooltipId;
+    }
   };
 
   // Helper function to abort a deferred tooltip action (abort a long-press)
@@ -63,11 +70,13 @@ export const WithTooltip = ({ text, children, id, disabled = false, elementRef }
   const childProps = children.props || {};
   const childHasOnClick = !!childProps.onClick;
 
-  return cloneElement(children, {
+  const ariaText = typeof text === 'string' ? text : 'Track details';
+
+  const clonedTrigger = cloneElement(children, {
     ...childProps,
     ref: elementRef ?? childProps.ref,
     'data-tooltip': text,
-    'aria-label': text,
+    'aria-label': ariaText,
     id: childProps.id ?? tooltipId,
     className: `has-tooltip ${isTooltipOpen ? 'show-tooltip' : ''} ${childProps.className || ''}`.trim(),
     // Attach a bunch of event handlers that open/close the added tooltip as expected
@@ -124,14 +133,27 @@ export const WithTooltip = ({ text, children, id, disabled = false, elementRef }
       childProps.onBlur?.(e);
       handleClose();
     },
+    children: [
+      childProps.children,
+      isTooltipOpen && (
+        <span
+          className="tooltip-content"
+          key="active-tooltip"
+        >
+          {activeTooltipContent.value}
+        </span>
+      ),
+    ],
   });
+
+  return clonedTrigger;
 };
 
 interface TooltipDivProps extends HTMLAttributes<HTMLDivElement> {
   /** The text content to display in the tooltip */
-  text: string;
+  text: ComponentChildren;
   /** Single child element or inline text wrapped by div with dynamic tooltip */
-  children: ReactNode;
+  children: ComponentChildren;
   /** Optional custom ID. If omitted, useId() generates a unique stable ID */
   id?: string;
   /** Disable tooltip functionality entirely */
@@ -159,11 +181,11 @@ export const TooltipDiv = ({
     >
       <div
         id={id}
-        className={`${className}`}
+        className={className}
         tabIndex={tabIndex}
         {...restProps}
       >
-        {children}
+        <>{children}</>
       </div>
     </WithTooltip>
   );

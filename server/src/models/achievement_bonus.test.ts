@@ -8,23 +8,27 @@ import {
   type AchievementRule,
 } from './achievement_bonus.js';
 import type { UserRoundResult } from './leaderboard.js';
-import type { Track } from '@yasq/shared';
+import type { TrackInfo } from '@yasq/shared';
 
 const SAMPLE_TRACK = {
-  game: 'GAME_A',
-  title: 'Track A',
-  audio: 'track001.mp3',
-  cover: 'game_a.png',
-  tags: [
-    { type: 'Publisher', value: 'Publisher A' },
-    { type: 'Genre', value: 'Genre A' },
-  ],
-} satisfies Track;
+  url: '',
+  gameCoverUrl: '',
+  track: {
+    game: 'GAME_A',
+    title: 'Track A',
+    audio: 'track001.mp3',
+    cover: 'game_a.png',
+    tags: [
+      { type: 'Publisher', value: 'Publisher A' },
+      { type: 'Genre', value: 'Genre A' },
+    ],
+  },
+} satisfies TrackInfo;
 
 describe('AchievementBonusManager', () => {
   let rules: AchievementRule[];
   let achievements: AchievementBonusManager;
-  let mockTrack: Track;
+  let mockTrackInfo: TrackInfo;
 
   beforeEach(() => {
     rules = [
@@ -53,7 +57,7 @@ describe('AchievementBonusManager', () => {
     ];
 
     achievements = new AchievementBonusManager(rules);
-    mockTrack = SAMPLE_TRACK;
+    mockTrackInfo = SAMPLE_TRACK;
   });
 
   it('should track and update direct metrics like streaks correctly', () => {
@@ -102,8 +106,8 @@ describe('AchievementBonusManager', () => {
       { userId: 'user2', scoreValue: 1, time: 2000 } as UserRoundResult,
     ];
 
-    achievements.processRound(round1, mockTrack);
-    achievements.processRound(round2, mockTrack);
+    achievements.processRound(round1, mockTrackInfo);
+    achievements.processRound(round2, mockTrackInfo);
 
     // user1 averages: (2000 + 1000) / 2 = 1500
     // user2 averages: (4000 + 2000) / 2 = 3000
@@ -120,7 +124,7 @@ describe('AchievementBonusManager', () => {
       { userId: 'user2', scoreValue: 1, time: 2000 } as UserRoundResult, // Correct
     ];
 
-    achievements.processRound(roundResults, mockTrack);
+    achievements.processRound(roundResults, mockTrackInfo);
 
     // user1 valid time: 3000 (avg = 3000)
     // user2 valid time: 2000 (avg = 2000)
@@ -137,7 +141,7 @@ describe('AchievementBonusManager', () => {
       { userId: 'user2', scoreValue: 1 } as UserRoundResult, // Correct, should be filtered out for mostPartiallyCorrectGuesses
     ];
 
-    achievements.processRound(roundResults, mockTrack);
+    achievements.processRound(roundResults, mockTrackInfo);
 
     const state = achievements.achievements.get('mostPartiallyCorrectGuesses');
     expect(state?.userIds).toEqual(['user1']);

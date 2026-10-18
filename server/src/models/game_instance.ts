@@ -257,9 +257,9 @@ export class GameInstance {
 
     if (this.trackInfo !== null) {
       const roundResults = this.leaderboard.getRoundResults(this.state.round);
-      this.gameStats.updateBestScoringRound(roundResults, this.trackInfo.track);
-      this.gameStats.updateLeastScoringRound(roundResults, this.trackInfo.track);
-      this.achievementBonusManager.processRound(roundResults, this.trackInfo.track);
+      this.gameStats.updateBestScoringRound(roundResults, this.trackInfo);
+      this.gameStats.updateLeastScoringRound(roundResults, this.trackInfo);
+      this.achievementBonusManager.processRound(roundResults, this.trackInfo);
     }
   }
 

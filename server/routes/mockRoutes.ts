@@ -134,8 +134,8 @@ export function setMockState(stateData: any): GameInstance {
     game.registeredUsers = new Set(registeredUserIds);
   }
 
-  if (stateData.readyUserIds) {
-    game.readyPlayers = new Set(stateData.readyUserIds);
+  if (stateData.readyPlayers) {
+    game.readyPlayers = new Set(stateData.readyPlayers);
   }
 
   if (stateData.settings?.enabledJokers) {

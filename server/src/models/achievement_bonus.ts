@@ -1,5 +1,5 @@
 import type { UserRoundResult } from './leaderboard.js';
-import { AchievementBonusType, type Track } from '@yasq/shared';
+import { AchievementBonusType, type TrackInfo } from '@yasq/shared';
 
 export enum AchievementBonusMetric {
   GUESS_TIME = 'guessTime',
@@ -34,6 +34,7 @@ export const ACHIEVEMENT_BONUS_RULES: AchievementRule[] = [
     metric: AchievementBonusMetric.STREAK,
     goal: AchievementBonusGoal.HIGHEST,
     reward: 100,
+    description: 'Awarded to the player who built the highest continuous streak throughout the game.',
   },
   {
     id: AchievementBonusType.FASTEST_CORRECT_GUESS,
@@ -42,6 +43,7 @@ export const ACHIEVEMENT_BONUS_RULES: AchievementRule[] = [
     aggregate: AchievementBonusAggregate.MIN,
     goal: AchievementBonusGoal.LOWEST,
     reward: 100,
+    description: 'Awarded to the player who submitted a fully correct guess in the shortest amount of time.',
   },
   {
     id: AchievementBonusType.MOST_PARTIALLY_CORRECT_GUESSES,
@@ -50,6 +52,7 @@ export const ACHIEVEMENT_BONUS_RULES: AchievementRule[] = [
     aggregate: AchievementBonusAggregate.COUNT,
     goal: AchievementBonusGoal.HIGHEST,
     reward: 100,
+    description: 'Awarded to the player who achieved the highest number of partially correct guesses.',
   },
   {
     id: AchievementBonusType.SLOWEST_AVERAGE_GUESS_TIME,
@@ -58,6 +61,7 @@ export const ACHIEVEMENT_BONUS_RULES: AchievementRule[] = [
     aggregate: AchievementBonusAggregate.AVERAGE,
     goal: AchievementBonusGoal.HIGHEST,
     reward: 100,
+    description: 'Awarded to the player with the slowest average guess time throughout the game.',
   },
 ];
 
@@ -68,6 +72,7 @@ export interface AchievementRule {
   aggregate?: AchievementBonusAggregate;
   goal: AchievementBonusGoal;
   reward?: number;
+  description?: string;
 }
 
 interface UserAccumulator {
@@ -125,7 +130,7 @@ export class AchievementBonusManager {
   }
 
   // Processes round results using the single unified map
-  public processRound(roundResults: UserRoundResult[], track: Track) {
+  public processRound(roundResults: UserRoundResult[], trackInfo: TrackInfo) {
     for (const state of this.achievements.values()) {
       if (!state.rule.aggregate && !state.rule.filter) continue;
 
@@ -151,7 +156,7 @@ export class AchievementBonusManager {
         acc.latest = val;
       }
 
-      this.recalculateLeaders(state, roundResults, track);
+      this.recalculateLeaders(state, roundResults, trackInfo);
     }
   }
 
@@ -175,7 +180,7 @@ export class AchievementBonusManager {
     return null;
   }
 
-  private recalculateLeaders(state: AchievementState, roundResults?: UserRoundResult[], track?: Track) {
+  private recalculateLeaders(state: AchievementState, roundResults?: UserRoundResult[], trackInfo?: TrackInfo) {
     let bestValue: number | null = null;
     let bestUserIds: string[] = [];
 
@@ -227,9 +232,9 @@ export class AchievementBonusManager {
     if (bestValue !== null) {
       state.value = bestValue;
       state.userIds = bestUserIds;
-      if (track || roundResults) {
+      if (trackInfo || roundResults) {
         state.extraData = {
-          ...(track ? { track } : {}),
+          ...(trackInfo ? { trackInfo: trackInfo } : {}),
           ...(roundResults ? { round: roundResults[0]?.round } : {}),
         };
       }

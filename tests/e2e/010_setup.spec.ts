@@ -63,7 +63,18 @@ test.describe('Host UI', () => {
 
     expect(await setupPage.getActiveFirstBonus()).toEqual(DEFAULT_FIRST_BONUS_MULTIPLIER.toString());
     expect(await setupPage.getActiveStreakBonus()).toEqual(DEFAULT_STREAK_BONUS_MULTIPLIER.toString());
-    expect(await setupPage.getActiveAchievementMode()).toEqual('manual');
+    expect(await setupPage.getActiveAchievementMode()).toEqual(AchievementBonusMode.MANUAL);
+  });
+
+  test('should display time bonus plot when time bonus scheme is selected', async ({ setupPage }) => {
+    await setupPage.advancedSettingsToggle.click();
+    await expect(setupPage.advancedSettings).toBeVisible();
+
+    await expect(setupPage.timeBonusPlot).toBeVisible();
+
+    // No time bonus plot visible when time Bonus is set to 'NONE'
+    await setupPage.timeBonusSelect.selectOption('NONE');
+    await expect(setupPage.timeBonusPlot).toBeHidden();
   });
 
   test('should allow host to select another player and transfer host role', async ({ setupPage, session }) => {
@@ -152,7 +163,7 @@ test.describe('Host UI', () => {
     // Achievement mode radio buttons
     await page.keyboard.press('Tab');
     const achievementModeBefore = await setupPage.getActiveAchievementMode();
-    expect(achievementModeBefore).toEqual('manual');
+    expect(achievementModeBefore).toEqual(AchievementBonusMode.MANUAL);
 
     // Check the first achievement type checkbox
     await page.keyboard.press('Tab');

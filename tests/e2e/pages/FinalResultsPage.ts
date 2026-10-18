@@ -35,12 +35,17 @@ export class FinalResultsPage extends BasePage {
 
   getStatItem(index: number) {
     const item = this.statItems.nth(index);
+    const tooltip = item.locator('.tooltip-content');
     return {
       item,
       label: item.locator('.game-stat-label'),
       value: item.locator('.game-stat-value'),
       subValue: item.locator('.game-stat-subvalue'),
       avatar: item.locator('img'),
+      tooltip,
+      tooltipText: tooltip.locator('.game-stat-tooltip-text'),
+      trackGame: tooltip.locator('.game-stat-track-details strong'),
+      trackTitle: tooltip.locator('.game-stat-track-details i'),
     };
   }
 }

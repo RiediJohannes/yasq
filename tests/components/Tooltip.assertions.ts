@@ -51,7 +51,7 @@ async function toHaveTooltip(locator: Locator, tooltipText?: string) {
 async function hasTooltip(locator: Locator): Promise<boolean> {
   return await locator.evaluate(el => {
     const markerClassIsPresent = el.classList.contains('has-tooltip');
-    const style = window.getComputedStyle(el, '::after');
+    const style = window.getComputedStyle(el, '.tooltip-content');
     return markerClassIsPresent && style.content !== 'none';
   });
 }
@@ -99,7 +99,7 @@ async function toHaveActiveTooltip(locator: Locator, options?: { timeout?: numbe
 async function isTooltipActive(locator: Locator): Promise<boolean> {
   return await locator.evaluate(el => {
     const cssClassIsPresent = el.classList.contains('show-tooltip');
-    const style = window.getComputedStyle(el, '::after');
+    const style = window.getComputedStyle(el, '.tooltip-content');
     return cssClassIsPresent && style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
   });
 }
@@ -135,7 +135,7 @@ async function toBeWithinViewportBounds(locator: Locator, options?: { timeout?: 
       const hint = this.utils.matcherHint(assertionName, undefined, undefined, { isNot: this.isNot });
 
       if (lastResult === null) {
-        return `${hint}\n\nElement's ::after tooltip pseudo-element is currently not visible.`;
+        return `${hint}\n\nElement's .tooltip-content tooltip element is currently not visible.`;
       }
 
       const overflowLines = lastResult
@@ -165,34 +165,17 @@ interface BoundsCheckResult {
 }
 
 async function isWithinViewportBounds(locator: Locator): Promise<BoundsCheckResult | null> {
-  return await locator.evaluate((el, gap) => {
-    const style = window.getComputedStyle(el, '::after');
-
-    // Pseudo-element is not rendered at all
-    if (style.content === 'none' || style.display === 'none') {
+  return await locator.evaluate((triggerEl, gap) => {
+    const contentEl = triggerEl.querySelector('.tooltip-content');
+    if (!contentEl) {
       return null;
     }
 
-    const hostRect = el.getBoundingClientRect();
-    const width = parseFloat(style.width) || 0;
-    const height = parseFloat(style.height) || 0;
+    const rect = contentEl.getBoundingClientRect();
 
-    // Construct rectangle with dimensions of ::after element
-    const left =
-      style.left !== 'auto'
-        ? hostRect.left + parseFloat(style.left)
-        : style.right !== 'auto'
-          ? hostRect.right - parseFloat(style.right) - width
-          : hostRect.left;
-
-    const top =
-      style.top !== 'auto'
-        ? hostRect.top + parseFloat(style.top)
-        : style.bottom !== 'auto'
-          ? hostRect.bottom - parseFloat(style.bottom) - height
-          : hostRect.top;
-
-    const rect = { top, left, right: left + width, bottom: top + height };
+    if (rect.width === 0 && rect.height === 0) {
+      return null;
+    }
 
     const overflow = {
       top: -Math.min(0, rect.top - gap),
@@ -262,26 +245,32 @@ async function toHaveCenteredTooltipArrow(locator: Locator, options?: { timeout?
 }
 
 async function isArrowCentered(locator: Locator): Promise<ArrowCenterCheckResult | null> {
-  return await locator.evaluate((el, tolerance) => {
-    const style = window.getComputedStyle(el, '::before');
+  return await locator.evaluate((triggerEl, tolerance) => {
+    const contentEl = triggerEl.querySelector('.tooltip-content');
+    if (!contentEl) {
+      return null;
+    }
+
+    const style = window.getComputedStyle(contentEl, '::before');
 
     // Arrow pseudo-element is not rendered at all
     if (style.content === 'none' || style.display === 'none') {
       return null;
     }
 
-    const hostRect = el.getBoundingClientRect();
-    const width = parseFloat(style.width) || 0;
+    const triggerRect = triggerEl.getBoundingClientRect();
+    const contentRect = contentEl.getBoundingClientRect();
+    const hostCenterX = triggerRect.left + triggerRect.width / 2;
 
-    const left =
-      style.left !== 'auto'
-        ? hostRect.left + parseFloat(style.left)
-        : style.right !== 'auto'
-          ? hostRect.right - parseFloat(style.right) - width
-          : hostRect.left;
+    // Read the shift variable to account for boundary clamping
+    const computedContentStyle = window.getComputedStyle(contentEl);
+    const shiftVal = parseFloat(computedContentStyle.getPropertyValue('--tooltip-shift')) || 0;
 
-    const arrowCenterX = left + width / 2;
-    const hostCenterX = hostRect.left + hostRect.width / 2;
+    // Content center on screen includes the body shift (+shiftVal)
+    const contentCenter = contentRect.left + contentRect.width / 2;
+
+    // The arrow counter-shifts by (-shiftVal), locking its center back to the host center
+    const arrowCenterX = contentCenter - shiftVal;
 
     return {
       centered: Math.abs(hostCenterX - arrowCenterX) <= tolerance,

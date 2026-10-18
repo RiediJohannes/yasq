@@ -12,6 +12,7 @@ export class SetupPage extends BasePage {
 
   readonly advancedSettingsToggle: Locator;
   readonly timeBonusSelect: Locator;
+  readonly timeBonusPlot: Locator;
   readonly firstBonusGroup: Locator;
   readonly streakBonusGroup: Locator;
   readonly achievementModeRadioGroup: Locator;
@@ -37,6 +38,7 @@ export class SetupPage extends BasePage {
 
     this.advancedSettingsToggle = page.locator('#advanced-settings-btn');
     this.timeBonusSelect = page.locator('#time-bonus-select');
+    this.timeBonusPlot = page.locator('.time-bonus-plot');
     this.firstBonusGroup = page.locator('#first-bonus-group');
     this.streakBonusGroup = page.locator('#streak-bonus-group');
     this.achievementModeRadioGroup = page.locator('#achievement-mode-group');

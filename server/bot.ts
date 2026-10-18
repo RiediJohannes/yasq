@@ -131,6 +131,7 @@ async function handleRankCommand(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply();
 
   const targetUser = interaction.options.getUser('player') || interaction.user;
+  const member = interaction.guild ? await interaction.guild.members.fetch(targetUser.id).catch(() => null) : null;
 
   try {
     const stats = await getPlayerRank(targetUser.id);
@@ -161,6 +162,7 @@ async function handleRankCommand(interaction: ChatInputCommandInteraction) {
           ...targetUser,
           avatar: targetUser.avatar ?? '',
           global_name: targetUser.globalName!,
+          ...(member?.nickname ? { nickname: member.nickname } : {}),
         }),
         iconURL: targetUser.displayAvatarURL(),
       })

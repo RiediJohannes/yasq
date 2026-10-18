@@ -61,7 +61,6 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
   });
 
   const logSchema = defineSchema({
-    // Needs to replace LogLevel with Object.values(LogLevel) as [string, ...string[]] ?
     level: z.enum(LogLevel, {
       error: issue => `Unknown log level ${issue.input}`,
     }),
@@ -351,7 +350,7 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
   });
 
   router.get(`/samples/time-bonus/:timeBonusType/summary`, async (req, res) => {
-    const { timeBonusType: bonusType } = validateRequest(req, getTimeBonusSampleBodySchema);
+    const { timeBonusType: bonusType } = validateRequest(req, { params: getTimeBonusSampleBodySchema });
 
     const participants: Participant[] = SAMPLE_PARTICIPANTS;
     const timeBonusSummary: TimeBonusSummary = generateSampleTimeBonusSummary(bonusType);

@@ -2,11 +2,11 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { GameStats } from './game_stats.js';
 import type { UserRoundResult } from './leaderboard.js';
-import { BonusType, PointsBonus, type Track } from '@yasq/shared';
+import { BonusType, PointsBonus, type TrackInfo } from '@yasq/shared';
 
 describe('GameStats', () => {
   let stats: GameStats;
-  const mockTrack = {} as Track;
+  const mockTrackInfo = {} as TrackInfo;
 
   beforeEach(() => {
     stats = new GameStats();
@@ -29,17 +29,17 @@ describe('GameStats', () => {
         { userId: 'user-2', scoreValue: 0, awardedBonuses: [] },
       ] as UserRoundResult[];
 
-      stats.updateBestScoringRound(roundA, mockTrack);
+      stats.updateBestScoringRound(roundA, mockTrackInfo);
       expect(stats.bestScoringRound?.roundResults).toEqual(roundA);
       expect(stats.bestScoringRound?.timeBonusSum).toBe(65); // 50 + 15
 
       // Higher combined time bonus replaces it
-      stats.updateBestScoringRound(roundB, mockTrack);
+      stats.updateBestScoringRound(roundB, mockTrackInfo);
       expect(stats.bestScoringRound?.roundResults).toEqual(roundB);
       expect(stats.bestScoringRound?.timeBonusSum).toBe(130); // 90 + 40
 
       // Lower combined time bonus does not replace the best
-      stats.updateBestScoringRound(roundC, mockTrack);
+      stats.updateBestScoringRound(roundC, mockTrackInfo);
       expect(stats.bestScoringRound?.roundResults).toEqual(roundB);
     });
   });
@@ -61,17 +61,17 @@ describe('GameStats', () => {
         { userId: 'user-2', scoreValue: 0, awardedBonuses: [] },
       ] as UserRoundResult[];
 
-      stats.updateLeastScoringRound(roundA, mockTrack);
+      stats.updateLeastScoringRound(roundA, mockTrackInfo);
       expect(stats.leastScoringRound?.roundResults).toEqual(roundA);
       expect(stats.leastScoringRound?.timeBonusSum).toBe(130); // 90 + 40
 
       // Lower combined time bonus replaces it
-      stats.updateLeastScoringRound(roundB, mockTrack);
+      stats.updateLeastScoringRound(roundB, mockTrackInfo);
       expect(stats.leastScoringRound?.roundResults).toEqual(roundB);
       expect(stats.leastScoringRound?.timeBonusSum).toBe(65); // 50 + 15
 
       // Higher combined time bonus does not replace the lowest
-      stats.updateLeastScoringRound(roundC, mockTrack);
+      stats.updateLeastScoringRound(roundC, mockTrackInfo);
       expect(stats.leastScoringRound?.roundResults).toEqual(roundB);
     });
   });

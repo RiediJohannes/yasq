@@ -112,7 +112,7 @@ function formatZodError(error: z.ZodError, target: RequestComponent): string {
   const targetLabel = target === RequestComponent.BODY ? 'body property' : `${target} parameter`;
 
   // Missing required field
-  if (firstIssue.code === 'invalid_type' && firstIssue.input === undefined) {
+  if (firstIssue.input === undefined && ['invalid_type', 'invalid_value'].includes(firstIssue.code)) {
     return path ? `Missing ${targetLabel}: ${path}` : `Missing ${targetLabel}`;
   }
 

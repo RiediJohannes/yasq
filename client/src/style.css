@@ -556,7 +556,7 @@ select:disabled option {
 
 .game-header-stats {
   margin-left: var(--space-large);
-  padding-top: env(safe-area-inset-top, 0px);
+  padding-top: var(--discord-safe-area-inset-top, env(safe-area-inset-top));
   height: 48px;
   display: flex;
   justify-content: center;
@@ -1322,6 +1322,7 @@ input[type='radio']:checked + .btn-radio {
 .tag-badge:hover,
 .tag-badge:focus-visible {
   filter: brightness(120%);
+  z-index: 1000;
 }
 
 .tag-badge strong {
@@ -2054,6 +2055,15 @@ input[value='1']:checked + .btn-radio.correct {
   border-radius: var(--border-radius-medium);
 }
 
+.tooltip-game-stat-item:hover,
+.tooltip-game-stat-item:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  outline: none;
+  z-index: 1000;
+}
+
 .game-stat-label {
   display: block;
   font-size: 0.8rem;
@@ -2062,7 +2072,7 @@ input[value='1']:checked + .btn-radio.correct {
 
 .game-stat-content {
   display: flex;
-  gap: var(--space-small);
+  gap: var(--space-tiny);
 }
 
 .game-stat-value {
@@ -2073,62 +2083,104 @@ input[value='1']:checked + .btn-radio.correct {
   display: block;
 }
 
+.game-stat-tooltip-content {
+  display: flex;
+  flex-flow: column;
+  gap: var(--space-small);
+}
+
+.game-stat-tooltip-text {
+  display: block;
+  white-space: pre-line;
+}
+
+.game-stat-divider {
+  width: 100%;
+  border: 0;
+  border-top: 1px dashed var(--text-muted);
+  height: 0;
+  margin: 0;
+}
+
+.game-stat-track-container {
+  position: relative;
+  display: flex;
+  flex-flow: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-small);
+  width: 100%;
+  text-align: left;
+}
+
+.game-stat-track-container img {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: var(--border-radius-medium);
+}
+
+.game-stat-track-details {
+  display: flex;
+  flex-flow: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
 .has-tooltip {
   position: relative;
 }
 
-.has-tooltip::before,
-.has-tooltip::after {
+/* Tooltip Body & Wrapper Container */
+.has-tooltip .tooltip-content {
   position: absolute;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  pointer-events: none;
-}
-
-/* Tooltip Arrow */
-.has-tooltip::before {
-  content: '';
   top: 100%;
   left: 50%;
-  transform: translateX(-50%);
-  z-index: 1001;
-  border-left: 10px solid transparent;
-  border-right: 10px solid transparent;
-  border-bottom: 12px solid var(--bg-dark);
-  filter: drop-shadow(0 -2px 2px rgba(0, 0, 0, 0.2));
-  clip-path: inset(-15px -15px 1px -15px);
-}
+  /* Shift body away from screen border when overflowing */
+  transform: translateX(calc(-50% + var(--tooltip-shift, 0px)));
+  margin-top: 6px;
 
-/* Tooltip Body */
-.has-tooltip::after {
-  --screen-margin: 15px;
-  content: attr(data-tooltip);
   box-sizing: border-box;
   width: max-content;
   max-width: 200px;
   z-index: 1000;
+
   background: var(--bg-dark);
   color: var(--text-main);
   padding: 8px 12px;
   border-radius: var(--border-radius-medium);
   font-size: 12px;
-  text-align: center;
+  text-align: left;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
   text-shadow: none;
 
-  top: 100%;
-  margin-top: var(--space-small);
-  left: clamp(
-    calc(-1 * var(--trigger-x, 0px) + var(--screen-margin)),
-    calc(-0.5 * var(--tooltip-width, 200px) + 50%),
-    calc(100vw + -1 * var(--trigger-x, 0px) - var(--tooltip-width, 200px) - var(--screen-margin))
-  );
-  transform: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
 }
 
-/* --- Single Source of Truth Trigger --- */
-.has-tooltip.show-tooltip::before,
-.has-tooltip.show-tooltip::after {
+/* Tooltip Arrow - Counter-shifts to stay glued to the trigger center */
+.has-tooltip .tooltip-content::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  /* Counter-shift arrow so it never detaches from the trigger element */
+  transform: translateX(calc(-50% - var(--tooltip-shift, 0px)));
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid var(--bg-dark);
+  filter: drop-shadow(0 -2px 2px rgba(0, 0, 0, 0.2));
+}
+
+/* --- Trigger Activation --- */
+.has-tooltip.show-tooltip .tooltip-content {
   opacity: 1;
 }
 
@@ -3070,7 +3122,7 @@ input[value='1']:checked + .btn-radio.correct {
     gap: 0.7em;
   }
 
-  .has-tooltip::after {
+  .has-tooltip .tooltip-content {
     max-width: calc(100vw - 2 * var(--screen-margin));
   }
 
