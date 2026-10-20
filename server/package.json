@@ -9,20 +9,20 @@
     "url": "git+https://github.com/yadler97/yasq.git"
   },
   "scripts": {
-    "dev": "cross-env NODE_ENV=development tsx watch main.ts",
-    "prod": "cross-env NODE_ENV=production tsx main.ts",
-    "test": "cross-env NODE_ENV=test vitest"
+    "dev": "cross-env NODE_ENV=development bun --hot main.ts",
+    "prod": "cross-env NODE_ENV=production bun main.ts",
+    "test": "cross-env NODE_ENV=test vitest run"
   },
   "dependencies": {
     "@discord/embedded-app-sdk": "^2.5.0",
     "@discordjs/voice": "^0.19.2",
+    "@yasq/shared": "*",
     "better-sqlite3": "^13.0.3",
     "discord.js": "^14.27.0",
     "dotenv": "^18.0.5",
     "express": "^5.2.1",
     "ffmpeg-static": "^5.3.0",
     "mersenne-twister": "^1.1.0",
-    "node-fetch": "^3.3.2",
     "opusscript": "^0.0.8",
     "playwright": "^1.64.1",
     "preact": "^11.0.0",
@@ -32,16 +32,13 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^9.6.0",
     "@types/express": "^5.0.6",
+    "@types/better-sqlite3": "^9.6.0",
     "@types/mersenne-twister": "^1.1.7",
     "@types/node": "^26.1.2",
-    "@types/node-fetch": "^2.6.13",
     "@vitest/coverage-v8": "^5.0.3",
     "cross-env": "^10.1.0",
     "mockdate": "^3.0.5",
-    "ts-node": "^10.9.2",
-    "tsx": "^4.22.4",
     "typescript": "^7.0.2",
     "vitest": "^5.0.3"
   }
