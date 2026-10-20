@@ -1,0 +1,15 @@
+[run]
+logLevel = "warn"
+
+[test]
+# Configure test runner options across workspaces
+root = "."
+pathIgnorePatterns = [
+  "tests/**",
+  "**/node_modules/**",
+  "**/dist/**"
+]
+
+[install]
+# Package manager behaviours
+exact = false
