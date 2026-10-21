@@ -1,6 +1,12 @@
 import dotenv from 'dotenv';
-import { REST, Routes } from 'discord.js';
-import { ApplicationCommandOptionType, ApplicationCommandType, EntryPointCommandHandlerType } from 'discord.js';
+import {
+  ApplicationCommandOptionType,
+  ApplicationCommandType,
+  EntryPointCommandHandlerType,
+  REST,
+  Routes,
+} from 'discord.js';
+import { LogCategory, logger } from './src/utils/logger.js';
 
 dotenv.config({ path: '../.env' });
 
@@ -8,7 +14,7 @@ const TOKEN = process.env.DISCORD_BOT_TOKEN;
 const CLIENT_ID = process.env.VITE_DISCORD_CLIENT_ID;
 
 if (!TOKEN || !CLIENT_ID) {
-  console.error('Error: Missing DISCORD_BOT_TOKEN or VITE_DISCORD_CLIENT_ID in .env file.');
+  logger.error('Error: Missing DISCORD_BOT_TOKEN or VITE_DISCORD_CLIENT_ID in .env file.', LogCategory.SETUP, null);
   process.exit(1);
 }
 
@@ -84,12 +90,12 @@ const rest = new REST({ version: '10' }).setToken(TOKEN);
 
 (async () => {
   try {
-    console.log('Registering global YASQ commands...');
+    logger.debug('Registering global YASQ commands...', LogCategory.SETUP);
 
     await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
 
-    console.log('Successfully registered global YASQ commands.');
-  } catch (error) {
-    console.error(error);
+    logger.info('Successfully registered global YASQ commands.', LogCategory.SETUP);
+  } catch (err) {
+    logger.error('Failed to register global YASQ commands.', LogCategory.SETUP, null, err as Error);
   }
 })();

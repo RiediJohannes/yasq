@@ -1,14 +1,17 @@
 import { LogLevel } from '@yasq/shared';
-import { getCachedDisplayName } from '../helper.js';
+import { getCachedDisplayName } from './helper.js';
 
 export enum LogCategory {
   API = 'API',
   AUTH = 'AUTH',
+  BOT = 'BOT',
   CLIENT = 'CLIENT',
+  DATABASE = 'DATABASE',
   DISCORD = 'DISCORD',
   GAME = 'GAME',
   GENERAL = 'GENERAL',
   SECURITY = 'SECURITY',
+  SETUP = 'SETUP',
 }
 
 const getAppLogLevel = () =>
@@ -57,9 +60,9 @@ export const logger = {
   info: (msg: string, category: LogCategory, instanceId?: string) =>
     logger.log(LogLevel.INFO, msg, category, { instanceId }),
 
-  warn: (msg: string, category: LogCategory, instanceId?: string | null, error?: Error | string) =>
+  warn: (msg: string, category: LogCategory, instanceId: string | null, error?: Error | string) =>
     logger.log(LogLevel.WARN, msg, category, { instanceId, error }),
 
-  error: (msg: string, category: LogCategory, instanceId?: string | null, error?: Error | string) =>
+  error: (msg: string, category: LogCategory, instanceId: string | null, error?: Error | string) =>
     logger.log(LogLevel.ERROR, msg, category, { instanceId, error }),
 };

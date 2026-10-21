@@ -18,21 +18,22 @@ import type { AudioPlayer } from '@discordjs/voice';
 import path from 'path';
 import fs from 'fs';
 
-import { capitalize, GAME_COVERS_DIR, getDisplayName, TRACK_AUDIO_DIR, type Playlist, type Track } from '@yasq/shared';
+import { capitalize, GAME_COVERS_DIR, getDisplayName, type Playlist, type Track, TRACK_AUDIO_DIR } from '@yasq/shared';
 
-import { getTopLifetimePlayers, getPlayerRank, initDatabase } from './src/db.js';
+import { getPlayerRank, getTopLifetimePlayers, initDatabase } from './src/db.js';
 import { isAllowed } from './src/access_control.js';
-import { getAudioDuration, getFilePath } from './src/helper.js';
+import { getAudioDuration, getFilePath } from './src/utils/helper.js';
+import { LogCategory, logger } from './src/utils/logger.js';
 
 dotenv.config({ path: '../.env' });
 
 const activeAudioPlayers = new Map<string, { player: AudioPlayer; voiceChannelId: string; skipFn: () => void }>();
 
 export async function startDiscordBot() {
-  await initDatabase().catch(err => console.error('Database init error:', err));
+  await initDatabase().catch(err => logger.error('Database init error:', LogCategory.BOT, null, err as Error));
 
   if (!process.env.DISCORD_BOT_TOKEN) {
-    console.warn('DISCORD_BOT_TOKEN is not set. Starting with no bot functionality.');
+    logger.warn('DISCORD_BOT_TOKEN is not set. Starting with no bot functionality.', LogCategory.SETUP, null);
     return;
   }
 
@@ -41,7 +42,7 @@ export async function startDiscordBot() {
   });
 
   client.once('clientReady', () => {
-    console.log(`Bot logged in as ${client.user?.tag}`);
+    logger.info(`Bot logged in as ${client.user?.tag}`, LogCategory.SETUP);
   });
 
   client.on('interactionCreate', async interaction => {
@@ -70,19 +71,19 @@ export async function startDiscordBot() {
         await handleLeaveCommand(interaction);
         break;
       default:
-        console.warn(`Unknown command: ${interaction.commandName}`);
+        logger.warn(`Unknown command: ${interaction.commandName}`, LogCategory.BOT, null);
     }
   });
 
-  client.login(process.env.DISCORD_BOT_TOKEN);
+  await client.login(process.env.DISCORD_BOT_TOKEN);
 }
 
 async function handleTestCommand(interaction: ChatInputCommandInteraction) {
   try {
     const username = interaction.user.username;
     await interaction.reply(`hallo, ${username}!`);
-  } catch (error) {
-    console.error('Failed to reply:', error);
+  } catch (err) {
+    logger.error('Failed to reply:', LogCategory.BOT, null, err as Error);
   }
 }
 
@@ -121,8 +122,8 @@ async function handleTopCommand(interaction: ChatInputCommandInteraction) {
     embed.setTimestamp();
 
     await interaction.editReply({ embeds: [embed] });
-  } catch (error) {
-    console.error('Failed to fetch top lifetime players:', error);
+  } catch (err) {
+    logger.error('Failed to fetch top lifetime players:', LogCategory.BOT, null, err as Error);
     await interaction.editReply('An error occurred while fetching the lifetime leaderboard.');
   }
 }
@@ -174,8 +175,8 @@ async function handleRankCommand(interaction: ChatInputCommandInteraction) {
       .setTimestamp();
 
     await interaction.editReply({ embeds: [embed] });
-  } catch (error) {
-    console.error('Failed to fetch user lifetime stats:', error);
+  } catch (err) {
+    logger.error('Failed to fetch user lifetime stats:', LogCategory.BOT, null, err as Error);
     await interaction.editReply('An error occurred while fetching your stats.');
   }
 }
@@ -201,8 +202,8 @@ async function handlePlayCommand(interaction: ChatInputCommandInteraction) {
   let tracks: Track[];
   try {
     tracks = JSON.parse(fs.readFileSync(tracksFilePath, 'utf8'));
-  } catch (error) {
-    console.error('Failed to read tracks.json:', error);
+  } catch (err) {
+    logger.error('Failed to read tracks.json:', LogCategory.BOT, null, err as Error);
     await interaction.editReply('❌ Could not load the track list.');
     return;
   }
@@ -261,8 +262,8 @@ async function handlePlayCommand(interaction: ChatInputCommandInteraction) {
 
       const payload = buildTrackEmbedPayload(chosenTrack);
       await interaction.editReply({ content: '', ...payload });
-    } catch (error) {
-      console.error('Voice connection/playback error:', error);
+    } catch (err) {
+      logger.error('Voice connection/playback error:', LogCategory.BOT, null, err as Error);
       await targetInteraction.editReply('❌ Failed to connect to the voice channel or start playback.');
     }
   };
@@ -357,8 +358,8 @@ async function handlePlaylistCommand(interaction: ChatInputCommandInteraction) {
   try {
     playlists = JSON.parse(fs.readFileSync(playlistsFilePath, 'utf8'));
     tracks = JSON.parse(fs.readFileSync(tracksFilePath, 'utf8'));
-  } catch (error) {
-    console.error('Failed to read playlist or track list:', error);
+  } catch (err) {
+    logger.error('Failed to read playlist or track list:', LogCategory.BOT, null, err as Error);
     await interaction.editReply('❌ Could not load playlist data.');
     return;
   }
@@ -461,8 +462,8 @@ async function handlePlaylistCommand(interaction: ChatInputCommandInteraction) {
       if (followUpMessage) {
         await interaction.deleteReply(followUpMessage.id).catch(() => {});
       }
-    } catch (error) {
-      console.error('Playlist playback error:', error);
+    } catch (err) {
+      logger.error('Playlist playback error:', LogCategory.BOT, null, err as Error);
       await targetInteraction.editReply('❌ Failed to connect or start playlist playback.');
     }
   };

@@ -2,7 +2,7 @@ import fs from 'fs';
 
 import type { Participant } from '@yasq/shared';
 
-import { isMockMode } from '../helper.js';
+import { isMockMode } from './helper.js';
 import { LogCategory, logger } from './logger.js';
 
 const DISCORD_API = 'https://discord.com/api';
@@ -108,8 +108,8 @@ export async function enrichParticipantsWithGuildNicknames(
         }
       }
     }
-  } catch (error) {
-    console.error('Failed to fetch guild nicknames for results image:', error);
+  } catch (err) {
+    logger.error('Failed to fetch guild nicknames for results image:', LogCategory.DISCORD, null, err as Error);
   }
 }
 

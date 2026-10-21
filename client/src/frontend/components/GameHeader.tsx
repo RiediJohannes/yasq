@@ -1,7 +1,7 @@
 import { signal } from '@preact/signals';
 
 import { GamePhase } from '@yasq/shared';
-import { gameStatus } from '@yasq/client/src/globals';
+import { gameStatus } from '@globals';
 import { WithTooltip } from './Tooltip';
 
 export const isLocalSettingsOpen = signal(false);

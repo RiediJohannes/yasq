@@ -2,6 +2,8 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { AuthenticationResult, BackendApiFacade } from '../../client/src/backend/apiFacade';
 import { setupServer } from '../../server';
 import {
+  AchievementBonusMode,
+  AchievementBonusType,
   deserializeError,
   FirstBonusMultiplier,
   GamePhase,
@@ -153,6 +155,10 @@ describe('setupGame', () => {
       firstBonusMultiplier: FirstBonusMultiplier.OFF,
       timeBonus: TimeBonus.LINEAR,
       streakBonusMultiplier: StreakBonusMultiplier.OFF,
+      achievementBonuses: {
+        mode: AchievementBonusMode.MANUAL,
+        enabledTypes: [AchievementBonusType.FASTEST_CORRECT_GUESS, AchievementBonusType.MOST_PARTIALLY_CORRECT_GUESSES],
+      },
     });
     const body = await response.json();
 
@@ -168,6 +174,7 @@ describe('setupGame', () => {
       firstBonusMultiplier: FirstBonusMultiplier.OFF,
       timeBonus: TimeBonus.LINEAR,
       streakBonusMultiplier: StreakBonusMultiplier.OFF,
+      achievementBonuses: null,
     });
     const body = await response.json();
 
@@ -184,6 +191,7 @@ describe('setupGame', () => {
       firstBonusMultiplier: FirstBonusMultiplier.OFF,
       timeBonus: TimeBonus.LINEAR,
       streakBonusMultiplier: StreakBonusMultiplier.OFF,
+      achievementBonuses: null,
     });
     const body = await response.json();
 
@@ -201,6 +209,7 @@ describe('setupGame', () => {
       firstBonusMultiplier: FirstBonusMultiplier.OFF,
       timeBonus: TimeBonus.LINEAR,
       streakBonusMultiplier: StreakBonusMultiplier.OFF,
+      achievementBonuses: null,
     });
     const body = await response.json();
 
@@ -424,6 +433,7 @@ describe('useJoker', () => {
 describe('clientLogs', () => {
   beforeEach(async () => {
     await testBackend.setupSession(...DEFAULT_SESSION);
+    loggerSpy.mockReset();
   });
 
   afterEach(async () => {

@@ -65,14 +65,19 @@ export enum AchievementBonusType {
 export enum AchievementBonusMode {
   MANUAL = 'manual',
   RANDOM = 'random',
-  OFF = 'off',
 }
 
-export interface AchievementBonuses {
-  mode: AchievementBonusMode;
+export interface ManualAchievementBonuses {
+  mode: AchievementBonusMode.MANUAL;
   enabledTypes: AchievementBonusType[];
+}
+
+export interface RandomAchievementBonuses {
+  mode: AchievementBonusMode.RANDOM;
   randomCount: number;
 }
+
+export type AchievementBonuses = ManualAchievementBonuses | RandomAchievementBonuses;
 
 export enum LogLevel {
   DEBUG = 0,
@@ -101,13 +106,6 @@ export const RoundTimings = {
 
 export const DEFAULT_MAX_GUESS_TIME: number = 60_000;
 export const DEFAULT_ROUNDS: number = 5;
-export const DEFAULT_ENABLED_JOKERS: Joker[] = [
-  Joker.OBFUSCATION,
-  Joker.TRIVIA,
-  Joker.MULTIPLE_CHOICE,
-  Joker.SPY,
-  Joker.GLIMPSE,
-];
 
 export const BASE_POINTS: number = 100;
 export const MAX_TIME_MULTIPLIER: number = 1.0;
@@ -116,6 +114,31 @@ export const EXPONENTIAL_DECAY_INTENSITY: number = 2.5;
 export const DEFAULT_FIRST_BONUS_MULTIPLIER = FirstBonusMultiplier.MEDIUM;
 export const DEFAULT_TIME_BONUS: TimeBonus = TimeBonus.LINEAR;
 export const DEFAULT_STREAK_BONUS_MULTIPLIER = StreakBonusMultiplier.MEDIUM;
+
+export const DEFAULT_ENABLED_JOKERS: Joker[] = [
+  Joker.OBFUSCATION,
+  Joker.TRIVIA,
+  Joker.MULTIPLE_CHOICE,
+  Joker.SPY,
+  Joker.GLIMPSE,
+];
+
+export const DEFAULT_ENABLED_ACHIEVEMENT_TYPES = Object.values(AchievementBonusType);
+export const DEFAULT_RANDOM_COUNT = 1;
+export const DEFAULT_ACHIEVEMENT_BONUSES: AchievementBonuses = {
+  mode: AchievementBonusMode.MANUAL,
+  enabledTypes: DEFAULT_ENABLED_ACHIEVEMENT_TYPES,
+} as const;
+
+export const DEFAULT_SETTINGS = {
+  rounds: DEFAULT_ROUNDS,
+  maxGuessTime: DEFAULT_MAX_GUESS_TIME,
+  enabledJokers: DEFAULT_ENABLED_JOKERS,
+  firstBonusMultiplier: DEFAULT_FIRST_BONUS_MULTIPLIER,
+  timeBonus: DEFAULT_TIME_BONUS,
+  streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
+  achievementBonuses: DEFAULT_ACHIEVEMENT_BONUSES,
+} as const;
 
 export const GLIMPSE_BLUR_INTENSITY: number = 25;
 

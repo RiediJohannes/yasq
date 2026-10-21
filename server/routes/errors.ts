@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 
-import { hasPathParams, hasQueryParams } from '../src/helper.js';
+import { hasPathParams, hasQueryParams } from '../src/utils/helper.js';
 import { LogCategory, logger } from '../src/utils/logger.js';
 
 export class ApiError extends Error {
@@ -45,12 +45,12 @@ export const handleErrors = (err: ApiError | Error, req: Request, res: Response,
 
   // Known operational error
   if (err instanceof ApiError) {
-    logger.error('Domain exception', LogCategory.API, instanceId, err);
+    logger.error('Domain exception', LogCategory.API, instanceId ?? null, err);
     return res.status(err.statusCode).json({ error: err.message });
   }
 
   // Unexpected error
-  logger.error('Unhandled server error', LogCategory.API, instanceId, err);
+  logger.error('Unhandled server error', LogCategory.API, instanceId ?? null, err);
   return res.status(500).json({
     error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,
   });

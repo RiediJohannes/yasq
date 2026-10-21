@@ -1,8 +1,8 @@
 import { useSignal } from '@preact/signals';
 
-import { AchievementBonusType, capitalize, Joker } from '@yasq/shared';
+import { AchievementBonusMode, AchievementBonusType, capitalize, Joker } from '@yasq/shared';
 
-import { gameStatus, participants, useBackend } from '@yasq/client/src/globals';
+import { gameStatus, participants, useBackend } from '@globals';
 import { PLAYER_TIME_BONUS_LABELS } from '../../common/constants';
 import { OptionalTimeBonus, TOptionalTimeBonus } from '../../common/types';
 import { formatBonusMultiplier } from '../../utils/helper';
@@ -164,9 +164,9 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
           <dt className="top">🏆 Achievements</dt>
           <dd id="settings-achievements">
             <div className="achievement-column">
-              {achievementBonuses?.mode === 'off' || !achievementBonuses ? (
+              {!achievementBonuses ? (
                 <span className="no-achievements">None</span>
-              ) : achievementBonuses.mode === 'random' ? (
+              ) : achievementBonuses.mode === AchievementBonusMode.RANDOM ? (
                 <span className="achievement-text-name">Random ({achievementBonuses.randomCount})</span>
               ) : (
                 <ul className="achievement-list">

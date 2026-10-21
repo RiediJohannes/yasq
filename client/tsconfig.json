@@ -20,7 +20,8 @@
     "paths": {
       "@views/*": ["./src/frontend/views/*"],
       "@components/*": ["./src/frontend/components/*"],
-      "@mock/*": ["../mock_data/*"]
+      "@mock/*": ["../mock_data/*"],
+      "@globals": ["./src/globals"]
     }
   },
   "include": ["src", "playwright", "vite.config.ts", "../package.json"]

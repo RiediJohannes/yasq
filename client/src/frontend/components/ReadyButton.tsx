@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { gameStatus, isMac, useBackend } from '@yasq/client/src/globals';
+import { gameStatus, isMac, useBackend } from '@globals';
 import { getActionKeyLabel } from '../../utils/helper';
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
 

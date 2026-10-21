@@ -1,11 +1,9 @@
 import { useSignal } from '@preact/signals';
 import { TargetedEvent } from 'preact';
 
-import { audioPlayer, gameStatus, useBackend } from '@yasq/client/src/globals';
+import { audioPlayer, gameStatus, useBackend } from '@globals';
 import {
   AchievementBonuses,
-  AchievementBonusMode,
-  AchievementBonusType,
   DEFAULT_ENABLED_JOKERS,
   DEFAULT_MAX_GUESS_TIME,
   DEFAULT_ROUNDS,
@@ -45,13 +43,7 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
     gameStatus.value.settings.streakBonusMultiplier || StreakBonusMultiplier.OFF
   );
 
-  const achievementBonuses = useSignal<AchievementBonuses>(
-    gameStatus.value.settings.achievementBonuses || {
-      mode: AchievementBonusMode.MANUAL,
-      enabledTypes: Object.values(AchievementBonusType),
-      randomCount: 1,
-    }
-  );
+  const achievementBonuses = useSignal<AchievementBonuses | null>(gameStatus.value.settings.achievementBonuses ?? null);
 
   const activeJokers = useSignal<Set<Joker>>(
     new Set(gameStatus.value.settings.enabledJokers ?? DEFAULT_ENABLED_JOKERS)
@@ -90,11 +82,7 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
       firstBonusMultiplier: firstBonusMultiplier.value,
       timeBonus: selectedBonus.value === OptionalTimeBonus.NONE ? null : selectedBonus.value,
       streakBonusMultiplier: streakBonusMultiplier.value,
-      achievementBonuses: {
-        mode: achievementBonuses.value.mode,
-        enabledTypes: achievementBonuses.value.mode === 'manual' ? achievementBonuses.value.enabledTypes : [],
-        randomCount: achievementBonuses.value.mode === 'random' ? achievementBonuses.value.randomCount : 0,
-      },
+      achievementBonuses: achievementBonuses.value,
     };
 
     try {

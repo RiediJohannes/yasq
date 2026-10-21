@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { LogCategory, logger } from './utils/logger.js';
 
 // Internal lookup tables
 const WHITELISTS = new Map<string, Set<string>>(); // Filename -> Set of UserIDs
@@ -27,10 +28,14 @@ export function loadPermissions(permissionsPath: string) {
         }
       }
     } catch (err) {
-      console.error(`Error parsing JSON from ${permissionsPath}:`, err);
+      logger.error(`Error parsing JSON from '${permissionsPath}'.`, LogCategory.SETUP, null, err as Error);
     }
   } else {
-    console.log(`Permissions file not found at ${permissionsPath}. Starting with no restrictions.`);
+    logger.warn(
+      `Permissions file not found at '${permissionsPath}'. Starting with no restrictions.`,
+      LogCategory.SETUP,
+      null
+    );
   }
 }
 

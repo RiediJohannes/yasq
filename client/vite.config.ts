@@ -1,7 +1,6 @@
 import { defineConfig, loadEnv } from 'vite';
 import preact from '@preact/preset-vite';
 import pkg from '../package.json' with { type: 'json' };
-import path from 'node:path';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '../');
@@ -26,11 +25,7 @@ export default defineConfig(({ mode }) => {
     },
     publicDir: 'src/assets',
     resolve: {
-      alias: {
-        '@views': path.resolve(import.meta.dirname, 'src/frontend/views'),
-        '@components': path.resolve(import.meta.dirname, 'src/frontend/components'),
-        '@mock': path.resolve(import.meta.dirname, '../mock_data'),
-      },
+      tsconfigPaths: true,
     },
     server: {
       host: '0.0.0.0',

@@ -3,7 +3,7 @@ import { useEffect } from 'preact/hooks';
 
 import { capitalize, getAvatarUrl, getDisplayName, Participant, Tag } from '@yasq/shared';
 
-import { gameStatus, participants, useBackend } from '@yasq/client/src/globals';
+import { gameStatus, participants, useBackend } from '@globals';
 import { findUser } from '../../utils/helper';
 
 import { NonDraggableImg } from '@components/NonDraggableImg';

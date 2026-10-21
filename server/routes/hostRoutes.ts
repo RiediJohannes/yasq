@@ -1,10 +1,10 @@
-import express from 'express';
+import express, { type Router } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import type { APIChannel } from 'discord-api-types/v10';
 
-import { GameInstance } from '../src/models/game_instance.js';
+import type { GameInstance } from '../src/models/game_instance.js';
 import {
   AchievementBonusMode,
   AchievementBonusType,
@@ -22,7 +22,7 @@ import {
   TimeBonus,
   type Track,
 } from '@yasq/shared';
-import { filterDiscordTextChannels, getCachedDisplayName, userDataCache } from '../src/helper.js';
+import { filterDiscordTextChannels, getCachedDisplayName, userDataCache } from '../src/utils/helper.js';
 import { isAllowed } from '../src/access_control.js';
 import { generateResultsImage } from '../src/ssr/export_results.js';
 import { LogCategory, logger } from '../src/utils/logger.js';
@@ -39,7 +39,7 @@ export const setupHostRoutes = (
   instances: Record<string, GameInstance>,
   getTracks: () => Track[],
   getPlaylists: () => Playlist[]
-) => {
+): Router => {
   const fetchGame = createFetchGameMiddleware(instances);
   const router = express.Router();
 
@@ -107,12 +107,23 @@ export const setupHostRoutes = (
       timeBonus: z.enum(TimeBonus).nullable(),
       streakBonusMultiplier: z.enum(StreakBonusMultiplier),
       achievementBonuses: z
-        .object({
-          mode: z.enum(AchievementBonusMode),
-          enabledTypes: z.array(z.enum(AchievementBonusType)),
-          randomCount: z.number().int().nonnegative(),
-        })
-        .optional(),
+        .union([
+          z.object({
+            mode: z.literal(AchievementBonusMode.MANUAL),
+            enabledTypes: z.array(z.enum(AchievementBonusType)),
+          }),
+          z.object({
+            mode: z.literal(AchievementBonusMode.RANDOM),
+            randomCount: z
+              .number()
+              .int()
+              .positive()
+              .max(Object.keys(AchievementBonusType).length - 1, {
+                error: `'randomCount' must be smaller than the total number of available achievement bonus types (${Object.keys(AchievementBonusType).length})`,
+              }),
+          }),
+        ])
+        .nullable(),
     }),
   });
 

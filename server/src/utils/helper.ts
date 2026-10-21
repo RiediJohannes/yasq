@@ -2,11 +2,10 @@ import type { Server } from 'socket.io';
 import fs from 'fs';
 import path from 'path';
 import { type APIChannel, type APITextChannel, ChannelType } from 'discord-api-types/v10';
-import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import type { Request } from 'express';
 
-import type { GameInstance } from './models/game_instance.js';
+import type { GameInstance } from '../models/game_instance.js';
 import {
   GameEvent,
   type GameStatus,
@@ -17,12 +16,19 @@ import {
   TEMP_FILES_DIR,
   UI_UPDATES_DELAY_IN_E2E,
 } from '@yasq/shared';
-import { getDiscordUser } from './utils/discord.js';
+import { getDiscordUser } from './discord.js';
+import { LogCategory, logger } from './logger.js';
 
 const tokenCache = new Map<string, { userId: string; expires: number }>();
 const TTL = 10 * 60 * 1000; // Cache for 10 minutes
 
 export const userDataCache = new Map<string, Participant>();
+
+let serverRootDir: string | null = null;
+
+export function setServerRootDir(directoryPath: string) {
+  serverRootDir = directoryPath;
+}
 
 export async function validateToken(token: string) {
   const now = Date.now();
@@ -51,8 +57,8 @@ export async function validateToken(token: string) {
     tokenCache.set(token, { userId, expires: now + TTL });
     userDataCache.set(userId, profile);
     return userId;
-  } catch (error) {
-    console.error('Discord Auth Error:', error);
+  } catch (err) {
+    logger.error('Discord Auth Error:', LogCategory.DISCORD, null, err as Error);
     return null;
   }
 }
@@ -74,6 +80,14 @@ export function hash(str: string): number {
   }
   return h & 0xffffffff;
 }
+
+export const stringify = (value: unknown, indentation: number = 0): string => {
+  try {
+    return JSON.stringify(value, null, indentation) ?? 'undefined';
+  } catch {
+    return String(value);
+  }
+};
 
 export function getGameStatus(game: GameInstance) {
   return {
@@ -152,11 +166,11 @@ export function getDataSourceDir(): string {
 }
 
 export function getFilePath(fileName: string) {
-  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  if (!serverRootDir) throw Error('FATAL: Server root directory has not been set!');
 
   return isMockMode()
-    ? path.join(__dirname, '..', '..', 'mock_data', fileName)
-    : path.join(__dirname, '..', STATIC_FILES_DIR, getDataSourceDir(), fileName);
+    ? path.join(serverRootDir, '..', 'mock_data', fileName)
+    : path.join(serverRootDir, STATIC_FILES_DIR, getDataSourceDir(), fileName);
 }
 
 export function getAudioDuration(filePath: string): string {

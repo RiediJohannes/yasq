@@ -11,7 +11,14 @@ import { setupHostRoutes } from './routes/hostRoutes.js';
 import { handleErrors, handleNotFound } from './routes/errors.js';
 import { setMockState, setupMockRoutes } from './routes/mockRoutes.js';
 import { GameInstance } from './src/models/game_instance.js';
-import { broadcastGameStatus, getDataSourceDir, getFilePath, isMockMode, setupTempDir } from './src/helper.js';
+import {
+  broadcastGameStatus,
+  getDataSourceDir,
+  getFilePath,
+  isMockMode,
+  setServerRootDir,
+  setupTempDir,
+} from './src/utils/helper.js';
 import {
   API_ROOT,
   GAME_COVERS_DIR,
@@ -26,12 +33,14 @@ import {
   TRACK_AUDIO_DIR,
 } from '@yasq/shared';
 import { loadPermissions } from './src/access_control.js';
+import { loadDefaultGameSettings } from './src/models/settings.js';
 import { setupWebsocketServer } from './src/socket_server.js';
+import { LogCategory, logger } from './src/utils/logger.js';
 
 dotenv.config({ path: '../.env' });
 
 function abortStartup(message: string, exitCode: number): never {
-  console.error(`[FATAL] ${message}`);
+  logger.error(`[FATAL] ${message}`, LogCategory.SETUP, null);
   process.exit(exitCode);
 }
 
@@ -47,8 +56,11 @@ export function validateDataSource(
       10
     );
   } else if (dataSubdirectories.length > 1 && !process.env.DATA_SOURCE) {
-    console.log(
-      `Detected multiple data sources in ${dataRoot}. To select a specific source, set the DATA_SOURCE environment variable. Falling back to '${SAMPLE_DATA_DIR}'.`
+    logger.warn(
+      `Detected multiple data sources in ${dataRoot}. To select a specific source, set the DATA_SOURCE environment variable.
+      Falling back to '${SAMPLE_DATA_DIR}'.`,
+      LogCategory.SETUP,
+      null
     );
   }
 
@@ -88,7 +100,7 @@ export function validateDataSource(
 
 function loadTracks(tracksPath: string): Track[] {
   if (!fs.existsSync(tracksPath)) {
-    abortStartup(`Tracks file not found at ${tracksPath}.`, 20);
+    abortStartup(`Tracks file not found at '${tracksPath}'.`, 20);
   }
 
   try {
@@ -101,7 +113,7 @@ function loadTracks(tracksPath: string): Track[] {
 
 function loadPlaylists(playlistsPath: string): Playlist[] {
   if (!fs.existsSync(playlistsPath)) {
-    console.log(`Playlists file not found at ${playlistsPath}. Starting with no playlists.`);
+    logger.warn(`Playlists file not found at '${playlistsPath}'. Starting with no playlists.`, LogCategory.SETUP, null);
     return [];
   }
 
@@ -109,7 +121,7 @@ function loadPlaylists(playlistsPath: string): Playlist[] {
     const playlistsRaw = fs.readFileSync(playlistsPath, 'utf-8');
     return JSON.parse(playlistsRaw) as Playlist[];
   } catch (err) {
-    console.error(`Error parsing JSON from ${playlistsPath}:`, err);
+    logger.error(`Error parsing JSON from ${playlistsPath}:`, LogCategory.SETUP, null, err as Error);
     return [];
   }
 }
@@ -127,9 +139,9 @@ function setupFileWatcher(filePath: string, onFileChange: () => void, fileName: 
     changeTimeout = setTimeout(() => {
       try {
         onFileChange();
-        console.log(`✓ ${fileName} reloaded`);
+        logger.info(`✓ ${fileName} reloaded`, LogCategory.SETUP);
       } catch (err) {
-        console.error(`Error reloading ${fileName}:`, err);
+        logger.error(`Error reloading ${fileName}:`, LogCategory.SETUP, null, err as Error);
       }
     }, 100);
   });
@@ -142,7 +154,7 @@ function loadMockState(instances: Record<string, GameInstance>) {
   try {
     const absolutePath = path.resolve(process.cwd(), stateFile);
     if (!fs.existsSync(absolutePath)) {
-      console.error(`Mock state file not found at ${absolutePath}`);
+      logger.error(`Mock state file not found at ${absolutePath}`, LogCategory.SETUP, null);
       return;
     }
 
@@ -153,9 +165,9 @@ function loadMockState(instances: Record<string, GameInstance>) {
 
     instances[game.instanceId] = game;
 
-    console.log(`[MOCK] Pre-loaded game state for instance: ${game.instanceId} from ${stateFile}`);
+    logger.info(`[MOCK] Pre-loaded game state from ${stateFile}`, LogCategory.SETUP, game.instanceId);
   } catch (err) {
-    console.error(`Error loading mock game state:`, err);
+    logger.error('[MOCK] Error loading mock game state:', LogCategory.SETUP, null, err as Error);
   }
 }
 
@@ -168,17 +180,22 @@ export function setupServer() {
   }
 
   const projectRoot = path.dirname(fileURLToPath(import.meta.url));
+  setServerRootDir(projectRoot);
 
   const activeDataDir = validateDataSource(projectRoot);
-  console.log(`Loading server data from: ${activeDataDir}`);
+  logger.info(`Loading server data from: '${activeDataDir}'`, LogCategory.SETUP);
 
   const tracksPath = getFilePath('tracks.json');
   const playlistsPath = getFilePath('playlists.json');
   const permissionsPath = getFilePath('permissions.json');
+  const settingsPath = getFilePath('settings.json');
 
   // Cache the data in memory
   let cachedTracks = loadTracks(tracksPath);
   let cachedPlaylists = loadPlaylists(playlistsPath);
+
+  loadDefaultGameSettings(settingsPath);
+  loadPermissions(permissionsPath);
 
   const app = express();
   const httpServer = createServer(app);
@@ -201,6 +218,14 @@ export function setupServer() {
       socketServer.emit(GameEvent.PLAYLISTS_UPDATED);
     },
     'Playlists'
+  );
+
+  const settingsWatcher = setupFileWatcher(
+    settingsPath,
+    () => {
+      loadDefaultGameSettings(settingsPath);
+    },
+    'Settings'
   );
 
   // Allow express to parse JSON bodies
@@ -238,7 +263,7 @@ export function setupServer() {
 
   // Only register mock routes when server is started in mock mode
   if (isMockMode()) {
-    console.log('[MODE] Server is running in mock mode');
+    logger.info('[MODE] Server is running in mock mode', LogCategory.SETUP);
     app.use(
       `/${API_ROOT}/${TEST_PREFIX}`,
       setupMockRoutes(instances, (updatedGame: GameInstance) => broadcastGameStatus(socketServer, updatedGame))
@@ -249,12 +274,11 @@ export function setupServer() {
   app.use(handleNotFound);
   app.use(handleErrors);
 
-  loadPermissions(permissionsPath);
-
   // Clean up file watchers on server shutdown
   httpServer.on('close', () => {
     tracksWatcher?.close();
     playlistsWatcher?.close();
+    settingsWatcher?.close();
   });
 
   return httpServer;

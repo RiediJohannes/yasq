@@ -13,7 +13,7 @@ import {
   Tag,
 } from '@yasq/shared';
 
-import { audioPlayer, gameStatus, isMac, participants, useBackend } from '@yasq/client/src/globals';
+import { audioPlayer, gameStatus, isMac, participants, useBackend } from '@globals';
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
 import { getSyncedServerTime } from '../../backend/timing';
 import { findUser, getActionKeyLabel } from '../../utils/helper';

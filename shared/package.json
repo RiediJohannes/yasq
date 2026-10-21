@@ -9,6 +9,9 @@
     "url": "git+https://github.com/yadler97/yasq.git"
   },
   "scripts": {
-    "test": "cross-env NODE_ENV=test vitest"
+    "test": "cross-env NODE_ENV=test vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.3"
   }
 }

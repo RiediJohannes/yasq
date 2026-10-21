@@ -1,7 +1,7 @@
 import { Server } from 'socket.io';
 import type { Server as HttpServer } from 'node:http';
 import { GameInstance } from './models/game_instance.js';
-import { broadcastGameStatus, getCachedDisplayName, getGameStatus, isMockMode, validateToken } from './helper.js';
+import { broadcastGameStatus, getCachedDisplayName, getGameStatus, isMockMode, validateToken } from './utils/helper.js';
 import { GameEvent } from '@yasq/shared';
 import { LogCategory, logger } from './utils/logger.js';
 

@@ -3,7 +3,7 @@ import { Signal, signal } from '@preact/signals';
 import { io, Socket } from 'socket.io-client';
 
 import { GameEvent, Participant, TGameEvent } from '@yasq/shared';
-import { AbstractDiscordSdk, ApiCache, gameStatus, participants } from '@yasq/client/src/globals';
+import { AbstractDiscordSdk, ApiCache, gameStatus, participants } from '@globals';
 import { withTimeout } from '../utils/helper';
 import { AuthenticationResult, BackendApiFacade } from './apiFacade';
 import { syncClockWithServer } from './timing';

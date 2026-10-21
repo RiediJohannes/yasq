@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 
 import type { Leaderboard } from './models/leaderboard.js';
 import { DATABASE_DIR } from '@yasq/shared';
+import { LogCategory, logger } from './utils/logger.js';
 
 dotenv.config({ path: '../.env' });
 
@@ -26,8 +27,8 @@ export function openDatabase(): Database.Database | null {
     dbInstance.pragma('journal_mode = WAL');
     dbInstance.pragma('foreign_keys = ON');
     return dbInstance;
-  } catch (error: any) {
-    console.warn('Failed to open database. Error:', error.message);
+  } catch (err) {
+    logger.warn('Failed to open database.', LogCategory.DATABASE, null, err as Error);
     return null;
   }
 }
@@ -39,7 +40,11 @@ function getDb(): Database.Database | null {
 export async function initDatabase() {
   const conn = getDb();
   if (!conn) {
-    console.warn('Database not configured (DATABASE_PATH missing or unusable). Skipping initDatabase.');
+    logger.warn(
+      'Database not configured (DATABASE_PATH missing or unusable). Skipping initDatabase.',
+      LogCategory.DATABASE,
+      null
+    );
     return;
   }
 
@@ -120,9 +125,9 @@ export async function saveLeaderboard(leaderboard: Leaderboard): Promise<void> {
 
   try {
     save();
-  } catch (error) {
-    console.error('Failed to save leaderboard data:', error);
-    throw error;
+  } catch (err) {
+    logger.error('Failed to save leaderboard data:', LogCategory.DATABASE, null, err as Error);
+    throw err;
   }
 }
 

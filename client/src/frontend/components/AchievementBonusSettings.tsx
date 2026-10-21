@@ -1,24 +1,92 @@
-import { Signal } from '@preact/signals';
+import { Signal, useSignal } from '@preact/signals';
 
-import { AchievementBonusType, AchievementBonusMode, AchievementBonuses, capitalize } from '@yasq/shared';
-
+import {
+  AchievementBonuses,
+  AchievementBonusMode,
+  AchievementBonusType,
+  capitalize,
+  DEFAULT_ENABLED_ACHIEVEMENT_TYPES,
+  DEFAULT_RANDOM_COUNT,
+} from '@yasq/shared';
 import { RadioGroup } from './RadioGroup';
 
+type PanelMode = 'off' | AchievementBonusMode;
+
 interface AchievementBonusSettingsPanelProps {
-  settingsSignal: Signal<AchievementBonuses>;
+  settingsSignal: Signal<AchievementBonuses | null>;
 }
 
-export function AchievementBonusSettingsPanel({ settingsSignal }: AchievementBonusSettingsPanelProps) {
-  const { mode, enabledTypes, randomCount } = settingsSignal.value;
-  const allTypes = Object.values(AchievementBonusType);
+/**
+ * View-scoped local memory of what the user last configured, so checkbox selections and number settings survive
+ * switches between the radio group panels.
+ */
+interface BonusStateCache {
+  enabledTypes: AchievementBonusType[];
+  randomCount: number;
+}
 
-  const update = (patch: Partial<AchievementBonuses>) => {
-    settingsSignal.value = { ...settingsSignal.value, ...patch };
+const initializeCache = (settings: AchievementBonuses | null): BonusStateCache => ({
+  enabledTypes:
+    settings?.mode === AchievementBonusMode.MANUAL ? settings.enabledTypes : DEFAULT_ENABLED_ACHIEVEMENT_TYPES,
+  randomCount: settings?.mode === AchievementBonusMode.RANDOM ? settings.randomCount : DEFAULT_RANDOM_COUNT,
+});
+
+export function AchievementBonusSettingsPanel({ settingsSignal }: AchievementBonusSettingsPanelProps) {
+  const settings = settingsSignal.value; // AchievementBonuses | null
+  const allBonusTypes = Object.values(AchievementBonusType);
+
+  const cache = useSignal<BonusStateCache>(initializeCache(settingsSignal.value));
+  const activePanel: PanelMode = !settings ? 'off' : settings.mode;
+
+  // Update the real settings signal when the user switches panels
+  const updateBonusState = (activePanel: PanelMode) => {
+    const cachedState = cache.value;
+    switch (activePanel) {
+      case 'off':
+        settingsSignal.value = null;
+        break;
+      case AchievementBonusMode.MANUAL:
+        settingsSignal.value = {
+          mode: AchievementBonusMode.MANUAL,
+          enabledTypes: cachedState.enabledTypes,
+        };
+        break;
+      case AchievementBonusMode.RANDOM:
+        settingsSignal.value = {
+          mode: AchievementBonusMode.RANDOM,
+          randomCount: cachedState.randomCount,
+        };
+        break;
+    }
   };
 
-  const toggleType = (type: AchievementBonusType) => {
-    const next = enabledTypes.includes(type) ? enabledTypes.filter(t => t !== type) : [...enabledTypes, type];
-    update({ enabledTypes: next });
+  const toggleBonusType = (bonusType: AchievementBonusType) => {
+    const cacheState = cache.value;
+    const updatedEnabledTypes = cacheState.enabledTypes.includes(bonusType)
+      ? cacheState.enabledTypes.filter((t: AchievementBonusType) => t !== bonusType)
+      : [...cacheState.enabledTypes, bonusType];
+
+    cache.value = { ...cacheState, enabledTypes: updatedEnabledTypes };
+
+    // Only propagate to the shared settings if manual is actually active.
+    if (settingsSignal.value?.mode === AchievementBonusMode.MANUAL) {
+      settingsSignal.value = { mode: AchievementBonusMode.MANUAL, enabledTypes: updatedEnabledTypes };
+    }
+  };
+
+  const setRandomCount = (selectedCount: number) => {
+    const cacheState = cache.value;
+
+    const maxVal = allBonusTypes.length - 1;
+    const clamped = Math.min(maxVal, Math.max(1, selectedCount));
+
+    const updatedCount = isNaN(clamped) ? DEFAULT_RANDOM_COUNT : clamped;
+    cache.value = { ...cacheState, randomCount: updatedCount };
+
+    // Only propagate to the shared settings if random is actually active.
+    if (settingsSignal.value?.mode === AchievementBonusMode.RANDOM) {
+      settingsSignal.value = { mode: AchievementBonusMode.RANDOM, randomCount: updatedCount };
+    }
   };
 
   return (
@@ -26,51 +94,49 @@ export function AchievementBonusSettingsPanel({ settingsSignal }: AchievementBon
       <RadioGroup
         groupId="achievement-mode-group"
         name="achievement-mode"
-        value={mode}
-        onChange={val => update({ mode: val as AchievementBonusMode })}
+        value={activePanel}
+        onChange={activePanel => updateBonusState(activePanel as PanelMode)}
         options={
           [
             { label: 'Off', value: 'off' },
-            { label: 'Manual', value: 'manual' },
-            { label: 'Random', value: 'random' },
-          ] as { label: string; value: AchievementBonusMode }[]
+            { label: 'Manual', value: AchievementBonusMode.MANUAL },
+            { label: 'Random', value: AchievementBonusMode.RANDOM },
+          ] satisfies { label: string; value: PanelMode }[]
         }
       />
 
-      {mode === 'manual' && (
+      {settings?.mode === AchievementBonusMode.MANUAL && (
         <div className="achievement-checklist">
-          {allTypes.map(type => {
-            const isChecked = enabledTypes.includes(type);
+          {allBonusTypes.map(bonusType => {
+            const isChecked = cache.value.enabledTypes.includes(bonusType);
             return (
               <label
-                key={type}
+                key={bonusType}
                 className="checkbox-item"
               >
                 <input
                   type="checkbox"
                   checked={isChecked}
-                  onChange={() => toggleType(type)}
+                  onChange={() => toggleBonusType(bonusType)}
                 />
-                <span>{capitalize(type)}</span>
+                <span>{capitalize(bonusType)}</span>
               </label>
             );
           })}
         </div>
       )}
 
-      {mode === 'random' && (
+      {settings?.mode === AchievementBonusMode.RANDOM && (
         <div className="setting-item">
           <span>Number of random bonuses per game</span>
           <input
             type="number"
             min={1}
-            max={allTypes.length - 1}
-            value={randomCount}
+            max={allBonusTypes.length - 1}
+            value={cache.value.randomCount}
             onInput={e => {
-              const val = Number((e.target as HTMLInputElement).value);
-              const maxVal = allTypes.length - 1;
-              const clamped = Math.min(maxVal, Math.max(1, val));
-              update({ randomCount: isNaN(clamped) ? 1 : clamped });
+              const randomCount = Number((e.target as HTMLInputElement).value);
+              setRandomCount(randomCount);
             }}
           />
         </div>

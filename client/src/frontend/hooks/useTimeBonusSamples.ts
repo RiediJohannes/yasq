@@ -2,7 +2,7 @@ import { Signal, useSignal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 
 import { TimeBonus } from '@yasq/shared';
-import { useBackend } from '@yasq/client/src/globals';
+import { useBackend } from '@globals';
 import { TimeBonusPlotPayload } from '../../backend/apiFacade';
 
 /**

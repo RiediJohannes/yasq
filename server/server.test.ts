@@ -4,6 +4,7 @@ import { setupServer, validateDataSource } from './server.js';
 import fs from 'fs';
 import path from 'path';
 import { STATIC_FILES_DIR, TRACK_AUDIO_DIR } from '@yasq/shared';
+import { logger } from './src/utils/logger.js';
 
 async function queryServer(server: HttpServer, query: string): Promise<Response> {
   await new Promise<void>(resolve => server.listen(0, resolve));
@@ -13,6 +14,11 @@ async function queryServer(server: HttpServer, query: string): Promise<Response>
   const requestUri = new URL(query, `http://localhost:${port}`);
   return await fetch(requestUri);
 }
+
+beforeEach(() => {
+  // NOTE: Remove this mock implementation to see logs during tests (for debugging)
+  vi.spyOn(logger, 'log').mockImplementation(() => {});
+});
 
 describe('DATA_SOURCE Validation', () => {
   const DATA_ROOT = path.join(process.cwd(), STATIC_FILES_DIR);

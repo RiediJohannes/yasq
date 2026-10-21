@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChannelType } from 'discord-api-types/v10';
 import { execSync } from 'child_process';
 
-import { validateToken, invalidateToken, filterDiscordTextChannels, getAudioDuration } from './helper.js';
+import { filterDiscordTextChannels, getAudioDuration, invalidateToken, validateToken } from './helper.js';
 
 describe('validateToken', () => {
   beforeEach(() => {

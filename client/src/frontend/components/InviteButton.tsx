@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { Permissions, PermissionUtils } from '@discord/embedded-app-sdk';
 
-import { discordSdk } from '@yasq/client/src/globals';
+import { discordSdk } from '@globals';
 import { WithTooltip } from './Tooltip';
 
 export function InviteButton() {

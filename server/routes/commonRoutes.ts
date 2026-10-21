@@ -1,9 +1,9 @@
-import express from 'express';
+import express, { type Router } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 
-import { GameInstance } from '../src/models/game_instance.js';
+import type { GameInstance } from '../src/models/game_instance.js';
 import {
   deserializeError,
   GamePhase,
@@ -18,7 +18,7 @@ import {
   type TimeBonusSummary,
   type Track,
 } from '@yasq/shared';
-import { userDataCache } from '../src/helper.js';
+import { userDataCache } from '../src/utils/helper.js';
 import { generateResultsImage, isPlaywrightExecutableInstalled } from '../src/ssr/export_results.js';
 import { LogCategory, type LogContext, logger } from '../src/utils/logger.js';
 import { exchangeCodeForToken } from '../src/utils/discord.js';
@@ -31,7 +31,7 @@ import { z } from 'zod';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTracks: () => Track[]) => {
+export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTracks: () => Track[]): Router => {
   const fetchGame = createFetchGameMiddleware(instances);
   const router = express.Router();
 

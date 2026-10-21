@@ -30,6 +30,7 @@
     "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "prepare": "husky",
     "test:unit": "concurrently \"npm run test:unit:server\" \"npm run test:unit:client\" \"npm run test:unit:shared\"",
     "test:unit:server": "npm run test -w server",
     "test:unit:client": "npm run test -w client",
@@ -44,14 +45,15 @@
     "test:components": "playwright test --config=tests/playwright.config.ts --project=components",
     "test:components:ui": "playwright test --config=tests/playwright.config.ts --project=components --ui",
     "test:gui": "playwright test --config=tests/playwright.config.ts",
-    "test:gui:ui": "playwright test --config=tests/playwright.config.ts --ui",
-    "prepare": "husky"
+    "test:gui:ui": "playwright test --config=tests/playwright.config.ts --ui"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.63.0",
+    "@vitest/coverage-v8": "^5.0.3",
     "concurrently": "^10.0.5",
+    "cross-env": "^10.1.0",
     "eslint": "^10.8.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.6",
@@ -59,7 +61,10 @@
     "lint-staged": "^17.3.0",
     "prettier": "^3.9.6",
     "sharp": "^0.35.5",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-eslint": "^8.65.0",
+    "vitest": "^5.0.3",
     "wait-on": "^9.0.10"
   },
   "dependencies": {

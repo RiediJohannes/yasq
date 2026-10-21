@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { type Router } from 'express';
 
 import { GameInstance } from '../src/models/game_instance.js';
 import { Leaderboard } from '../src/models/leaderboard.js';
@@ -7,13 +7,13 @@ import { INSTANCE_PATH } from '@yasq/shared';
 import { createFetchGameMiddleware, defineSchema, validateRequest } from './middleware.js';
 import { ApiError } from './errors.js';
 import { AchievementBonusManager } from '../src/models/achievement_bonus.js';
-import { userDataCache } from '../src/helper.js';
+import { userDataCache } from '../src/utils/helper.js';
 import { z } from 'zod';
 
 export const setupMockRoutes = (
   instances: Record<string, GameInstance>,
   notifyGameSubscribers: (updatedGame: GameInstance) => void
-) => {
+): Router => {
   const fetchGame = createFetchGameMiddleware(instances);
   const router = express.Router();
 

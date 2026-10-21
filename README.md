@@ -2,6 +2,21 @@
 
 A Multiplayer Soundtrack Quiz built as a Discord Activity.
 
+## Table of Contents
+
+1. [Setup](#setup)
+   1. [Prerequisites](#prerequisites)
+   2. [Installation](#installation)
+   3. [Local Development](#local-development)
+   4. [Game Setup](#game-setup)
+      - [Data Location](#data-location)
+      - [Data Format](#data-format)
+      - [Game Settings](#game-settings) (optional)
+      - [Bot Commands](#bot-commands-optional) (optional)
+      - [Database](#database-optional) (optional)
+2. [Authors](#authors)
+   1. [Special Thanks](#special-thanks)
+
 ## Setup
 
 ### Prerequisites
@@ -166,7 +181,16 @@ Within a given quiz directory (`quizDir`), data must be structured in the follow
 - `blacklist`: Everyone except users in `userIds` can see/play these files.
 - Default: Files not listed in any set are public to everyone.
 
-#### Commands (Optional)
+#### Game Settings
+
+In addition to the in-game setup mask that enables the host to customize the game's settings while the activity is
+already running, users can also provide a JSON file to override various defaults before starting the
+application. The file must be named `settings.json` and be located in the active data source directory
+(previously called `quizDir`).
+
+An example file to demonstrate the schema and capabilities of this `settings.json` config can be found in the `server/data/sample/`.
+
+#### Bot Commands (Optional)
 
 You can register commands to allow players to access some functionality via a bot.
 
@@ -208,47 +232,6 @@ DATABASE_PATH=:memory:
 ```
 
 Once the database is set up, the activity will write the final results to the database after every game, allowing users to query historic data via the bot.
-
-## Testing
-
-The project contains various unit tests for the client, server, and the shared library using vitest, integration tests to verify client-server communication, as well as end-to-end (E2E) and component-specific tests using Playwright to test the full app including correct behaviour of the client UI. To run the tests, execute the respective `npm` script in the project root:
-
-### Unit Tests
-
-```bash
-npm run test:unit
-npm run test:unit:coverage # with coverage report
-
-npm run test:unit:client   # only client tests
-npm run test:unit:server   # only server tests
-npm run test:unit:shared   # only shared tests
-```
-
-### Integration Tests
-
-```bash
-npm run test:integration
-```
-
-### UI Tests
-
-The user interface tests consist of end-to-end (E2E) tests and more fine-grained single-component tests.
-Furthermore, all the UI tests offer `npm` scripts for both a headless execution mode as well as an interactive mode through the Playwright Test Runner (`ui` mode).
-
-```bash
-npx playwright install        # install test devices (required for first execution)
-
-npm run test:e2e              # E2E tests - headless mode
-npm run test:e2e:ui           # E2E tests - ui mode
-npm run test:components       # component tests - headless mode
-npm run test:components:ui    # component tests - ui mode
-npm run test:gui              # all UI tests - headless mode
-npm run test:gui:ui           # all UI tests - ui mode
-```
-
-### CI Pipeline
-
-In addition, the repo contains the `.yml` file for a GitHub Action CI Pipeline. For pushes on `main` and pull requests to `main` the unit, integration, and e2e tests are executed.
 
 ## Authors
 

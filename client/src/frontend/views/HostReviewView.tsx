@@ -3,7 +3,7 @@ import { useEffect } from 'preact/hooks';
 
 import { capitalize, getAvatarUrl, getDisplayName } from '@yasq/shared';
 
-import { participants, useBackend } from '@yasq/client/src/globals';
+import { participants, useBackend } from '@globals';
 import { ReviewData } from '../../common/types';
 import { findUser } from '../../utils/helper';
 

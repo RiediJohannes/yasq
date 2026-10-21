@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import { clearTimeout } from 'node:timers';
 
 import {
+  AchievementBonusMode,
   AchievementBonusType,
   BASE_POINTS,
   BonusType,
@@ -33,12 +34,13 @@ import {
   type TrackInfo,
 } from '@yasq/shared';
 
-import { getCachedDisplayName, getFilePath, hash } from '../helper.js';
+import { getCachedDisplayName, getFilePath, hash } from '../utils/helper.js';
 import { LogCategory, logger } from '../utils/logger.js';
 import { Leaderboard, LeaderboardEntry, RoundResult, RoundSummary } from './leaderboard.js';
 import { GameStats } from './game_stats.js';
 import { saveLeaderboard } from '../db.js';
 import { ACHIEVEMENT_BONUS_RULES, AchievementBonusManager, AchievementBonusMetric } from './achievement_bonus.js';
+import { getDefaultGameSettings } from './settings.js';
 
 type UserId = string;
 
@@ -51,7 +53,7 @@ export class GameInstance {
   public readyPlayers: Set<UserId> = new Set();
   public readyClients: Set<UserId> = new Set();
   public guessedPlayers: Set<UserId> = new Set();
-  public settings: GameSettings<Set<Joker>> = GameSettings.withJokerSet();
+  public settings: GameSettings<Set<Joker>>;
   public trackInfo: TrackInfo | null = null;
   public guesses: Record<number, Record<UserId, UserGuess>> = {};
   public leaderboard: Leaderboard = new Leaderboard();
@@ -69,9 +71,12 @@ export class GameInstance {
   private roundStartTimeout: NodeJS.Timeout | undefined;
   private roundEndTimeout: NodeJS.Timeout | undefined;
 
-  constructor(instanceId: string, hostId: UserId) {
+  constructor(instanceId: string, hostId: UserId, initialSettings?: GameSettings<Set<Joker>>) {
     this.instanceId = instanceId;
     this.hostId = hostId;
+
+    const settingsToApply = initialSettings ?? getDefaultGameSettings();
+    this.settings = structuredClone(settingsToApply);
   }
 
   public isHost(userId: UserId): boolean {
@@ -120,14 +125,14 @@ export class GameInstance {
     const allTypes = Object.values(AchievementBonusType);
     const achSettings = this.settings.achievementBonuses;
 
-    if (achSettings?.mode === 'manual') {
+    if (achSettings?.mode === AchievementBonusMode.MANUAL) {
       this.activeAchievementBonuses = achSettings.enabledTypes ?? [];
-    } else if (achSettings?.mode === 'random') {
+    } else if (achSettings?.mode === AchievementBonusMode.RANDOM) {
+      // Choose `randomCount` uniformly random values across all achievement bonus types
       const shuffled = [...allTypes].sort(() => Math.random() - 0.5);
       this.activeAchievementBonuses = shuffled.slice(0, achSettings.randomCount);
     } else {
-      // 'off' (or unconfigured/default)
-      this.activeAchievementBonuses = [];
+      this.activeAchievementBonuses = []; // achievement bonuses turned off
     }
   }
 
@@ -374,7 +379,7 @@ export class GameInstance {
       this.leaderboard.sort();
       this.lastWinnerId = this.leaderboard.getWinnerId();
       this.gameStats.endTime = Date.now();
-      saveLeaderboard(this.leaderboard);
+      void saveLeaderboard(this.leaderboard);
     } else {
       this.state.phase = GamePhase.TRACK_SELECTION;
       this.state.round += 1;

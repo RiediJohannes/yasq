@@ -1,10 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import path from 'path';
 import fs from 'fs';
 
 import {
   BASE_POINTS,
   BonusType,
+  DEFAULT_ACHIEVEMENT_BONUSES,
   DEFAULT_FIRST_BONUS_MULTIPLIER,
   DEFAULT_STREAK_BONUS_MULTIPLIER,
   FirstBonusMultiplier,
@@ -29,7 +30,7 @@ import {
 import { GameInstance, UserGuess } from './game_instance.js';
 import { LeaderboardEntry } from './leaderboard.js';
 import { saveLeaderboard } from '../db.js';
-import { setupTempDir } from '../helper.js';
+import { setServerRootDir, setupTempDir } from '../utils/helper.js';
 import { logger } from '../utils/logger.js';
 
 const HOST = 'host_123';
@@ -59,6 +60,12 @@ const matchesBonus = (type: BonusType, multiplier: number) =>
     multiplier: expect.closeTo(multiplier, 3),
   });
 
+const serverDir: string = process.cwd();
+
+beforeAll(() => {
+  setServerRootDir(serverDir);
+});
+
 describe('GameInstance - startGame', () => {
   let game: GameInstance;
 
@@ -79,6 +86,7 @@ describe('GameInstance - startGame', () => {
       firstBonusMultiplier: DEFAULT_FIRST_BONUS_MULTIPLIER,
       timeBonus: TimeBonus.LINEAR,
       streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
+      achievementBonuses: null,
     });
     game.startGame();
 
@@ -102,6 +110,7 @@ describe('GameInstance - startGame', () => {
       firstBonusMultiplier: DEFAULT_FIRST_BONUS_MULTIPLIER,
       timeBonus: TimeBonus.LINEAR,
       streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
+      achievementBonuses: DEFAULT_ACHIEVEMENT_BONUSES,
     });
     game.startGame();
 
@@ -221,6 +230,7 @@ describe('GameInstance - submitResults', () => {
       firstBonusMultiplier: DEFAULT_FIRST_BONUS_MULTIPLIER,
       timeBonus: TimeBonus.LINEAR,
       streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
+      achievementBonuses: DEFAULT_ACHIEVEMENT_BONUSES,
     });
     game.startGame();
 
@@ -429,7 +439,8 @@ describe('GameInstance - submitResults', () => {
       enabledJokers: new Set(),
       timeBonus: null, // no time bonus
       firstBonusMultiplier: 0.0, // no first bonus
-      streakBonusMultiplier: 0.0, // no streak bonus
+      streakBonusMultiplier: 0.0, // no streak bonus,
+      achievementBonuses: null,
     });
     game.startGame();
     game.submitResults({ [PLAYER_1]: 1.0, [PLAYER_2]: 0.5, [PLAYER_3]: 0.0 });
@@ -468,6 +479,7 @@ describe('GameInstance - submitResults', () => {
       timeBonus: TimeBonus.EXPONENTIAL,
       firstBonusMultiplier: 0.0, // no first bonus
       streakBonusMultiplier: 0.008 as StreakBonusMultiplier, // tiny streak bonus
+      achievementBonuses: null,
     });
     game.startGame();
     game.streaks[PLAYER_1] = 2;
@@ -584,6 +596,7 @@ describe('GameInstance - timeMultiplierEdgeCases', () => {
       firstBonusMultiplier: DEFAULT_FIRST_BONUS_MULTIPLIER,
       timeBonus: bonusType,
       streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
+      achievementBonuses: DEFAULT_ACHIEVEMENT_BONUSES,
     });
 
     it(`should assign MAX_TIME_MULTIPLIER for guesses at/before the first success - ${bonusType}`, () => {
@@ -629,6 +642,7 @@ describe('GameInstance - timeMultiplier:LINEAR', () => {
     firstBonusMultiplier: FirstBonusMultiplier.OFF,
     timeBonus: TimeBonus.LINEAR,
     streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
+    achievementBonuses: DEFAULT_ACHIEVEMENT_BONUSES,
   });
 
   it('should decay time multipliers linearly between the first successful guess and the end of the track', () => {
@@ -656,6 +670,7 @@ describe('GameInstance - timeMultiplier:EXPONENTIAL', () => {
     firstBonusMultiplier: FirstBonusMultiplier.OFF,
     timeBonus: TimeBonus.EXPONENTIAL,
     streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
+    achievementBonuses: DEFAULT_ACHIEVEMENT_BONUSES,
   });
 
   it('should decay time multipliers exponentially between the first successful guess and the end of the track', () => {
@@ -686,6 +701,7 @@ describe('GameInstance - timeMultiplier:LOGISTIC', () => {
     firstBonusMultiplier: FirstBonusMultiplier.OFF,
     timeBonus: TimeBonus.LOGISTIC,
     streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
+    achievementBonuses: DEFAULT_ACHIEVEMENT_BONUSES,
   });
 
   it('should decay time multipliers logistically/sigmoidally between the first successful guess and the end of the track', () => {
@@ -716,6 +732,7 @@ describe('GameInstance - timeMultiplier:CONSTANT', () => {
     firstBonusMultiplier: DEFAULT_FIRST_BONUS_MULTIPLIER,
     timeBonus: null, // no time bonus
     streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
+    achievementBonuses: DEFAULT_ACHIEVEMENT_BONUSES,
   });
 
   it('should always assign the same constant time multiplier independent of answer time', () => {
@@ -750,6 +767,7 @@ describe('GameInstance - advanceRound', () => {
       firstBonusMultiplier: DEFAULT_FIRST_BONUS_MULTIPLIER,
       timeBonus: TimeBonus.LINEAR,
       streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
+      achievementBonuses: DEFAULT_ACHIEVEMENT_BONUSES,
     });
     game.startGame();
     game.readyPlayers.add(PLAYER_1);
@@ -1280,8 +1298,8 @@ describe('GameInstance - getAnswersHint', () => {
 describe('GameInstance - getGlimpseHint', () => {
   let game: GameInstance;
 
-  const rootDir: string = process.cwd();
-  const gameCoverDir: string = path.join(rootDir, STATIC_FILES_DIR, SAMPLE_DATA_DIR, GAME_COVERS_DIR);
+  const dataSourceDir: string = path.join(serverDir, STATIC_FILES_DIR, SAMPLE_DATA_DIR);
+  const gameCoverDir: string = path.join(dataSourceDir, GAME_COVERS_DIR);
   let testImagePath: string;
 
   const testCover = 'test.png';
@@ -1295,7 +1313,7 @@ describe('GameInstance - getGlimpseHint', () => {
 
   beforeEach(() => {
     game = new GameInstance(INSTANCE_ID, HOST);
-    setupTempDir(rootDir);
+    setupTempDir(serverDir);
 
     // Create a minimal test image
     const testImageBuffer = Buffer.from(
@@ -1309,7 +1327,7 @@ describe('GameInstance - getGlimpseHint', () => {
 
   afterEach(() => {
     // Clean up temporary test image
-    fs.rmSync('./temp', { recursive: true, force: true });
+    fs.rmSync(path.join(dataSourceDir, 'temp'), { recursive: true, force: true });
     fs.rmSync(testImagePath, { force: true });
   });
 
@@ -1321,9 +1339,10 @@ describe('GameInstance - getGlimpseHint', () => {
       firstBonusMultiplier: DEFAULT_FIRST_BONUS_MULTIPLIER,
       timeBonus: TimeBonus.LINEAR,
       streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
+      achievementBonuses: DEFAULT_ACHIEVEMENT_BONUSES,
     });
 
-    const instanceTempDir = path.join(rootDir, STATIC_FILES_DIR, TEMP_FILES_DIR, game.instanceId);
+    const instanceTempDir = path.join(serverDir, STATIC_FILES_DIR, TEMP_FILES_DIR, game.instanceId);
     // Instance temp dir is automatically created when needed
     expect(fs.existsSync(instanceTempDir)).toBeFalsy();
     await game.selectNextTrack(track);
@@ -1335,7 +1354,7 @@ describe('GameInstance - getGlimpseHint', () => {
 
     // Temp image is different from original image
     const originalImg = fs.readFileSync(
-      path.join(rootDir, STATIC_FILES_DIR, SAMPLE_DATA_DIR, GAME_COVERS_DIR, track.cover)
+      path.join(serverDir, STATIC_FILES_DIR, SAMPLE_DATA_DIR, GAME_COVERS_DIR, track.cover)
     );
     const modifiedImg = fs.readFileSync(path.join(instanceTempDir, modifiedImgName));
     expect(originalImg).not.toEqual(modifiedImg);
@@ -1351,9 +1370,10 @@ describe('GameInstance - getGlimpseHint', () => {
       firstBonusMultiplier: DEFAULT_FIRST_BONUS_MULTIPLIER,
       timeBonus: TimeBonus.LINEAR,
       streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
+      achievementBonuses: DEFAULT_ACHIEVEMENT_BONUSES,
     });
 
-    const instanceTempDir = path.join(rootDir, STATIC_FILES_DIR, TEMP_FILES_DIR, game.instanceId);
+    const instanceTempDir = path.join(serverDir, STATIC_FILES_DIR, TEMP_FILES_DIR, game.instanceId);
     await game.selectNextTrack(track);
     game.playNextTrack(Date.now());
 
@@ -1375,12 +1395,13 @@ describe('GameInstance - getGlimpseHint', () => {
       firstBonusMultiplier: DEFAULT_FIRST_BONUS_MULTIPLIER,
       timeBonus: TimeBonus.LINEAR,
       streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
+      achievementBonuses: DEFAULT_ACHIEVEMENT_BONUSES,
     });
 
     game.addUser(PLAYER_1);
     game.addUser(PLAYER_2);
 
-    const instanceTempDir = path.join(rootDir, STATIC_FILES_DIR, TEMP_FILES_DIR, game.instanceId);
+    const instanceTempDir = path.join(serverDir, STATIC_FILES_DIR, TEMP_FILES_DIR, game.instanceId);
     await game.selectNextTrack(track);
 
     expect(fs.existsSync(instanceTempDir)).toBeTruthy();
@@ -1402,9 +1423,10 @@ describe('GameInstance - getGlimpseHint', () => {
       firstBonusMultiplier: DEFAULT_FIRST_BONUS_MULTIPLIER,
       timeBonus: TimeBonus.LINEAR,
       streakBonusMultiplier: DEFAULT_STREAK_BONUS_MULTIPLIER,
+      achievementBonuses: DEFAULT_ACHIEVEMENT_BONUSES,
     });
 
-    const instanceTempDir = path.join(rootDir, STATIC_FILES_DIR, TEMP_FILES_DIR, game.instanceId);
+    const instanceTempDir = path.join(serverDir, STATIC_FILES_DIR, TEMP_FILES_DIR, game.instanceId);
     expect(fs.existsSync(instanceTempDir)).toBeFalsy();
 
     await game.selectNextTrack(track);

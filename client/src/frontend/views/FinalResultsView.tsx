@@ -1,7 +1,7 @@
 import { useSignal } from '@preact/signals';
 import { useEffect, useState } from 'preact/hooks';
 
-import { audioPlayer, discordSdk, gameStatus, participants, useBackend } from '@yasq/client/src/globals';
+import { audioPlayer, discordSdk, gameStatus, participants, useBackend } from '@globals';
 import { Leaderboard } from '@components/Leaderboard';
 import { LoadingSpinner } from '@components/LoadingSpinner';
 import { GameStatsSummary } from '@components/GameStatsSummary';

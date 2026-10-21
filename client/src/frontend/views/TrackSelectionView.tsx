@@ -1,7 +1,7 @@
 import { computed, signal, useSignal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 
-import { useBackend } from '@yasq/client/src/globals';
+import { useBackend } from '@globals';
 import { GAME_COVERS_DIR, GameEvent, Playlist } from '@yasq/shared';
 import { Track } from '../../common/types';
 import {
