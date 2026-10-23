@@ -223,7 +223,7 @@ export const HowToPlay = ({ isHost }: { isHost: boolean }) => {
                     <span>
                       Awarded at the end of the game to the player with e.g. the highest streak or the fastest correct
                       answer. You can select specific bonuses to be awarded, choose a number of randomly selected
-                      bonuses or turn of achievement bonuses entirely.
+                      bonuses or turn off achievement bonuses entirely.
                     </span>
                   </div>
                 </li>

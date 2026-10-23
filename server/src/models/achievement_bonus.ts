@@ -232,7 +232,15 @@ export class AchievementBonusManager {
     if (bestValue !== null) {
       state.value = bestValue;
       state.userIds = bestUserIds;
-      if (trackInfo || roundResults) {
+
+      const aggregate = state.rule.aggregate;
+      const isCumulative =
+        aggregate !== undefined &&
+        [AchievementBonusAggregate.SUM, AchievementBonusAggregate.COUNT, AchievementBonusAggregate.AVERAGE].includes(
+          aggregate
+        );
+
+      if (!isCumulative && (trackInfo || roundResults)) {
         state.extraData = {
           ...(trackInfo ? { trackInfo: trackInfo } : {}),
           ...(roundResults ? { round: roundResults[0]?.round } : {}),

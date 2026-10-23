@@ -12,6 +12,7 @@
     "maxGuessTime": 60000,
     "enabledJokers": ["OBFUSCATION", "TRIVIA", "MULTIPLE_CHOICE", "SPY"]
   },
+  "activeAchievementBonuses": ["FASTEST_CORRECT_GUESS"],
   "registeredUsers": ["0", "1", "2", "3"],
   "lastWinnerId": "1",
   "gameStats": {
@@ -170,7 +171,6 @@
       {
         "userId": "1",
         "totalScore": 661,
-        "achievementBonuses": { "HIGHEST_STREAK": 100 },
         "roundHistory": [
           {
             "round": 1,

@@ -25,7 +25,11 @@ export const Leaderboard = ({ leaderboard, achievements, participants }: Leaderb
         const isThird = index === 2;
 
         const playerAchievements = Object.entries(achievements || {}).filter(
-          ([_, state]: [string, any]) => state?.userIds && state.userIds.includes(player.userId)
+          ([_, state]: [string, any]) =>
+            state?.userIds &&
+            state.userIds.includes(player.userId) &&
+            player.achievementBonuses &&
+            player.achievementBonuses.has(state.rule.id)
         );
 
         return (

@@ -25,7 +25,10 @@ export const FinalResultsView = ({ isHost }: { isHost: boolean }) => {
     audioPlayer.src = '';
 
     backend.getFinalResults().then((data: any) => {
-      leaderboard.value = data.leaderboard;
+      leaderboard.value = data.leaderboard.map((player: any) => ({
+        ...player,
+        achievementBonuses: new Map(player.achievementBonuses || []),
+      }));
       gameStats.value = data.gameStats;
       achievements.value = data.achievementBonuses;
       setCanExport(data.canExport);

@@ -67,7 +67,7 @@ export class SetupPage extends BasePage {
     return this.timeBonusSelect.inputValue();
   }
 
-  async setTimeBonus(bonus: TimeBonus) {
+  async setTimeBonus(bonus: TimeBonus | '❌ No time bonus') {
     await this.timeBonusSelect.selectOption(bonus.toString());
   }
 
@@ -99,7 +99,7 @@ export class SetupPage extends BasePage {
     return this.page.locator('input[name="achievement-mode"]:checked').inputValue();
   }
 
-  async setAchievementMode(mode: AchievementBonusMode): Promise<void> {
+  async setAchievementMode(mode: AchievementBonusMode | 'off'): Promise<void> {
     await this.achievementModeRadioGroup.locator(`label[for="achievement-mode-${mode}"]`).click();
   }
 

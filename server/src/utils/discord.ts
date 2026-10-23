@@ -77,39 +77,33 @@ export async function enrichParticipantsWithGuildNicknames(
 
   if (!guildId || participants.length === 0) return;
 
-  try {
-    // Fetch the list of members from the guild (Discord has a limit of 1000 users per query)
-    const response = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members?limit=1000`, {
-      headers: {
-        Authorization: `Bot ${BOT_TOKEN}`,
-      },
-    });
+  // Fetch the list of members from the guild (Discord has a limit of 1000 users per query)
+  const response = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members?limit=1000`, {
+    headers: {
+      Authorization: `Bot ${BOT_TOKEN}`,
+    },
+  });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      logger.error('Failed to fetch guild user data.', LogCategory.DISCORD, instanceId, errorText);
-      return;
-    }
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
 
-    const members = await response.json();
-    const nicknameMap = new Map<string, string>();
+  const members = await response.json();
+  const nicknameMap = new Map<string, string>();
 
-    for (const member of members) {
-      const displayName = member.nick || member.user.global_name || member.user.username;
-      nicknameMap.set(member.user.id, displayName);
-    }
+  for (const member of members) {
+    const displayName = member.nick || member.user.global_name || member.user.username;
+    nicknameMap.set(member.user.id, displayName);
+  }
 
-    // Update each participant's nickname if found
-    for (const p of participants) {
-      if (nicknameMap.has(p.id)) {
-        const newNickname = nicknameMap.get(p.id);
-        if (newNickname) {
-          p.nickname = newNickname;
-        }
+  // Update each participant's nickname if found
+  for (const p of participants) {
+    if (nicknameMap.has(p.id)) {
+      const newNickname = nicknameMap.get(p.id);
+      if (newNickname) {
+        p.nickname = newNickname;
       }
     }
-  } catch (err) {
-    logger.error('Failed to fetch guild nicknames for results image:', LogCategory.DISCORD, null, err as Error);
   }
 }
 

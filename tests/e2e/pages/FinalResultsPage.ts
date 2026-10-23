@@ -22,12 +22,25 @@ export class FinalResultsPage extends BasePage {
 
   getPlayerCard(index: number) {
     const card = this.playerCards.nth(index);
+    const badges = card.locator('.player-achievements .badge');
+
     return {
       card,
       rank: card.locator('.rank'),
       name: card.locator('.name'),
       score: card.locator('.total-score'),
       bubbles: card.locator('.round-bubble'),
+      badges,
+      // Helper to get achievement bonus badge
+      getBadge: (badgeIndex: number) => {
+        const badge = badges.nth(badgeIndex);
+        const tooltip = badge.locator('.tooltip-content');
+
+        return {
+          badge,
+          tooltip,
+        };
+      },
       // Helper to filter bubbles by status class
       getBubbles: (status: 'correct' | 'incorrect') => card.locator(`.round-bubble.${status}`),
     };
@@ -36,6 +49,7 @@ export class FinalResultsPage extends BasePage {
   getStatItem(index: number) {
     const item = this.statItems.nth(index);
     const tooltip = item.locator('.tooltip-content');
+
     return {
       item,
       label: item.locator('.game-stat-label'),

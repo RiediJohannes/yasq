@@ -1,6 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AuthenticationResult, BackendApiFacade } from '../../client/src/backend/apiFacade';
-import { setupServer } from '../../server';
+import type { Server } from 'http';
+import { AddressInfo } from 'net';
+
 import {
   AchievementBonusMode,
   AchievementBonusType,
@@ -15,8 +16,9 @@ import {
   StreakBonusMultiplier,
   TimeBonus,
 } from '@yasq/shared';
-import type { Server } from 'http';
-import { AddressInfo } from 'net';
+
+import { AuthenticationResult, BackendApiFacade } from '../../client/src/backend/apiFacade';
+import { setupServer } from '../../server';
 import { TestBackendApi, TestGameState } from '../utils/testApi';
 import { exchangeCodeForToken, getDiscordUser } from '../../server/src/utils/discord';
 import { LogCategory, logger } from '@yasq/server/src/utils/logger';

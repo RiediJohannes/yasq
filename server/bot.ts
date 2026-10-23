@@ -21,7 +21,7 @@ import fs from 'fs';
 import { capitalize, GAME_COVERS_DIR, getDisplayName, type Playlist, type Track, TRACK_AUDIO_DIR } from '@yasq/shared';
 
 import { getPlayerRank, getTopLifetimePlayers, initDatabase } from './src/db.js';
-import { isAllowed } from './src/access_control.js';
+import { isAllowed } from './src/models/permissions.js';
 import { getAudioDuration, getFilePath } from './src/utils/helper.js';
 import { LogCategory, logger } from './src/utils/logger.js';
 

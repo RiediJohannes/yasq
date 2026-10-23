@@ -166,7 +166,7 @@ function readGameSettings(configPath: string): GameSettings<Joker[]> {
     warnings = [];
     const validatedSettings = gameSettingsSchema.parse(parsedConfig);
 
-    logger.info(`Loading game settings from '${configPath}'.`, LogCategory.SETUP);
+    logger.debug(`Loading game settings from '${configPath}'.`, LogCategory.SETUP);
 
     if (warnings.length > 0) {
       const pluralized = warnings.length === 1 ? 'property' : 'properties';

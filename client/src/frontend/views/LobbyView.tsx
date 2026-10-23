@@ -98,7 +98,7 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
                   );
                 })
               ) : (
-                <span className="no-jokers">None</span>
+                <span className="no-jokers">❌ None</span>
               )}
             </div>
           </dd>
@@ -156,16 +156,20 @@ export const LobbyView = ({ isHost }: { isHost: boolean }) => {
           </dd>
 
           <dt>🥇 First Bonus</dt>
-          <dd id="settings-first-bonus">{formatBonusMultiplier(gameStatus.value.settings.firstBonusMultiplier)}</dd>
+          <dd id="settings-first-bonus">
+            {formatBonusMultiplier(gameStatus.value.settings.firstBonusMultiplier, '❌ None')}
+          </dd>
 
           <dt>🔥 Streak Bonus</dt>
-          <dd id="settings-streak-bonus">{formatBonusMultiplier(gameStatus.value.settings.streakBonusMultiplier)}</dd>
+          <dd id="settings-streak-bonus">
+            {formatBonusMultiplier(gameStatus.value.settings.streakBonusMultiplier, '❌ None')}
+          </dd>
 
           <dt className="top">🏆 Achievements</dt>
           <dd id="settings-achievements">
             <div className="achievement-column">
               {!achievementBonuses ? (
-                <span className="no-achievements">None</span>
+                <span className="no-achievements">❌ None</span>
               ) : achievementBonuses.mode === AchievementBonusMode.RANDOM ? (
                 <span className="achievement-text-name">Random ({achievementBonuses.randomCount})</span>
               ) : (

@@ -1,6 +1,10 @@
 import { LogLevel } from '@yasq/shared';
 import { getCachedDisplayName } from './helper.js';
 
+const RED_COLOR = '\x1b[31m';
+const YELLOW_COLOR = '\x1b[33m';
+const RESET_COLOR = '\x1b[0m';
+
 export enum LogCategory {
   API = 'API',
   AUTH = 'AUTH',
@@ -48,6 +52,12 @@ export const logger = {
       const err = context.error;
       const errorDetails = err instanceof Error ? `${err.stack || err.message}` : `Error: ${err}`;
       formattedMessage += ` -- ${errorDetails}`;
+    }
+
+    if (level === LogLevel.ERROR) {
+      formattedMessage = `${RED_COLOR}${formattedMessage.replace(/\n/g, `\n${RED_COLOR}`)}${RESET_COLOR}`;
+    } else if (level === LogLevel.WARN) {
+      formattedMessage = `${YELLOW_COLOR}${formattedMessage.replace(/\n/g, `\n${YELLOW_COLOR}`)}${RESET_COLOR}`;
     }
 
     const logMessage: (msg: string) => void = logOutput[level];

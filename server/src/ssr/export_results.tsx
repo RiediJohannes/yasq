@@ -68,7 +68,16 @@ export async function generateResultsImage(
     : {};
 
   const participantsList = Array.from(userData.values());
-  await enrichParticipantsWithGuildNicknames(participantsList, instanceId);
+  try {
+    await enrichParticipantsWithGuildNicknames(participantsList, instanceId);
+  } catch (error: unknown) {
+    logger.warn(
+      `Failed to fetch guild user data. Make sure bot has required permissions. Continuing with global user names.`,
+      LogCategory.DISCORD,
+      instanceId,
+      error as Error
+    );
+  }
 
   // Render Preact components straight to HTML strings on the backend
   const leaderboardHtml = renderToString(

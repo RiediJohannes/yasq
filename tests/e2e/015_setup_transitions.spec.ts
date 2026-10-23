@@ -30,7 +30,7 @@ test.describe('Host UI', () => {
     const MAX_GUESS_TIME = 45;
     const TIME_BONUS = TimeBonus.EXPONENTIAL;
     const FIRST_BONUS = FirstBonusMultiplier.LARGE;
-    const STREAK_BONUS = StreakBonusMultiplier.OFF;
+    const STREAK_BONUS = StreakBonusMultiplier.SMALL;
     const ENABLED_JOKERS = new Set([Joker.TRIVIA, Joker.MULTIPLE_CHOICE, Joker.GLIMPSE]);
     const ACHIEVEMENT_BONUS_MODE = 'random' as AchievementBonusMode;
 
@@ -51,7 +51,6 @@ test.describe('Host UI', () => {
     // Advanced Settings
     await setupPage.advancedSettingsToggle.click();
     await expect(setupPage.advancedSettings).toBeVisible();
-    await expect(setupPage.timeBonusSelect).toBeVisible();
 
     expect(await setupPage.getActiveTimeBonus()).not.toEqual(TIME_BONUS.toString());
     await setupPage.setTimeBonus(TIME_BONUS);
@@ -78,15 +77,10 @@ test.describe('Host UI', () => {
 
     // Compare enabled jokers as sorted arrays to also catch potential duplicates in the displayed list
     const displayedJokers = await lobbyPage.getEnabledJokerTypes();
-    expect(displayedJokers.sort()).toEqual(Array.from(ENABLED_JOKERS).sort());
-
-    const expectedFirstBonus =
-      (FIRST_BONUS as FirstBonusMultiplier) === FirstBonusMultiplier.OFF ? 'Off' : toBonusPercent(FIRST_BONUS);
-    const expectedStreakBonus =
-      (STREAK_BONUS as StreakBonusMultiplier) === StreakBonusMultiplier.OFF ? 'Off' : toBonusPercent(STREAK_BONUS);
+    await expect(displayedJokers.sort()).toEqual(Array.from(ENABLED_JOKERS).sort());
     await expect(lobbyPage.timeBonusDisplay).toContainText(EXPECTED_TIME_BONUS_LABELS[TIME_BONUS]);
-    await expect(lobbyPage.firstBonusDisplay).toHaveText(expectedFirstBonus);
-    await expect(lobbyPage.streakBonusDisplay).toHaveText(expectedStreakBonus);
+    await expect(lobbyPage.firstBonusDisplay).toHaveText(toBonusPercent(FIRST_BONUS));
+    await expect(lobbyPage.streakBonusDisplay).toHaveText(toBonusPercent(STREAK_BONUS));
     await expect(lobbyPage.achievementModeDisplay).toHaveText(/Random/i);
   });
 
@@ -105,37 +99,39 @@ test.describe('Host UI', () => {
 
     const displayedJokers = await lobbyPage.getEnabledJokerTypes();
     expect(displayedJokers.sort()).toEqual([...DEFAULT_ENABLED_JOKERS].sort());
-
-    const expectedFirstBonus =
-      (DEFAULT_FIRST_BONUS_MULTIPLIER as FirstBonusMultiplier) === FirstBonusMultiplier.OFF
-        ? 'Off'
-        : toBonusPercent(DEFAULT_FIRST_BONUS_MULTIPLIER);
-    const expectedStreakBonus =
-      (DEFAULT_STREAK_BONUS_MULTIPLIER as StreakBonusMultiplier) === StreakBonusMultiplier.OFF
-        ? 'Off'
-        : toBonusPercent(DEFAULT_STREAK_BONUS_MULTIPLIER);
     await expect(lobbyPage.timeBonusDisplay).toContainText(EXPECTED_TIME_BONUS_LABELS[DEFAULT_TIME_BONUS]);
-    await expect(lobbyPage.firstBonusDisplay).toHaveText(expectedFirstBonus);
-    await expect(lobbyPage.streakBonusDisplay).toHaveText(expectedStreakBonus);
+    await expect(lobbyPage.firstBonusDisplay).toHaveText(toBonusPercent(DEFAULT_FIRST_BONUS_MULTIPLIER));
+    await expect(lobbyPage.streakBonusDisplay).toHaveText(toBonusPercent(DEFAULT_STREAK_BONUS_MULTIPLIER));
     await expect(lobbyPage.achievementModeDisplay).toHaveText(/Fastest Correct Guess|Highest Streak/i);
   });
 
-  test('should correctly handle an empty set of enabled jokers', async ({ setupPage, lobbyPage }) => {
+  test('should correctly handle disabled settings', async ({ setupPage, lobbyPage }) => {
     await expect(setupPage.hostSettings).toBeVisible();
 
-    // Disable all jokers
+    // Open Advanced Settings
+    await setupPage.advancedSettingsToggle.click();
+    await expect(setupPage.advancedSettings).toBeVisible();
+
+    // Disable all optional settings
     await setupPage.setEnabledJokers(new Set());
-    expect(await setupPage.getEnabledJokerTypes()).toEqual([]);
+    await setupPage.setTimeBonus('❌ No time bonus');
+    await setupPage.setFirstBonus(FirstBonusMultiplier.OFF);
+    await setupPage.setStreakBonus(StreakBonusMultiplier.OFF);
+    await setupPage.setAchievementMode('off');
 
     // Confirm settings and wait for transition to LobbyView
     await setupPage.startBtn.click();
     await expect(setupPage.hostSettings).toBeHidden();
     await expect(lobbyPage.settingsSummary).toBeVisible();
 
-    // Assert that no jokers are displayed in the lobby
+    // Assert that all optional settings are disabled in the lobby
     const displayedJokers = await lobbyPage.getEnabledJokerTypes();
     expect(displayedJokers).toEqual([]);
     await expect(lobbyPage.jokersContainer).toContainText('None');
+    await expect(lobbyPage.timeBonusDisplay).toContainText('None');
+    await expect(lobbyPage.firstBonusDisplay).toContainText('None');
+    await expect(lobbyPage.streakBonusDisplay).toContainText('None');
+    await expect(lobbyPage.achievementModeDisplay).toContainText('None');
 
     // Transition back to the setup page
     await expect(lobbyPage.editBtn).toBeEnabled();
@@ -143,7 +139,15 @@ test.describe('Host UI', () => {
     await expect(lobbyPage.settingsSummary).toBeHidden();
     await expect(setupPage.hostSettings).toBeVisible();
 
-    // Verify that no joker is enabled
+    // Open Advanced Settings
+    await setupPage.advancedSettingsToggle.click();
+    await expect(setupPage.advancedSettings).toBeVisible();
+
+    // Verify that no optional is enabled
     expect(await setupPage.getEnabledJokerTypes()).toEqual([]);
+    expect(await setupPage.getActiveTimeBonus()).toEqual('NONE');
+    expect(Number(await setupPage.getActiveFirstBonus())).toEqual(FirstBonusMultiplier.OFF);
+    expect(Number(await setupPage.getActiveStreakBonus())).toEqual(StreakBonusMultiplier.OFF);
+    expect(await setupPage.getActiveAchievementMode()).toEqual('off');
   });
 });

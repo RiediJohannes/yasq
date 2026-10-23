@@ -13,7 +13,7 @@ const CUSTOM_SETTINGS = {
   rounds: 14,
   maxGuessTime: 50_000,
   timeBonus: TimeBonus.LOGISTIC,
-  firstBonusMultiplier: FirstBonusMultiplier.OFF,
+  firstBonusMultiplier: FirstBonusMultiplier.SMALL,
   streakBonusMultiplier: StreakBonusMultiplier.LARGE,
   enabledJokers: [Joker.TRIVIA, Joker.MULTIPLE_CHOICE, Joker.GLIMPSE],
 };
@@ -42,18 +42,9 @@ test.describe('Host UI', () => {
     const displayedJokers = await lobbyPage.getEnabledJokerTypes();
     expect(displayedJokers.sort()).toEqual([...CUSTOM_SETTINGS.enabledJokers].sort());
 
-    const expectedFirstBonus =
-      CUSTOM_SETTINGS.firstBonusMultiplier === FirstBonusMultiplier.OFF
-        ? 'Off'
-        : toBonusPercent(CUSTOM_SETTINGS.firstBonusMultiplier);
-    const expectedStreakBonus =
-      CUSTOM_SETTINGS.streakBonusMultiplier === StreakBonusMultiplier.OFF
-        ? 'Off'
-        : toBonusPercent(CUSTOM_SETTINGS.streakBonusMultiplier);
-
     await expect(lobbyPage.timeBonusDisplay).toContainText(EXPECTED_TIME_BONUS_LABELS[CUSTOM_SETTINGS.timeBonus]);
-    await expect(lobbyPage.firstBonusDisplay).toHaveText(expectedFirstBonus);
-    await expect(lobbyPage.streakBonusDisplay).toHaveText(expectedStreakBonus);
+    await expect(lobbyPage.firstBonusDisplay).toHaveText(toBonusPercent(CUSTOM_SETTINGS.firstBonusMultiplier));
+    await expect(lobbyPage.streakBonusDisplay).toHaveText(toBonusPercent(CUSTOM_SETTINGS.streakBonusMultiplier));
 
     // Click edit settings to transition back to SetupView
     await lobbyPage.editBtn.click();

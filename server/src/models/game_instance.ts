@@ -512,6 +512,7 @@ export class GameInstance {
     this.usedJokers = {};
     this.streaks = {};
     this.gameStats = new GameStats();
+    this.achievementBonusManager = new AchievementBonusManager(ACHIEVEMENT_BONUS_RULES);
     this.activeAchievementBonuses = [];
   }
 

@@ -15,8 +15,8 @@ export function findUser(participants: Participant[], userId: string): Participa
   return userCache.get(userId) || { id: '0', username: 'Unknown' };
 }
 
-export function formatBonusMultiplier(rate: number): string {
-  if (rate === 0) return 'Off';
+export function formatBonusMultiplier(rate: number, nullValue = 'Off'): string {
+  if (rate === 0) return nullValue;
   const percent = (Math.round(rate * 100 * 10) / 10).toFixed(1);
   return `+${percent}%`;
 }

@@ -32,8 +32,8 @@ export interface Track {
   game: string;
   title: string;
   audio: string;
-  cover: string;
-  tags: Tag[];
+  cover?: string;
+  tags?: Tag[];
 }
 
 export interface TrackInfo {

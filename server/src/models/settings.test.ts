@@ -15,12 +15,14 @@ import { getDefaultGameSettings, loadDefaultGameSettings } from './settings.js';
 vi.mock('fs');
 
 describe('settings', () => {
+  let debugSpy: ReturnType<typeof vi.spyOn>;
   let infoSpy: ReturnType<typeof vi.spyOn>;
   let warnSpy: ReturnType<typeof vi.spyOn>;
   let errorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     vi.resetAllMocks();
+    debugSpy = vi.spyOn(logger, 'debug').mockImplementation(() => {});
     infoSpy = vi.spyOn(logger, 'info').mockImplementation(() => {});
     warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
     errorSpy = vi.spyOn(logger, 'error').mockImplementation(() => {});
@@ -155,7 +157,7 @@ describe('settings', () => {
             randomCount: 3,
           },
         });
-        expect(infoSpy).toHaveBeenCalledWith("Loading game settings from 'custom.json'.", LogCategory.SETUP);
+        expect(debugSpy).toHaveBeenCalledWith("Loading game settings from 'custom.json'.", LogCategory.SETUP);
         expect(warnSpy).not.toHaveBeenCalled();
       });
 

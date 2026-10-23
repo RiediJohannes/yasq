@@ -5,7 +5,7 @@ export const PLAYER_TIME_BONUS_LABELS: Record<TOptionalTimeBonus, string> = {
   [TimeBonus.LINEAR]: '⏳ Steady Pace',
   [TimeBonus.EXPONENTIAL]: '🔥 Quick Fire',
   [TimeBonus.LOGISTIC]: '⚖️ Balanced',
-  NONE: '❌ No time bonus',
+  NONE: '❌ None',
 };
 
 export const HOST_TIME_BONUS_LABELS: Record<TOptionalTimeBonus, string> = {

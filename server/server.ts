@@ -32,10 +32,13 @@ import {
   type Track,
   TRACK_AUDIO_DIR,
 } from '@yasq/shared';
-import { loadPermissions } from './src/access_control.js';
+import { loadPermissions } from './src/models/permissions.js';
 import { loadDefaultGameSettings } from './src/models/settings.js';
 import { setupWebsocketServer } from './src/socket_server.js';
 import { LogCategory, logger } from './src/utils/logger.js';
+import { loadTracks } from './src/models/tracks.js';
+import type { ValidationError } from './src/utils/validate_config.js';
+import { loadPlaylists } from './src/models/playlists.js';
 
 dotenv.config({ path: '../.env' });
 
@@ -98,35 +101,7 @@ export function validateDataSource(
   return resolvedTarget;
 }
 
-function loadTracks(tracksPath: string): Track[] {
-  if (!fs.existsSync(tracksPath)) {
-    abortStartup(`Tracks file not found at '${tracksPath}'.`, 20);
-  }
-
-  try {
-    const tracksRaw = fs.readFileSync(tracksPath, 'utf-8');
-    return JSON.parse(tracksRaw) as Track[];
-  } catch (err) {
-    abortStartup(`Error parsing JSON from ${tracksPath}: ${err}`, 21);
-  }
-}
-
-function loadPlaylists(playlistsPath: string): Playlist[] {
-  if (!fs.existsSync(playlistsPath)) {
-    logger.warn(`Playlists file not found at '${playlistsPath}'. Starting with no playlists.`, LogCategory.SETUP, null);
-    return [];
-  }
-
-  try {
-    const playlistsRaw = fs.readFileSync(playlistsPath, 'utf-8');
-    return JSON.parse(playlistsRaw) as Playlist[];
-  } catch (err) {
-    logger.error(`Error parsing JSON from ${playlistsPath}:`, LogCategory.SETUP, null, err as Error);
-    return [];
-  }
-}
-
-function setupFileWatcher(filePath: string, onFileChange: () => void, fileName: string): fs.FSWatcher | undefined {
+function setupFileWatcher(filePath: string, onFileChange: () => void): fs.FSWatcher | undefined {
   if (!fs.existsSync(filePath)) {
     return;
   }
@@ -139,9 +114,8 @@ function setupFileWatcher(filePath: string, onFileChange: () => void, fileName: 
     changeTimeout = setTimeout(() => {
       try {
         onFileChange();
-        logger.info(`✓ ${fileName} reloaded`, LogCategory.SETUP);
       } catch (err) {
-        logger.error(`Error reloading ${fileName}:`, LogCategory.SETUP, null, err as Error);
+        logger.error(`Error reloading ${filePath}:`, LogCategory.SETUP, null, err as Error);
       }
     }, 100);
   });
@@ -191,42 +165,102 @@ export function setupServer() {
   const settingsPath = getFilePath('settings.json');
 
   // Cache the data in memory
-  let cachedTracks = loadTracks(tracksPath);
-  let cachedPlaylists = loadPlaylists(playlistsPath);
+  let cachedTracks: Track[];
+  try {
+    cachedTracks = loadTracks(tracksPath);
+    logger.info(`✓ Tracks loaded: ${cachedTracks.length} total`, LogCategory.SETUP);
+  } catch (error) {
+    const err = error as ValidationError;
+    abortStartup(err.message, err.exitCode ?? 1);
+  }
+
+  let cachedPlaylists: Playlist[];
+  try {
+    cachedPlaylists = loadPlaylists(playlistsPath);
+    logger.info(`✓ Playlists loaded: ${cachedPlaylists.length} total`, LogCategory.SETUP);
+  } catch (error) {
+    cachedPlaylists = [];
+    const err = error as ValidationError;
+    logger.warn(`${err.message}\nSkipping playlist loading.`, LogCategory.SETUP, null);
+  }
+
+  try {
+    loadPermissions(permissionsPath);
+    logger.info(`✓ Permissions loaded successfully`, LogCategory.SETUP);
+  } catch (error) {
+    const err = error as ValidationError;
+    logger.warn(`${err.message}\nSkipping permissions loading.`, LogCategory.SETUP, null);
+  }
 
   loadDefaultGameSettings(settingsPath);
-  loadPermissions(permissionsPath);
 
   const app = express();
   const httpServer = createServer(app);
   const socketServer = setupWebsocketServer(httpServer, instances);
 
   // Watch for file changes and update cache
-  const tracksWatcher = setupFileWatcher(
-    tracksPath,
-    () => {
+  const tracksWatcher = setupFileWatcher(tracksPath, () => {
+    try {
+      const previousTracks = cachedTracks ?? [];
       cachedTracks = loadTracks(tracksPath);
       socketServer.emit(GameEvent.TRACKS_UPDATED);
-    },
-    'Tracks'
-  );
 
-  const playlistsWatcher = setupFileWatcher(
-    playlistsPath,
-    () => {
+      // Count how many tracks differ from the previous cache
+      const previousSet = new Set(previousTracks.map(t => JSON.stringify(t)));
+      const changedCount = cachedTracks.filter(t => !previousSet.has(JSON.stringify(t))).length;
+
+      logger.info(`✓ Tracks reloaded: ${cachedTracks.length} total, ${changedCount} changed/new`, LogCategory.SETUP);
+    } catch (error) {
+      const err = error as ValidationError;
+      logger.error(
+        `Error reloading tracks: ${err.message}\nKeeping previous track cache (${cachedTracks.length} tracks).`,
+        LogCategory.SETUP,
+        null
+      );
+    }
+  });
+
+  const playlistsWatcher = setupFileWatcher(playlistsPath, () => {
+    try {
+      const previousPlaylists = cachedPlaylists ?? [];
       cachedPlaylists = loadPlaylists(playlistsPath);
       socketServer.emit(GameEvent.PLAYLISTS_UPDATED);
-    },
-    'Playlists'
-  );
 
-  const settingsWatcher = setupFileWatcher(
-    settingsPath,
-    () => {
-      loadDefaultGameSettings(settingsPath);
-    },
-    'Settings'
-  );
+      // Count how many playlists differ from the previous cache
+      const previousSet = new Set(previousPlaylists.map(t => JSON.stringify(t)));
+      const changedCount = cachedPlaylists.filter(t => !previousSet.has(JSON.stringify(t))).length;
+
+      logger.info(
+        `✓ Playlists reloaded: ${cachedPlaylists.length} total, ${changedCount} changed/new`,
+        LogCategory.SETUP
+      );
+    } catch (error) {
+      const err = error as ValidationError;
+      logger.warn(
+        `Error reloading playlists: ${err.message}\nKeeping previous playlists cache (${cachedPlaylists.length} playlists).`,
+        LogCategory.SETUP,
+        null
+      );
+    }
+  });
+
+  const permissionsWatcher = setupFileWatcher(permissionsPath, () => {
+    try {
+      loadPermissions(permissionsPath);
+      logger.info(`✓ Permissions reloaded successfully`, LogCategory.SETUP);
+    } catch (error) {
+      const err = error as ValidationError;
+      logger.warn(
+        `Error reloading permissions: ${err.message}\nKeeping previous permissions configuration.`,
+        LogCategory.SETUP,
+        null
+      );
+    }
+  });
+
+  const settingsWatcher = setupFileWatcher(settingsPath, () => {
+    loadDefaultGameSettings(settingsPath);
+  });
 
   // Allow express to parse JSON bodies
   app.use(express.json());
@@ -278,6 +312,7 @@ export function setupServer() {
   httpServer.on('close', () => {
     tracksWatcher?.close();
     playlistsWatcher?.close();
+    permissionsWatcher?.close();
     settingsWatcher?.close();
   });
 

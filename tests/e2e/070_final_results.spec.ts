@@ -27,15 +27,15 @@ test.describe('Host UI', () => {
 
     expect(metadata.format).toBe('png');
     expect(metadata.width).toBe(1300);
-    expect(metadata.height).toBe(1842);
+    expect(metadata.height).toBe(1804);
 
     // crop date to get fixed content
     const badgeBuffer = await sharp(filePath).extract({ left: 0, top: 0, width: 1300, height: 1750 }).png().toBuffer();
     const currentHash = crypto.createHash('sha256').update(badgeBuffer).digest('hex');
 
     const allowedHashes = [
-      '233f430f7ca746e0c44d5ece90e770b2b3f2696ec00b7150836a00e1b8da7afa', // Windows
-      'bb3c5244d0c5413e0f350ac90db87c1db781890baa2a46a8c519aa9fd4751ebd', // CI Pipeline
+      '11bb343814d8eb6659b8af1e0a6e2387f1afbe215b12d6f26eda2cde590eea78', // Windows
+      '81f225b97fa35d0be70ae607f0192b0aa9a2d3b24a3bfa55b0b6596119e1ce6e', // CI Pipeline
     ];
 
     expect(allowedHashes).toContain(currentHash);
@@ -76,7 +76,7 @@ test.describe('Player UI', () => {
     await expect(firstPlace.card).toHaveClass(/winner/);
     await expect(firstPlace.rank).toHaveText('#1');
     await expect(firstPlace.name).toContainText('MockPlayer1');
-    await expect(firstPlace.score).toContainText('761 pts');
+    await expect(firstPlace.score).toContainText('661 pts');
 
     await expect(firstPlace.bubbles).toHaveCount(3);
     await expect(firstPlace.bubbles.first()).toHaveClass(/correct/);
@@ -87,6 +87,29 @@ test.describe('Player UI', () => {
     // Verify UI visibility
     await expect(finalResultsPage.readyBtn).toBeVisible();
     await expect(finalResultsPage.restartBtn).toBeHidden();
+  });
+
+  test('should display player achievement badges only for active achievements', async ({ page, finalResultsPage }) => {
+    await page.evaluate(() => {
+      window.addEventListener('scroll', e => e.stopImmediatePropagation(), true);
+    });
+
+    // Player 1 has highest streak, but that's not active -> no achievement bonus badge
+    const player1 = finalResultsPage.getPlayerCard(0);
+    await expect(player1.badges).toHaveCount(0);
+
+    // Player 2 has fastest correct guess, which is also active -> achievement bonus badge
+    const player2 = finalResultsPage.getPlayerCard(1);
+    await expect(player2.badges).toHaveCount(1);
+    await expect(player2.getBadge(0).badge).toContainText('+100');
+
+    // Verify tooltip
+    await expect(player2.getBadge(0).tooltip).toBeHidden();
+    await expect(async () => {
+      await player2.getBadge(0).badge.hover();
+      await expect(player2.getBadge(0).tooltip).toBeVisible({ timeout: 1000 });
+      await expect(player2.getBadge(0).tooltip).toContainText('Fastest Correct Guess (+100 pts)', { timeout: 1000 });
+    }).toPass({ timeout: 10_000 });
   });
 
   test('should properly display game stats summary and values', async ({ finalResultsPage }) => {
@@ -125,17 +148,24 @@ test.describe('Player UI', () => {
     await expect(streakItem.avatar).toBeVisible();
   });
 
-  test('should display tooltip when hovering over game stat item', async ({ finalResultsPage }) => {
-    const bestRoundItem = finalResultsPage.getStatItem(1);
-    await expect(bestRoundItem.tooltip).toBeHidden();
-    await bestRoundItem.item.hover();
-    await expect(bestRoundItem.tooltip).toBeVisible();
+  test('should display tooltip when hovering over game stat item', async ({ page, finalResultsPage }) => {
+    await page.evaluate(() => {
+      window.addEventListener('scroll', e => e.stopImmediatePropagation(), true);
+    });
 
-    await expect(bestRoundItem.tooltipText).toHaveText(
-      'The easiest track for the group, featuring the most fastest correct guesses.'
-    );
-    await expect(bestRoundItem.trackGame).toHaveText('Game C');
-    await expect(bestRoundItem.trackTitle).toHaveText('Track C');
+    const bestRoundItem = finalResultsPage.getStatItem(1);
+    await expect(bestRoundItem.item).toBeVisible();
+
+    await expect(bestRoundItem.tooltip).toBeHidden();
+    await expect(async () => {
+      await bestRoundItem.item.hover();
+      await expect(bestRoundItem.tooltipText).toHaveText(
+        'The easiest track for the group, featuring the most fastest correct guesses.',
+        { timeout: 1000 }
+      );
+      await expect(bestRoundItem.trackGame).toHaveText('Game C', { timeout: 1000 });
+      await expect(bestRoundItem.trackTitle).toHaveText('Track C', { timeout: 1000 });
+    }).toPass({ timeout: 10_000 });
   });
 
   test('should display winner badge in sidebar', async ({ sidebar, session }) => {

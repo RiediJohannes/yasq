@@ -24,7 +24,6 @@
   --tags: #4f545c;
   --divider: #444444;
   --shimmer-color: rgba(255, 255, 255, 0.15);
-  --countdown-overlay: rgba(36, 36, 36, 0.9);
   --tags-border: rgba(255, 255, 255, 0.1);
 
   --fixed-white: #ffffff;
@@ -85,7 +84,6 @@
   --tags: #e6e6e6;
   --divider: #cccccc;
   --shimmer-color: rgba(0, 0, 0, 0.04);
-  --countdown-overlay: rgba(240, 240, 240, 0.9);
   --tags-border: rgba(0, 0, 0, 0.1);
 
   /* Time bonus plot colors */
@@ -1354,9 +1352,12 @@ input[type='radio']:checked + .btn-radio {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: break-word;
+
+  width: 100%;
+  height: 100%;
 }
 
 .choice-button:hover {
@@ -1520,9 +1521,7 @@ kbd {
   left: 0;
   right: 0;
   bottom: 0;
-  margin: var(--space-small);
-  border-radius: var(--border-radius-medium);
-  background: var(--countdown-overlay);
+  background: color-mix(in srgb, var(--bg-main) 90%, transparent);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -2163,6 +2162,8 @@ input[value='1']:checked + .btn-radio.correct {
   opacity: 0;
   transition: opacity 0.2s ease;
   pointer-events: none;
+
+  --screen-margin: 15px; /* used for mobile mode */
 }
 
 /* Tooltip Arrow - Counter-shifts to stay glued to the trigger center */
