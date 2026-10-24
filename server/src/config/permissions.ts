@@ -1,12 +1,13 @@
 import fs from 'fs';
 import { z } from 'zod';
+
 import { LogCategory, logger } from '../utils/logger.js';
 import {
-  formatValidationError,
+  formatListItemValidationIssue,
+  type ListItemValidationIssue,
   resolveProperty,
   ValidationError,
-  type ValidationIssue,
-} from '../utils/validate_config.js';
+} from './validate_config.js';
 
 // Define Zod schemas for validation
 const permissionRuleSchema = z.object({
@@ -43,7 +44,7 @@ export function loadPermissions(permissionsPath: string): void {
   const result = permissionsFileSchema.safeParse(parsedConfig);
 
   if (!result.success) {
-    const issues: ValidationIssue[] = [];
+    const issues: ListItemValidationIssue[] = [];
 
     for (const issue of result.error.issues) {
       const pathArr = issue.path;
@@ -62,7 +63,7 @@ export function loadPermissions(permissionsPath: string): void {
     const pluralized = issues.length === 1 ? 'property' : 'properties';
     const errorMessage =
       `Found ${issues.length} invalid configuration ${pluralized} in permissions file '${permissionsPath}':\n` +
-      issues.map(formatValidationError).join('\n');
+      issues.map(formatListItemValidationIssue).join('\n');
 
     throw new ValidationError(errorMessage, 32);
   }

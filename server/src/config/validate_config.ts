@@ -1,6 +1,13 @@
-import { stringify } from './helper.js';
+import { stringify } from '../utils/helper.js';
 
-export interface ValidationIssue {
+export interface PropertyValidationIssue {
+  propertyPath: string;
+  errorMessage: string;
+  inputValue: unknown;
+  fallbackValue: unknown;
+}
+
+export interface ListItemValidationIssue {
   propertyPath: string;
   errorMessage: string;
   inputValue: unknown;
@@ -22,7 +29,8 @@ export class ValidationError extends Error {
  * within `root` according to the property keys listed in `path` and returns the **value of the property** reached at the end
  * of this path.
  *
- * If resolving the path fails at any point, the function simply returns the `root` object/value.
+ * If resolving the path reaches a primitive value at any point, the function simply returns the `root` object/value.
+ * If resolving the path reaches an object that does not contain the next key in the path, the function returns `undefined`.
  */
 export const resolveProperty = (root: unknown, path: readonly PropertyKey[] | undefined): unknown => {
   let current: unknown = root;
@@ -32,14 +40,24 @@ export const resolveProperty = (root: unknown, path: readonly PropertyKey[] | un
       if (typeof current !== 'object' || current === null) return root; // Failure: Current has no properties
 
       current = (current as Record<PropertyKey, unknown>)[key];
-      if (current === undefined) return root; // Failure: Property [key] did not exist
+      if (current === undefined) return undefined; // Failure: Property [key] did not exist
     }
   }
 
   return current;
 };
 
-export const formatValidationError = (issue: ValidationIssue, issueIndex: number): string => {
+export const formatPropertyValidationIssue = (issue: PropertyValidationIssue, issueIndex: number): string => {
+  const itemLabel: string = `  ${issueIndex + 1}.`;
+
+  return (
+    `${itemLabel} Property '${issue.propertyPath}' received invalid value ${stringify(issue.inputValue)} ` +
+    `(${issue.errorMessage}).` +
+    `\n${' '.repeat(itemLabel.length)} => Falling back to default: ${stringify(issue.fallbackValue, 2)}`
+  );
+};
+
+export const formatListItemValidationIssue = (issue: ListItemValidationIssue, issueIndex: number): string => {
   const itemLabel: string = `  ${issueIndex + 1}.`;
   const indexText = issue.itemIndex !== -1 ? `Item ${issue.itemIndex}: ` : '';
 

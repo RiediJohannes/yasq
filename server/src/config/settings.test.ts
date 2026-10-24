@@ -1,5 +1,6 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
+
 import {
   AchievementBonusMode,
   AchievementBonusType,
@@ -10,9 +11,10 @@ import {
   StreakBonusMultiplier,
   TimeBonus,
 } from '@yasq/shared';
+
 import { LogCategory, logger } from '../utils/logger.js';
-import { getAppSettings, getDefaultGameSettings, loadSettingsConfig } from './settings.js';
 import { setServerRootDir } from '../utils/helper.js';
+import { getAppSettings, getDefaultGameSettings, loadSettingsConfig } from './settings.js';
 
 vi.mock('fs');
 

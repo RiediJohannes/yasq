@@ -28,7 +28,7 @@ import { generateSampleTimeBonusSummary, SAMPLE_PARTICIPANTS } from '../src/util
 import { authenticateUser, createFetchGameMiddleware, defineSchema, validateRequest } from './middleware.js';
 import { ApiError } from './errors.js';
 import { z } from 'zod';
-import { getAppSettings } from '../src/models/settings.js';
+import { getAppSettings } from '../src/config/settings.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

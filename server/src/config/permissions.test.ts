@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
-import { loadPermissions, isAllowed } from './permissions.js';
-import { ValidationError } from '../utils/validate_config.js';
+
+import { isAllowed, loadPermissions } from './permissions.js';
+import { ValidationError } from './validate_config.js';
 
 const PLAYER_1 = 'player_123';
 const PLAYER_2 = 'player_456';

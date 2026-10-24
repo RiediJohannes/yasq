@@ -24,10 +24,10 @@ import { setupServer } from '../../server';
 import { TestBackendApi, TestGameState } from '../utils/testApi';
 import { exchangeCodeForToken, getDiscordUser } from '../../server/src/utils/discord';
 import { LogCategory, logger } from '@yasq/server/src/utils/logger';
-import { getAppSettings } from '../../server/src/models/settings';
+import { getAppSettings } from '../../server/src/config/settings';
 import { Player } from '../utils/helper';
 
-vi.mock('../../server/src/models/settings', async importOriginal => ({
+vi.mock('../../server/src/config/settings', async importOriginal => ({
   ...(await importOriginal()),
   getAppSettings: vi.fn(),
 }));
@@ -67,6 +67,7 @@ vi.mock('../../server/src/utils/discord', () => ({
 
 beforeAll(async () => {
   process.env.VITE_MOCK_MODE = 'true';
+  loggerSpy = vi.spyOn(logger, 'log').mockImplementation(() => {});
   httpServer = setupServer();
 
   await new Promise<void>(resolve => {
@@ -88,6 +89,8 @@ beforeAll(async () => {
       username: `TestUser${id}`,
     };
   });
+
+  loggerSpy.mockReset();
 });
 
 afterAll(async () => {
@@ -443,7 +446,7 @@ describe('useJoker', () => {
 describe('clientLogs', () => {
   beforeEach(async () => {
     await testBackend.setupSession(...DEFAULT_SESSION);
-    loggerSpy.mockReset();
+    loggerSpy.mockClear();
   });
 
   afterEach(async () => {

@@ -33,13 +33,13 @@ import {
   type Track,
   TRACK_AUDIO_DIR,
 } from '@yasq/shared';
-import { loadPermissions } from './src/models/permissions.js';
-import { loadSettingsConfig } from './src/models/settings.js';
+import { loadPermissions } from './src/config/permissions.js';
+import { loadSettingsConfig } from './src/config/settings.js';
 import { setupWebsocketServer } from './src/socket_server.js';
 import { LogCategory, logger } from './src/utils/logger.js';
-import { loadTracks } from './src/models/tracks.js';
+import { loadTracks } from './src/config/tracks.js';
 import type { ValidationError } from './src/utils/validate_config.js';
-import { loadPlaylists } from './src/models/playlists.js';
+import { loadPlaylists } from './src/config/playlists.js';
 
 dotenv.config({ path: '../.env' });
 

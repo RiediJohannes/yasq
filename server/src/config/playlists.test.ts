@@ -2,9 +2,9 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import fs from 'fs';
 
 import { LogCategory, logger } from '../utils/logger.js';
-import { loadPlaylists } from './playlists.js';
 import { setServerRootDir } from '../utils/helper.js';
-import { ValidationError } from '../utils/validate_config.js';
+import { loadPlaylists } from './playlists.js';
+import { ValidationError } from './validate_config.js';
 
 vi.mock('fs');
 

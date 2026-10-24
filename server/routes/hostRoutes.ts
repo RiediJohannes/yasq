@@ -23,7 +23,7 @@ import {
   type Track,
 } from '@yasq/shared';
 import { filterDiscordTextChannels, getCachedDisplayName, userDataCache } from '../src/utils/helper.js';
-import { isAllowed } from '../src/models/permissions.js';
+import { isAllowed } from '../src/config/permissions.js';
 import { generateResultsImage } from '../src/ssr/export_results.js';
 import { LogCategory, logger } from '../src/utils/logger.js';
 import { getChannelsForGuild, postResultsToChannel } from '../src/utils/discord.js';

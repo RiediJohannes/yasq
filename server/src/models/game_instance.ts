@@ -40,7 +40,7 @@ import { Leaderboard, LeaderboardEntry, RoundResult, RoundSummary } from './lead
 import { GameStats } from './game_stats.js';
 import { saveLeaderboard } from '../db.js';
 import { ACHIEVEMENT_BONUS_RULES, AchievementBonusManager, AchievementBonusMetric } from './achievement_bonus.js';
-import { getDefaultGameSettings } from './settings.js';
+import { getDefaultGameSettings } from '../config/settings.js';
 
 type UserId = string;
 

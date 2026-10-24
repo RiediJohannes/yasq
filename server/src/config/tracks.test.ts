@@ -2,9 +2,9 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import fs from 'fs';
 
 import { LogCategory, logger } from '../utils/logger.js';
-import { loadTracks } from './tracks.js';
 import { setServerRootDir } from '../utils/helper.js';
-import { ValidationError } from '../utils/validate_config.js';
+import { loadTracks } from './tracks.js';
+import { ValidationError } from './validate_config.js';
 
 vi.mock('fs');
 
@@ -85,8 +85,7 @@ describe('loadTrackas', () => {
     ];
 
     vi.mocked(fs.existsSync).mockImplementation(filePath => {
-      if (String(filePath).endsWith('track002.mp3')) return false;
-      return true;
+      return !String(filePath).endsWith('track002.mp3');
     });
     vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(invalidConfig));
 
