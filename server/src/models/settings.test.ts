@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import {
   AchievementBonusMode,
@@ -12,8 +12,15 @@ import {
 } from '@yasq/shared';
 import { LogCategory, logger } from '../utils/logger.js';
 import { getAppSettings, getDefaultGameSettings, loadSettingsConfig } from './settings.js';
+import { setServerRootDir } from '../utils/helper.js';
 
 vi.mock('fs');
+
+const serverDir: string = process.cwd();
+
+beforeAll(() => {
+  setServerRootDir(serverDir);
+});
 
 const mockGameSettings = (gameSettings: unknown, autoLoad = false) => {
   vi.mocked(fs.existsSync).mockReturnValue(true);
@@ -127,6 +134,7 @@ describe('settings', () => {
       );
 
       const firstCall = getAppSettings();
+      expect(firstCall.sounds.finalResultsLoop).toBe('initial_loop.mp3');
       firstCall.sounds.finalResultsLoop = 'mutated_loop.mp3';
 
       const secondCall = getAppSettings();

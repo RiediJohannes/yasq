@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
 
-import { TRACK_AUDIO_DIR, type Playlist } from '@yasq/shared';
+import { type Playlist, TRACK_AUDIO_DIR } from '@yasq/shared';
 
 import { LogCategory, logger } from '../utils/logger.js';
 import {
@@ -24,7 +24,7 @@ const playlistSchema = z.object({
           const absolutePath = getFilePath(path.join(TRACK_AUDIO_DIR, trackFilename));
           return isMockMode() || fs.existsSync(absolutePath);
         },
-        { message: 'Track file does not exist in the designated track audio directory' }
+        { error: 'Track file does not exist in the designated track audio directory' }
       )
   ),
 });

@@ -60,8 +60,7 @@ describe('loadPlaylists', () => {
     ];
 
     vi.mocked(fs.existsSync).mockImplementation(filePath => {
-      if (String(filePath).endsWith('track003.mp3')) return false;
-      return true;
+      return !String(filePath).endsWith('track003.mp3');
     });
     vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(invalidPlaylists));
 

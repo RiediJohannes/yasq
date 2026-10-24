@@ -48,6 +48,7 @@ export interface AchievementStateDto {
 }
 
 export interface AchievementRuleDto {
+  id: AchievementBonusType;
   reward: number;
   metric: string;
   description: string;

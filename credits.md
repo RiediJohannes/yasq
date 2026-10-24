@@ -11,10 +11,10 @@ Nevertheless, we think it is fair to give credit to the original creators of our
 
 The tiny sample quiz in `server/data/sample` includes two audio tracks that stand in for some hypothetical videogames:
 
-| File name      | Original asset name | Creator     | Source                        |
-| -------------- | ------------------- | ----------- | ----------------------------- |
-| `track001.mp3` | some_file_name      | Marie Curie | [Sample](https://example.com) |
-| `track002.mp3` | some_file_name      | Marie Curie | [Sample](https://example.com) |
+| File name      | Original asset name | Creator                                             | Source                                                             |
+| -------------- | ------------------- | --------------------------------------------------- | ------------------------------------------------------------------ |
+| `track001.mp3` | Town Theme          | cynicmusic ([Pixelsphere](https://pixelsphere.org)) | [OpenGameArt](https://opengameart.org/content/town-theme-rpg)      |
+| `track002.mp3` | The Field of Dreams | Paulius Jurgelevièius (pauliuw)                     | [OpenGameArt](https://opengameart.org/content/the-field-of-dreams) |
 
 ### Sample Application Sounds
 

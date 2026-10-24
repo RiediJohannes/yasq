@@ -1,8 +1,11 @@
 import fs from 'fs';
+import path from 'path';
 import { z } from 'zod';
+
 import {
   AchievementBonusMode,
   AchievementBonusType,
+  APP_SOUNDS_DIR,
   type AppSettings,
   DEFAULT_APP_SETTINGS,
   DEFAULT_GAME_SETTINGS,
@@ -13,7 +16,8 @@ import {
   StreakBonusMultiplier,
   TimeBonus,
 } from '@yasq/shared';
-import { stringify } from '../utils/helper.js';
+
+import { getFilePath, isMockMode, stringify } from '../utils/helper.js';
 import { LogCategory, logger } from '../utils/logger.js';
 
 interface FallbackWarning {
@@ -118,6 +122,17 @@ const formatFallbackWarning = (warning: FallbackWarning, warningIndex: number): 
   );
 };
 
+const soundFileExists = (propertyName: string) =>
+  [
+    (fileName: string) => {
+      const absolutePath = getFilePath(path.join(APP_SOUNDS_DIR, fileName));
+      return isMockMode() || fs.existsSync(absolutePath);
+    },
+    {
+      error: `File for '${propertyName}' does not exist in the designated sound directory ('${APP_SOUNDS_DIR}')`,
+    },
+  ] as const;
+
 const gameSettingsSchema = z.object({
   rounds: z.number().int().positive().catch(fallbackWithWarning('rounds', DEFAULT_GAME_SETTINGS.rounds)),
   maxGuessTime: z
@@ -169,8 +184,16 @@ const gameSettingsSchema = z.object({
 const appSoundsSchema = z.object({
   sounds: z
     .object({
-      finalResultsJingle: z.string().nullish(),
-      finalResultsLoop: z.string().nullish(),
+      finalResultsJingle: z
+        .string()
+        .nonempty()
+        .refine(...soundFileExists('finalResultsJingle'))
+        .nullish(),
+      finalResultsLoop: z
+        .string()
+        .nonempty()
+        .refine(...soundFileExists('finalResultsLoop'))
+        .nullish(),
     })
     .catch(fallbackWithWarning('sounds', DEFAULT_APP_SETTINGS.sounds)),
 });

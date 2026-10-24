@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
 
-import { GAME_COVERS_DIR, TRACK_AUDIO_DIR, type Track } from '@yasq/shared';
+import { GAME_COVERS_DIR, type Track, TRACK_AUDIO_DIR } from '@yasq/shared';
 
 import { getFilePath, isMockMode } from '../utils/helper.js';
 import { LogCategory, logger } from '../utils/logger.js';
@@ -25,7 +25,7 @@ const trackSchema = z.object({
         const absolutePath = getFilePath(path.join(TRACK_AUDIO_DIR, audioFilename));
         return isMockMode() || fs.existsSync(absolutePath);
       },
-      { message: 'Audio file does not exist in the designated track audio directory' }
+      { error: 'Audio file does not exist in the designated track audio directory' }
     ),
 
   cover: z
@@ -38,7 +38,7 @@ const trackSchema = z.object({
         const absolutePath = getFilePath(path.join(GAME_COVERS_DIR, coverFilename));
         return isMockMode() || fs.existsSync(absolutePath);
       },
-      { message: 'Cover file does not exist in the designated game covers directory' }
+      { error: 'Cover file does not exist in the designated game covers directory' }
     ),
 
   tags: z

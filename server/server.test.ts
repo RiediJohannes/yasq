@@ -50,6 +50,8 @@ describe('DATA_SOURCE Validation', () => {
   });
 
   it('should setup server with sample resource if DATA_SOURCE is not set', async () => {
+    vi.stubEnv('DATA_SOURCE', undefined);
+
     expect(() => {
       activeServer = setupServer();
     }).not.toThrow();
