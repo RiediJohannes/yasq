@@ -106,7 +106,7 @@ export const RoundTimings = {
 } as const;
 
 export const DEFAULT_MAX_GUESS_TIME: number = 60_000;
-export const DEFAULT_ROUNDS: number = 5;
+export const DEFAULT_ROUNDS: number = 10;
 
 export const BASE_POINTS: number = 100;
 export const MAX_TIME_MULTIPLIER: number = 1.0;

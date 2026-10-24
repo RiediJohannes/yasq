@@ -11,7 +11,7 @@ A Multiplayer Soundtrack Quiz built as a Discord Activity.
    4. [Game Setup](#game-setup)
       - [Data Location](#data-location)
       - [Data Format](#data-format)
-      - [Game Settings](#game-settings) (optional)
+      - [Settings Configuration](#settings-configuration-optional) (optional)
       - [Bot Commands](#bot-commands-optional) (optional)
       - [Database](#database-optional) (optional)
 2. [Authors](#authors)
@@ -181,14 +181,82 @@ Within a given quiz directory (`quizDir`), data must be structured in the follow
 - `blacklist`: Everyone except users in `userIds` can see/play these files.
 - Default: Files not listed in any set are public to everyone.
 
-#### Game Settings
+#### Settings Configuration (Optional)
 
-In addition to the in-game setup mask that enables the host to customize the game's settings while the activity is
-already running, users can also provide a JSON file to override various defaults before starting the
-application. The file must be named `settings.json` and be located in the active data source directory
-(previously called `quizDir`).
+In addition to the in-game setup mask that enables the host to customize the rule set for their quiz while the activity
+is running, users can also provide a JSON file to predefine default game settings before starting the application.
+Furthermore, this method also allows you to manage various other global application presets.
 
-An example file to demonstrate the schema and capabilities of this `settings.json` config can be found in the `server/data/sample/`.
+In particular, the application looks for a file named `settings.json` within the active data source directory
+(previously referred to as `quizDir`). This JSON file (if given) may contain the following main sections for customization:
+
+```json
+{
+  "gameSettings": {
+    // ...
+  },
+  "appSettings": {
+    // ...
+  }
+}
+```
+
+The expected structure for each section is detailed below.
+
+##### Game Settings
+
+The `gameSettings` enable the user to override the _default_ settings that a new quiz game is initialized with. Note
+that it will still be possible to change the settings in the usual in-game setup mask - this config only affects the
+values initially prefilled on this setup screen.
+
+```json
+{
+  "gameSettings": {
+    "rounds": <number of rounds in a quiz> (default: 5),
+    "maxGuessTime": <duration in seconds until a round ends automatically> (default: 60),
+    "enabledJokers": <list of jokers available to players while guessing> (default: all),
+    "firstBonusMultiplier": <bonus awarded to the fastest (partially) correct player as a fraction of the base points> (default: 0.2),
+    "streakBonusMultiplier": <bonus awarded based on the player's current streak as a fraction of the base points per streak level> (default: 0.1),
+    "timeBonus": [*] <the name of the time bonus decay function to use (LINEAR/EXPONENTIAL/LOGISTIC)> (default: "LINEAR"),
+    "achievementBonuses": [*] {
+      "mode": <mode of how to select achievement bonuses (manual/random)> (default: "manual"),
+      "enabledTypes": <list of achievement bonuses enabled for the quiz (only if mode = manual)> (default: all),
+      "randomCount": <number of unique achievement bonuses to select at random (only if mode = random)> (default: 1)
+    }
+  }
+}
+```
+
+`[*]`: Properties that also accept the string value `"off"` to disable the respective feature entirely.
+
+##### App Settings
+
+In contrast, `appSettings` govern global presets that affect the entire application rather than individual quiz sessions.
+These options _cannot_ be modified from the in-game setup screen.
+
+Currently, this section only supports customizing of a few sound effects, allowing you to supply your own audio files
+to replace the default sounds:
+
+```json
+{
+  "appSettings": {
+    "sounds": {
+      "finalResultsJingle": [?] <file name of jingle to be played when final results are revealed, or null>,
+      "finalResultsLoop": [?] <file name of looping music to play on final results screen after the jingle, or null>
+    }
+  }
+}
+```
+
+`[?]`: Explicitly set the value `null` to replace the current audio track with nothing, thus silencing the sound effect.
+
+##### Additional Notes
+
+A reference `settings.json` file demonstrating a full, valid configuration can be found in `server/data/sample/`.
+As a sidenote, this file simply lists all properties set to their default values.
+
+Importantly, you **do not need** to provide the _complete_ JSON structure when giving a `settings.json` file.
+Any properties you omit will automatically fall back to their defaults.
 
 #### Bot Commands (Optional)
 

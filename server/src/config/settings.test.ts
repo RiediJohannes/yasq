@@ -278,7 +278,7 @@ describe('settings', () => {
           const warningMsg = warnSpy.mock.calls[0]![0] as string;
           expect(warningMsg).toContain("Found 2 invalid configuration properties in 'config.json':");
           expect(warningMsg).toContain("1. Property 'rounds' received invalid value");
-          expect(warningMsg).toContain('=> Falling back to default: 5');
+          expect(warningMsg).toContain('=> Falling back to default: 10');
           expect(warningMsg).toContain("2. Property 'maxGuessTime' received invalid value");
           expect(warningMsg).toContain('=> Falling back to default: 60');
         });

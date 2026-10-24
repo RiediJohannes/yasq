@@ -1,6 +1,6 @@
 {
   "gameSettings": {
-    "rounds": 5,
+    "rounds": 10,
     "maxGuessTime": 60,
     "enabledJokers": ["OBFUSCATION", "TRIVIA", "MULTIPLE_CHOICE", "SPY", "GLIMPSE"],
     "firstBonusMultiplier": 0.2,
