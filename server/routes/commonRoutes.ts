@@ -285,13 +285,21 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
 
     // Get the result for the current round of the requested user
     const roundResult = game.leaderboard.getRoundResults(game.state.round, game.isHost(userId) ? undefined : userId);
-
     const roundSummary = game.leaderboard.getRoundSummary(game.state.round);
 
-    const correctPlayers = game.leaderboard.getAll().flatMap(playerEntry => {
-      const currentRoundResult = playerEntry.roundHistory.findLast(r => r.round === game.state.round);
-      return currentRoundResult?.scoreValue === 1 ? [playerEntry.userId] : [];
-    });
+    const correctPlayers = game.leaderboard
+      .getAll()
+      .map(playerEntry => {
+        const currentRoundResult = playerEntry.roundHistory.findLast(r => r.round === game.state.round);
+        return {
+          userId: playerEntry.userId,
+          scoreValue: currentRoundResult?.scoreValue,
+          time: currentRoundResult?.time ?? Infinity,
+        };
+      })
+      .filter(player => player.scoreValue === 1)
+      .sort((p1, p2) => p1.time - p2.time)
+      .map(player => player.userId);
 
     res.send({
       round: game.state.round,

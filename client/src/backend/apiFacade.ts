@@ -1,6 +1,7 @@
 import {
   API_ROOT,
   BonusType,
+  Fallible,
   FinalResultsResponse,
   GameSettings,
   HOST_PREFIX,
@@ -8,8 +9,10 @@ import {
   LogLevel,
   Participant,
   PointsBonus,
+  RoundDataDto,
   RoundResultDto,
   serializeError,
+  success,
   TimeBonus,
   TimeBonusSummary,
 } from '@yasq/shared';
@@ -208,7 +211,7 @@ export class BackendApiFacade {
     });
   }
 
-  public async getRoundResults() {
+  public async getRoundResults(): Promise<Fallible<RoundDataDto>> {
     const response = await BackendApiFacade.apiFetch(
       `/instance/${this.instanceId}/round-results?user_id=${this.userId}`
     );
@@ -231,7 +234,7 @@ export class BackendApiFacade {
       return roundResult;
     });
 
-    return roundData;
+    return success(roundData);
   }
 
   public async getSampleTimeBonusSummary(bonusType: TimeBonus): Promise<TimeBonusPlotPayload> {

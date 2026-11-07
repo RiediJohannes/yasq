@@ -5,7 +5,9 @@
  */
 
 import { type AchievementBonusType } from './constants.js';
-import type { PointsBonus, TrackInfo } from './types.js';
+import type { PointsBonus, Tag, TimeBonusSummary, TrackInfo } from './types.js';
+
+export type Fallible<T> = { ok: false; error: string } | ({ ok: true } & T);
 
 export interface RoundResultDto {
   round: number;
@@ -14,6 +16,23 @@ export interface RoundResultDto {
   scoreValue: number;
   isFirst: boolean;
   awardedBonuses: PointsBonus[];
+}
+
+export interface RoundSummaryDto {
+  round: number;
+  timeBonusSummary: TimeBonusSummary | null;
+}
+
+export interface RoundDataDto {
+  round: number;
+  result: RoundResultDto[];
+  summary: RoundSummaryDto | null;
+  correctPlayers: string[];
+  lostStreaks: Record<string, number>;
+  correctAnswer: string | undefined;
+  trackTitle: string | undefined;
+  tags: Tag[];
+  gameCover: string | undefined;
 }
 
 export interface UserRoundResultDto extends RoundResultDto {

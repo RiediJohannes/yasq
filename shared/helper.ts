@@ -1,4 +1,13 @@
 import type { Participant } from './types.js';
+import { Fallible } from './payloads';
+
+export function success<T extends object>(data: T): Fallible<T> {
+  return { ok: true, ...data };
+}
+
+export function failure<T = unknown>(error: string): Fallible<T> {
+  return { ok: false, error };
+}
 
 export function getAvatarUrl(participant: Participant) {
   return participant.avatar

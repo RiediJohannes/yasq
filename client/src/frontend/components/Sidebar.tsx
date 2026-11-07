@@ -2,8 +2,9 @@ import { useSignal } from '@preact/signals';
 
 import { DEFAULT_VOLUME_SLIDER_VAL, getAvatarUrl, getDisplayName, MAX_VOLUME } from '@yasq/shared';
 import { gainNode, gameStatus, isMac, participants, volume } from '@globals';
+
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
-import { getActionKeyLabel } from '../../utils/helper';
+import { getActionKeyLabel, getStreakTier } from '../../utils/helper';
 import { DiscordAvatar } from './DiscordAvatar';
 
 export const Sidebar = () => {
@@ -75,7 +76,7 @@ export const Sidebar = () => {
                     {isLastWinner && <span className="badge winner">👑</span>}
                     {streakToDisplay > 0 && (
                       <span
-                        className={`badge streak streak-tier-${Math.min(Math.ceil(streakToDisplay / 2), 4)} ${isStreakBroken ? 'broken' : ''}`}
+                        className={`badge streak streak-tier-${getStreakTier(streakToDisplay)} ${isStreakBroken ? 'broken' : ''}`}
                         data-streak={streakToDisplay}
                       >
                         🔥 {streakToDisplay}

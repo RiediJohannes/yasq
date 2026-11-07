@@ -1,10 +1,17 @@
 import { useSignal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 
-import { capitalize, getAvatarUrl, getDisplayName, Participant, Tag } from '@yasq/shared';
-
+import {
+  capitalize,
+  Fallible,
+  getAvatarUrl,
+  getDisplayName,
+  Participant,
+  RoundDataDto,
+  RoundResultDto,
+  Tag,
+} from '@yasq/shared';
 import { gameStatus, participants, useBackend } from '@globals';
-import { findUser } from '../../utils/helper';
 
 import { NonDraggableImg } from '@components/NonDraggableImg';
 import { RoundBubblesGroup } from '@components/RoundBubble';
@@ -16,9 +23,11 @@ import { ReadyButton } from '@components/ReadyButton';
 import { TooltipDiv } from '@components/Tooltip';
 import { LoadingSpinner } from '@components/LoadingSpinner';
 
+import { findUser, getStreakTier } from '../../utils/helper';
+
 export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
   const backend = useBackend();
-  const roundData = useSignal<any>(null);
+  const roundData = useSignal<Fallible<RoundDataDto> | null>(null);
   const isPointsDetailsOpen = useSignal(false);
 
   const isFinalRound = gameStatus.value.state.round >= gameStatus.value.settings.rounds;
@@ -27,11 +36,11 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
   useEffect(() => {
     backend
       .getRoundResults()
-      .then(data => {
+      .then((data: Fallible<RoundDataDto>) => {
         roundData.value = data;
       })
       .catch(_ => {
-        roundData.value = { error: 'SERVER_ERROR' };
+        roundData.value = { error: 'SERVER_ERROR' } as Fallible<RoundDataDto>;
       });
   }, [isHost]);
 
@@ -50,7 +59,7 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
     return <LoadingSpinner />;
   }
 
-  if (roundData.value.error) {
+  if (!roundData.value.ok) {
     return (
       <div
         id="results"
@@ -65,7 +74,13 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
     );
   }
 
-  const results = roundData.value.result || [];
+  // TODO Remove test data
+  roundData.value.lostStreaks = {
+    1: 1,
+    2: 3,
+  };
+
+  const results: RoundResultDto[] = roundData.value.result || [];
   const userResult = results[0];
   const score = userResult?.scoreValue || 0;
   const needsScoreDetails = userResult && (hasTimeBonus || userResult.points > 0);
@@ -79,6 +94,8 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
 
   const correctPlayerIds = roundData.value?.correctPlayers || [];
   const correctParticipants: Participant[] = participants.value.filter(p => correctPlayerIds.includes(p.id));
+
+  const lostStreaks = roundData.value.lostStreaks ? Object.entries(roundData.value.lostStreaks) : [];
 
   return (
     <div
@@ -150,11 +167,12 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
                   </div>
                 );
               })}
-            {roundData.value.lostStreaks && Object.keys(roundData.value.lostStreaks).length > 0 && (
+            {/*{ TODO Update styles of lost streaks list on host view too */}
+            {lostStreaks.length > 0 && (
               <p>
                 Lost Streaks:{' '}
                 <strong>
-                  {Object.entries(roundData.value.lostStreaks)
+                  {lostStreaks
                     .map(([userId, streak]) => `${getDisplayName(findUser(participants.value, userId))} (${streak})`)
                     .join(', ')}
                 </strong>
@@ -208,12 +226,12 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
 
             <div
               id="correct-players"
-              className="correct-players"
+              className="inline-players"
             >
-              <span className="correct-players-label">Correct players ({correctParticipants.length}):</span>
-              <div className="correct-players-list">
+              <span className="inline-players-label">Correct players ({correctParticipants.length}):</span>
+              <div className="inline-players-list">
                 {correctParticipants.length === 0 ? (
-                  <span className="correct-players-empty">Nobody got it fully correct!</span>
+                  <span className="inline-players-empty">Nobody got it fully correct!</span>
                 ) : (
                   correctParticipants.map((p: Participant) => (
                     <DiscordAvatar
@@ -226,15 +244,35 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
               </div>
             </div>
 
-            {roundData.value.lostStreaks && Object.keys(roundData.value.lostStreaks).length > 0 && (
-              <p>
-                Lost Streaks:{' '}
-                <strong>
-                  {Object.entries(roundData.value.lostStreaks)
-                    .map(([userId, streak]) => `${getDisplayName(findUser(participants.value, userId))} (${streak})`)
-                    .join(', ')}
-                </strong>
-              </p>
+            {lostStreaks.length > 0 && (
+              <div
+                id="lost-streaks"
+                className="inline-players"
+              >
+                <span className="inline-players-label">Lost Streaks ({lostStreaks.length}):</span>
+                <div className="inline-players-list">
+                  {lostStreaks
+                    .sort(([_uidA, streakA], [_uidB, streakB]) => streakB - streakA)
+                    .map(([userId, streak]) => {
+                      const participant = findUser(participants.value, userId);
+
+                      return (
+                        <span
+                          key={userId}
+                          className="badged-player"
+                          aria-label={`${getDisplayName(participant)} lost a ${streak}-streak`}
+                        >
+                          <DiscordAvatar
+                            src={getAvatarUrl(participant)}
+                            userName={getDisplayName(participant)}
+                            hasTooltip={true}
+                          />
+                          <span className={`avatar-badge streak-tier-${getStreakTier(streak)}`}>{streak}</span>
+                        </span>
+                      );
+                    })}
+                </div>
+              </div>
             )}
 
             {hasTimeBonus && !userResult && (
