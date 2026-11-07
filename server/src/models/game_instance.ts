@@ -16,15 +16,18 @@ import {
   GamePhase,
   GameSettings,
   GLIMPSE_BLUR_INTENSITY,
+  type GlimpseHint,
   Joker,
   MAX_TIME_MULTIPLIER,
   MIN_TIME_MULTIPLIER,
+  type MultipleChoiceHint,
+  type ObfuscationHint,
   type Playback,
   type PlayerTimeBonusPoint,
   PointsBonus,
   RoundTimings,
+  type SpyHint,
   STATIC_FILES_DIR,
-  type Tag,
   TEMP_FILES_DIR,
   TimeBonus,
   type TimeBonusPoint,
@@ -32,6 +35,7 @@ import {
   type Track,
   TRACK_AUDIO_DIR,
   type TrackInfo,
+  type TriviaHint,
 } from '@yasq/shared';
 
 import { getCachedDisplayName, getFilePath, hash } from '../utils/helper.js';
@@ -528,7 +532,11 @@ export class GameInstance {
     return !Object.values(this.usedJokers[userId]).includes(this.state.round);
   }
 
-  public getPartialHint(revealPercent: number = 0.2): string {
+  private hashWithGameState(str: string): number {
+    return hash(`${this.instanceId}-${this.state.game}-${this.state.round}-${str}`);
+  }
+
+  public getObfuscationHint(revealPercent: number = 0.2): ObfuscationHint {
     const title = this.trackInfo?.track.game;
     if (!title) return '';
 
@@ -547,15 +555,11 @@ export class GameInstance {
       .join('');
   }
 
-  private hashWithGameState(str: string): number {
-    return hash(`${this.instanceId}-${this.state.game}-${this.state.round}-${str}`);
-  }
-
-  public getTagHint(): Tag[] {
+  public getTriviaHint(): TriviaHint {
     return this.trackInfo?.track.tags || [];
   }
 
-  public getMultipleChoiceHint(tracks: Track[]): string[] {
+  public getMultipleChoiceHint(tracks: Track[]): MultipleChoiceHint {
     const correctAnswer = this.trackInfo?.track.game;
     if (!correctAnswer) return [];
 
@@ -575,11 +579,17 @@ export class GameInstance {
     return finalChoices.sort(() => 0.5 - generator.random());
   }
 
-  public getSpyHint(userId: UserId): string | null {
-    return this.guesses[this.state.round]?.[userId]?.text ?? null;
+  public getSpyHint(targetId: UserId): SpyHint | null {
+    const text = this.guesses[this.state.round]?.[targetId]?.text;
+    if (!text) return null;
+
+    return {
+      text,
+      targetId,
+    };
   }
 
-  public async getGlimpseHint(): Promise<string | null> {
+  public async getGlimpseHint(): Promise<GlimpseHint | null> {
     const tempDir = this.temporaryDirectory();
     const imagePath = path.join(tempDir, `glimpse_${this.state.round}.jpg`);
 

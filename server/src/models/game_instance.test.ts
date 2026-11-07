@@ -1121,7 +1121,7 @@ describe('GameInstance - getPartialHint', () => {
       tags: [],
     } satisfies Track;
     await game.selectNextTrack(track);
-    const hint = game.getPartialHint(0.5);
+    const hint = game.getObfuscationHint(0.5);
 
     expect(hint.length).toBe(GAME_LONG.length);
     expect(hint).toContain('_'); // chance of not getting a single underscore is virtually 0 (0.5**GAME_LONG.length)
@@ -1145,10 +1145,10 @@ describe('GameInstance - getPartialHint', () => {
     const probabilities = [0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0];
     const REROLLS = 10;
     for (const prob of probabilities) {
-      const controlHint = game.getPartialHint(prob);
+      const controlHint = game.getObfuscationHint(prob);
 
       for (let i = 0; i < REROLLS; i++) {
-        expect(game.getPartialHint(prob)).toBe(controlHint); // re-running must not change hint
+        expect(game.getObfuscationHint(prob)).toBe(controlHint); // re-running must not change hint
       }
     }
   });
@@ -1166,8 +1166,8 @@ describe('GameInstance - getPartialHint', () => {
     await game.selectNextTrack(track);
     await newGame.selectNextTrack(track);
 
-    const controlHint = game.getPartialHint(0.5);
-    const differentHint = newGame.getPartialHint(0.5);
+    const controlHint = game.getObfuscationHint(0.5);
+    const differentHint = newGame.getObfuscationHint(0.5);
 
     // This check will always be stable if it succeeds once since the hash function is seeded
     expect(differentHint).not.toBe(controlHint);
@@ -1199,7 +1199,7 @@ describe('GameInstance - getTagHint', () => {
       ] satisfies Tag[],
     } satisfies Track;
     await game.selectNextTrack(track);
-    const hint = game.getTagHint();
+    const hint = game.getTriviaHint();
 
     expect(hint.length).toBe(2);
     expect(hint[0]).toStrictEqual({

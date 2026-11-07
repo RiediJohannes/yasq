@@ -18,13 +18,14 @@ if (!TOKEN || !CLIENT_ID) {
   process.exit(1);
 }
 
-const commands = [
-  {
-    name: 'Launch YASQ',
-    description: 'Launch a new Game of YASQ!',
-    type: ApplicationCommandType.PrimaryEntryPoint,
-    handler: EntryPointCommandHandlerType.DiscordLaunchActivity,
-  },
+const primaryEntryPointCommand = {
+  name: 'Launch YASQ',
+  description: 'Launch a new Game of YASQ!',
+  type: ApplicationCommandType.PrimaryEntryPoint,
+  handler: EntryPointCommandHandlerType.DiscordLaunchActivity,
+};
+
+const chatCommands = [
   {
     name: 'test',
     description: 'Test Command',
@@ -86,16 +87,24 @@ const commands = [
   },
 ];
 
+const commands = [primaryEntryPointCommand, ...chatCommands];
 const rest = new REST({ version: '10' }).setToken(TOKEN);
+
+const shouldDeregister = process.argv.includes('--deregister');
 
 (async () => {
   try {
-    logger.debug('Registering global YASQ commands...', LogCategory.SETUP);
-
-    await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-
-    logger.info('Successfully registered global YASQ commands.', LogCategory.SETUP);
+    if (shouldDeregister) {
+      logger.debug('Deregistering chat commands (preserving Primary Entry Point)...', LogCategory.SETUP);
+      await rest.put(Routes.applicationCommands(CLIENT_ID), { body: [primaryEntryPointCommand] });
+      logger.info('Successfully deregistered global YASQ chat commands.', LogCategory.SETUP);
+    } else {
+      logger.debug('Registering global YASQ commands...', LogCategory.SETUP);
+      await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
+      logger.info('Successfully registered global YASQ commands.', LogCategory.SETUP);
+    }
   } catch (err) {
-    logger.error('Failed to register global YASQ commands.', LogCategory.SETUP, null, err as Error);
+    const action = shouldDeregister ? 'deregister' : 'register';
+    logger.error(`Failed to ${action} global YASQ commands.`, LogCategory.SETUP, null, err as Error);
   }
 })();

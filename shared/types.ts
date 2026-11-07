@@ -151,3 +151,9 @@ export interface Playback {
   startTime: number;
   endTime: number;
 }
+
+export type ObfuscationHint = string;
+export type TriviaHint = Tag[];
+export type MultipleChoiceHint = string[];
+export type SpyHint = { text: string; targetId: string };
+export type GlimpseHint = string;

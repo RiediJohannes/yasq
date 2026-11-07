@@ -1,6 +1,7 @@
 import { Locator, Page } from '@playwright/test';
 import { BasePage } from './BasePage';
 import { Joker } from '@yasq/shared';
+import { Player } from '../../utils/helper';
 
 type ResultType = 'correct' | 'partial' | 'wrong';
 
@@ -36,10 +37,10 @@ export class HostReviewPage extends BasePage {
     await this.page.locator(`label[for="${result}-${playerId}"]`).click();
   }
 
-  getJokerIndicator(username: string, jokerType?: Joker): Locator {
+  getJokerIndicator(player: Player, jokerType?: Joker): Locator {
     if (jokerType) {
-      return this.getGuessItem(username).locator(`.joker-indicator#${jokerType.toLowerCase()}`);
+      return this.getGuessItem(player.username).locator(`.joker-indicator#${jokerType.toLowerCase()}-${player.id}`);
     }
-    return this.getGuessItem(username).locator('.joker-indicator');
+    return this.getGuessItem(player.username).locator('.joker-indicator');
   }
 }

@@ -39,11 +39,11 @@ describe('AchievementBonusManager', () => {
         reward: 100,
       },
       {
-        id: 'fastestAverageGuess',
+        id: 'slowestAverageGuess',
         metric: AchievementBonusMetric.GUESS_TIME,
         filter: AchievementBonusFilter.CORRECT,
         aggregate: AchievementBonusAggregate.AVERAGE,
-        goal: AchievementBonusGoal.LOWEST,
+        goal: AchievementBonusGoal.HIGHEST,
         reward: 50,
       },
       {
@@ -53,6 +53,14 @@ describe('AchievementBonusManager', () => {
         aggregate: AchievementBonusAggregate.COUNT,
         goal: AchievementBonusGoal.HIGHEST,
         reward: 75,
+      },
+      {
+        id: 'fastestCorrectGuess',
+        metric: AchievementBonusMetric.GUESS_TIME,
+        filter: AchievementBonusFilter.CORRECT,
+        aggregate: AchievementBonusAggregate.MIN,
+        goal: AchievementBonusGoal.LOWEST,
+        reward: 100,
       },
     ];
 
@@ -111,26 +119,26 @@ describe('AchievementBonusManager', () => {
 
     // user1 averages: (2000 + 1000) / 2 = 1500
     // user2 averages: (4000 + 2000) / 2 = 3000
-    // Goal is lowest average guess time -> user1 wins
-    const state = achievements.achievements.get('fastestAverageGuess');
-    expect(state?.userIds).toEqual(['user1']);
-    expect(state?.value).toBe(1500);
+    // Goal is highest average guess time -> user2 wins
+    const state = achievements.achievements.get('slowestAverageGuess');
+    expect(state?.userIds).toEqual(['user2']);
+    expect(state?.value).toBe(3000);
   });
 
   it('should respect filters (e.g., only counting correct guesses)', () => {
     const roundResults: UserRoundResult[] = [
-      { userId: 'user1', scoreValue: 0, time: 500 } as UserRoundResult, // Incorrect, should be filtered out for fastestAverageGuess
-      { userId: 'user1', scoreValue: 1, time: 3000 } as UserRoundResult, // Correct
-      { userId: 'user2', scoreValue: 1, time: 2000 } as UserRoundResult, // Correct
+      { userId: 'user1', scoreValue: 0, time: 5000 } as UserRoundResult, // Incorrect, should be filtered out for slowestAverageGuess
+      { userId: 'user1', scoreValue: 1, time: 2000 } as UserRoundResult, // Correct
+      { userId: 'user2', scoreValue: 1, time: 3000 } as UserRoundResult, // Correct
     ];
 
     achievements.processRound(roundResults, mockTrackInfo);
 
-    // user1 valid time: 3000 (avg = 3000)
-    // user2 valid time: 2000 (avg = 2000)
-    const state = achievements.achievements.get('fastestAverageGuess');
+    // user1 valid time: 2000 (avg = 2000)
+    // user2 valid time: 3000 (avg = 3000)
+    const state = achievements.achievements.get('slowestAverageGuess');
     expect(state?.userIds).toEqual(['user2']);
-    expect(state?.value).toBe(2000);
+    expect(state?.value).toBe(3000);
   });
 
   it('should count occurrences correctly for COUNT aggregate', () => {
@@ -146,5 +154,68 @@ describe('AchievementBonusManager', () => {
     const state = achievements.achievements.get('mostPartiallyCorrectGuesses');
     expect(state?.userIds).toEqual(['user1']);
     expect(state?.value).toBe(2); // user1 has 2 partially correct guesses
+  });
+
+  it('should only update round and track info if value is better than existing', () => {
+    const roundResults: UserRoundResult[] = [
+      { userId: 'user1', scoreValue: 1, time: 3000, round: 1 } as UserRoundResult,
+      { userId: 'user2', scoreValue: 1, time: 2000, round: 1 } as UserRoundResult,
+    ];
+
+    achievements.processRound(roundResults, mockTrackInfo);
+
+    let state = achievements.achievements.get('fastestCorrectGuess');
+    expect(state?.userIds).toEqual(['user2']);
+    expect(state?.value).toBe(2000);
+    expect(state?.extraData?.round).toBe(1);
+    expect(state?.extraData?.trackInfo).toEqual(mockTrackInfo);
+
+    // Now process a new round where user1 is faster than user2 in round 1
+    const roundResults2: UserRoundResult[] = [
+      { userId: 'user1', scoreValue: 1, time: 1000, round: 2 } as UserRoundResult,
+      { userId: 'user2', scoreValue: 1, time: 4000, round: 2 } as UserRoundResult,
+    ];
+
+    const newTrackInfo: TrackInfo = {
+      url: '',
+      gameCoverUrl: '',
+      track: {
+        game: 'GAME_B',
+        title: 'Track B',
+        audio: 'track002.mp3',
+      },
+    };
+
+    achievements.processRound(roundResults2, newTrackInfo);
+
+    state = achievements.achievements.get('fastestCorrectGuess');
+    expect(state?.userIds).toEqual(['user1']);
+    expect(state?.value).toBe(1000);
+    expect(state?.extraData?.round).toBe(2); // Round number updated to round 2
+    expect(state?.extraData?.trackInfo).toEqual(newTrackInfo); // Track info updated to new track
+
+    // Now process a new round where no one beats the current fastest time
+    const roundResults3: UserRoundResult[] = [
+      { userId: 'user1', scoreValue: 1, time: 1500, round: 3 } as UserRoundResult,
+      { userId: 'user2', scoreValue: 1, time: 2500, round: 3 } as UserRoundResult,
+    ];
+
+    const anotherTrackInfo: TrackInfo = {
+      url: '',
+      gameCoverUrl: '',
+      track: {
+        game: 'GAME_C',
+        title: 'Track C',
+        audio: 'track003.mp3',
+      },
+    };
+
+    achievements.processRound(roundResults3, anotherTrackInfo);
+
+    state = achievements.achievements.get('fastestCorrectGuess');
+    expect(state?.userIds).toEqual(['user1']); // User remains the same
+    expect(state?.value).toBe(1000); // Value remains the same
+    expect(state?.extraData?.round).toBe(2); // Round number remains the same
+    expect(state?.extraData?.trackInfo).toEqual(newTrackInfo); // Track info remains the same
   });
 });

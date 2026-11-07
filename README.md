@@ -7,7 +7,7 @@ A Multiplayer Soundtrack Quiz built as a Discord Activity.
 1. [Setup](#setup)
    1. [Prerequisites](#prerequisites)
    2. [Installation](#installation)
-   3. [Local Development](#local-development)
+   3. [Local Execution](#local-execution)
    4. [Game Setup](#game-setup)
       - [Data Location](#data-location)
       - [Data Format](#data-format)
@@ -21,7 +21,7 @@ A Multiplayer Soundtrack Quiz built as a Discord Activity.
 
 ### Prerequisites
 
-- **Node.js** (v22 or higher recommended)
+- **Node.js** (v24 or higher recommended)
 - **npm**
 - **Discord Developer Account**
 - **cloudflared** (or other tunnel service)
@@ -30,9 +30,9 @@ A Multiplayer Soundtrack Quiz built as a Discord Activity.
 
 1. **Install Dependencies**
 
-```bash
-npm install
-```
+   ```bash
+   npm install
+   ```
 
 2. **Configure Discord**
 
@@ -53,39 +53,48 @@ npm install
 3. **Set up Environment Variables**\
    Create a `.env` file in the root directory:
 
-```dotenv
-# Required variables
-VITE_DISCORD_CLIENT_ID=<Copy Client ID from Discord Developer Portal>
-DISCORD_CLIENT_SECRET=<Copy Client Secret from Discord Developer Portal>
-VITE_URL_MAPPING=<Fill Later>
-# Optional variables
-DISCORD_BOT_TOKEN=<Copy Bot Token from Discord Developer Portal>
-DATABASE_URL=<Relative path to quiz database file> (See "Database")
-LOG_LEVEL=<options: debug, info, warn, error> (defaults to 'info')
-DATA_SOURCE=<Relative path to quiz data> (see "Game Setup")
-```
+   ```dotenv
+   # Required variables
+   VITE_DISCORD_CLIENT_ID=<Copy Client ID from Discord Developer Portal>
+   DISCORD_CLIENT_SECRET=<Copy Client Secret from Discord Developer Portal>
+   VITE_URL_MAPPING=<Fill Later>
+   # Optional variables
+   DISCORD_BOT_TOKEN=<Copy Bot Token from Discord Developer Portal>
+   DATABASE_URL=<Relative path to quiz database file> (See "Database")
+   LOG_LEVEL=<options: debug, info, warn, error> (defaults to 'info')
+   DATA_SOURCE=<Relative path to quiz data> (see "Game Setup")
+   ```
 
-### Local Development
+### Local Execution
 
 1. **Start Client and Server** (Terminal window 1)
 
-```bash
-npm run dev
-```
+   Choose one mode:
+
+   - **Development Mode** — runs the client with Vite's development server and the server in watch mode. Code changes are applied directly without rebuilding. Use this while working on the code.
+
+     ```bash
+     npm run dev
+     ```
+
+   - **Production Mode** — builds the client first, then starts the server in production mode and serves the built client through Vite's preview server. Use this to host actual quizzes.
+     ```bash
+     npm run prod
+     ```
 
 2. **Setup Tunnel** (Terminal window 2)
 
-```bash
-# Example using cloudflared
-cloudflared tunnel --url http://localhost:5173
-```
+   ```bash
+   # Example using cloudflared
+   cloudflared tunnel --url http://localhost:5173
+   ```
 
 3. **Update Tunnel URL**
 
-- Set `VITE_URL_MAPPING` in `.env` to the tunnel URL **without** `https://`.
-- Follow these steps in the Discord Developer Portal:
-  - Create URL Mapping under the Activities tab
-  - Turn on `Enable Activities` in Activity settings
+   - Set `VITE_URL_MAPPING` in `.env` to the tunnel URL **without** `https://`.
+   - Follow these steps in the Discord Developer Portal:
+     - Create URL Mapping under the Activities tab
+     - Turn on `Enable Activities` in Activity settings
 
 4. (Optional) Run `npx playwright install chromium` to allow exporting of final results as image
 
@@ -107,7 +116,7 @@ Otherwise, the system will fall back to look for the `sample` directory.
 **Examples:**
 
 ```dotenv
-DATA_SOURCE=my_quiz    # loads data from server/data/my_quiz
+DATA_SOURCE=my_quiz                # loads data from server/data/my_quiz
 DATA_SOURCE=nested/example/quiz    # loads data from server/data/nested/example/quiz
 ```
 
@@ -263,8 +272,7 @@ Any properties you omit will automatically fall back to their defaults.
 You can register commands to allow players to access some functionality via a bot.
 
 ```bash
-cd server
-node commands.ts
+npm run commands:register
 ```
 
 This requires a valid `DISCORD_BOT_TOKEN` to be set in the `.env` file.
@@ -282,6 +290,12 @@ The following commands exist:
 | **`/leave`**    | Kick the bot out of the voice channel | None                | None                                                           |
 
 This also allows players to launch the activity directly from the chat interface via an Entry Point Command.
+
+To deregister the commands again, run:
+
+```bash
+npm run commands:deregister
+```
 
 #### Database (Optional)
 
@@ -310,7 +324,11 @@ Once the database is set up, the activity will write the final results to the da
 
 A huge thanks to my beta testers for helping me break the game so I could actually fix it:
 
+- Ashley
 - Deniz
+- Görkem
+- Jonas
 - Josch
 - Matthi
+- Nillumie
 - Noel

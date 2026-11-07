@@ -347,8 +347,8 @@ describe('useJoker', () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.jokerType).toBe(Joker.OBFUSCATION);
-    expect(body.hint.length).toEqual(6);
+    expect(body.type).toBe(Joker.OBFUSCATION);
+    expect(body.data.length).toEqual(6);
   });
 
   it('should return 200 OK when TRIVIA joker is used', async () => {
@@ -358,8 +358,8 @@ describe('useJoker', () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.jokerType).toBe(Joker.TRIVIA);
-    expect(body.hint).toStrictEqual([
+    expect(body.type).toBe(Joker.TRIVIA);
+    expect(body.data).toStrictEqual([
       { type: 'platform', value: 'Platform A' },
       { type: 'release', value: '2026' },
     ]);
@@ -372,8 +372,8 @@ describe('useJoker', () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.jokerType).toBe(Joker.MULTIPLE_CHOICE);
-    expect(body.hint).toContain('Game A');
+    expect(body.type).toBe(Joker.MULTIPLE_CHOICE);
+    expect(body.data).toContain('Game A');
   });
 
   it('should return 200 OK when GLIMPSE joker is used', async () => {
@@ -385,8 +385,8 @@ describe('useJoker', () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.jokerType).toBe(Joker.GLIMPSE);
-    expect(body.hint).toBeDefined();
+    expect(body.type).toBe(Joker.GLIMPSE);
+    expect(body.data).toBeDefined();
   });
 
   it('should return 400 Bad Request when SPY joker is missing targetId', async () => {
@@ -417,8 +417,11 @@ describe('useJoker', () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.jokerType).toBe(Joker.SPY);
-    expect(body.hint).toEqual('guess');
+    expect(body.type).toBe(Joker.SPY);
+    expect(body.data).toStrictEqual({
+      targetId: '3',
+      text: 'guess',
+    });
   });
 
   it('should return 403 Forbidden when joker is not enabled', async () => {

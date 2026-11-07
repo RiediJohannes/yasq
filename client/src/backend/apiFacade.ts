@@ -177,11 +177,11 @@ export class BackendApiFacade {
     return response.json();
   }
 
-  public async useJoker(jokerType: Joker, targetId?: string) {
+  public async useJoker(type: Joker, targetId?: string) {
     return BackendApiFacade.apiFetch(`/instance/${this.instanceId}/jokers`, {
       method: 'PATCH',
       token: this.auth.access_token,
-      body: { jokerType, targetId },
+      body: { type, targetId },
     });
   }
 

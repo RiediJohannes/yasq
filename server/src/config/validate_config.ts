@@ -1,4 +1,6 @@
-import { stringify } from '../utils/helper.js';
+import fs from 'fs';
+import path from 'path';
+import { getFilePath, isMockMode, stringify } from '../utils/helper.js';
 
 export interface PropertyValidationIssue {
   propertyPath: string;
@@ -73,3 +75,24 @@ export const formatListItemValidationIssue = (issue: ListItemValidationIssue, is
     `(${issue.errorMessage}).`
   );
 };
+
+export const fileExistsAtValidLocation = (filesDir: string) =>
+  [
+    (fileName: string | undefined) => {
+      if (!fileName) return true;
+
+      const baseDir = getFilePath(filesDir);
+      const targetPath = getFilePath(path.join(filesDir, fileName));
+
+      // Ensure the target path stays inside the designated baseDir
+      const relative = path.relative(baseDir, targetPath);
+      const isSafe = !relative.startsWith('..') && !path.isAbsolute(relative);
+      if (!isSafe) return false;
+
+      // Check if the file actually exists on disk
+      return isMockMode() || fs.existsSync(targetPath);
+    },
+    {
+      message: `File path escapes the designated directory ('${filesDir}') or does not exist`,
+    },
+  ] as const;

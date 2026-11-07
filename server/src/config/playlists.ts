@@ -1,12 +1,11 @@
 import fs from 'fs';
-import path from 'path';
 import { z } from 'zod';
 
 import { type Playlist, TRACK_AUDIO_DIR } from '@yasq/shared';
 
 import { LogCategory, logger } from '../utils/logger.js';
-import { getFilePath, isMockMode } from '../utils/helper.js';
 import {
+  fileExistsAtValidLocation,
   formatListItemValidationIssue,
   type ListItemValidationIssue,
   resolveProperty,
@@ -19,13 +18,7 @@ const playlistSchema = z.object({
     z
       .string()
       .nonempty()
-      .refine(
-        trackFilename => {
-          const absolutePath = getFilePath(path.join(TRACK_AUDIO_DIR, trackFilename));
-          return isMockMode() || fs.existsSync(absolutePath);
-        },
-        { error: 'Track file does not exist in the designated track audio directory' }
-      )
+      .refine(...fileExistsAtValidLocation(TRACK_AUDIO_DIR))
   ),
 });
 

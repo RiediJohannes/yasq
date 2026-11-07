@@ -17,11 +17,12 @@ export class GameStats {
 
   private calculateTimeBonusSum(roundResults: UserRoundResult[]): number {
     return roundResults.reduce((sum, result) => {
-      const timeBonus = result.awardedBonuses?.find(b => b.type === BonusType.TIME_BONUS);
-      if (!timeBonus) return sum;
-
       const basePoints = BASE_POINTS * result.scoreValue;
-      return sum + timeBonus.toAbsolute(basePoints);
+
+      const timeBonus = result.awardedBonuses?.find(b => b.type === BonusType.TIME_BONUS);
+      if (!timeBonus) return sum + basePoints;
+
+      return sum + basePoints + timeBonus.toAbsolute(basePoints);
     }, 0);
   }
 

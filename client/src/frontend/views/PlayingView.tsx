@@ -6,6 +6,7 @@ import {
   getAvatarUrl,
   getDisplayName,
   Joker,
+  JokerHintDto,
   LogLevel,
   MAX_GUESS_LENGTH,
   Playback,
@@ -24,16 +25,9 @@ import { DiscordAvatar } from '@components/DiscordAvatar';
 import { TooltipDiv, WithTooltip } from '@components/Tooltip';
 import { LoadingSpinner } from '@components/LoadingSpinner';
 
-type JokerHint =
-  | { type: Joker.OBFUSCATION; data: string }
-  | { type: Joker.MULTIPLE_CHOICE; data: string[] }
-  | { type: Joker.TRIVIA; data: Tag[] }
-  | { type: Joker.SPY; data: { text: string; targetId: string } }
-  | { type: Joker.GLIMPSE; data: string };
-
 type SubmitFunction = (guess: string) => Promise<void>;
 
-const renderJokerHint = (activeHint: JokerHint, submit: SubmitFunction) => {
+const renderJokerHint = (activeHint: JokerHintDto, submit: SubmitFunction) => {
   switch (activeHint.type) {
     case Joker.OBFUSCATION:
       return (
@@ -148,7 +142,7 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
   const setupControllerRef = useRef<AbortController | null>(null);
 
   const jokerError = useSignal<string | null>(null);
-  const activeHint = useSignal<JokerHint | null>(null);
+  const activeHint = useSignal<JokerHintDto | null>(null);
   const availableJokers = useSignal<string[]>([]);
   const isSelectingSpyTarget = useSignal(false);
   const activeTrackInfo = useSignal<any>(null);
@@ -170,10 +164,7 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
       const response = await backend.useJoker(jokerType, targetId);
       const payload = await response.json();
       if (response.status === 200) {
-        activeHint.value = {
-          type: jokerType,
-          data: targetId ? { text: payload.hint, targetId } : payload.hint,
-        };
+        activeHint.value = payload;
       } else {
         jokerError.value = payload.error;
       }
@@ -183,11 +174,6 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
       console.error('Failed to use joker:', err);
       isSelectingSpyTarget.value = false;
     }
-  };
-
-  const resetJokerHint = () => {
-    activeHint.value = null;
-    jokerError.value = null;
   };
 
   const submitGuess = async (guess: string) => {
@@ -516,7 +502,7 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
           {jokerError.value && (
             <div className="joker-error-container">
               <span>⚠️ {jokerError.value}</span>
-              <button onClick={resetJokerHint}>Ok</button>
+              <button onClick={() => (jokerError.value = null)}>Ok</button>
             </div>
           )}
 

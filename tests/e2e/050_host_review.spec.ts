@@ -56,12 +56,12 @@ test.describe('Host UI', () => {
     const players = session.players;
 
     // Verify player 1 has joker icon with correct tooltip
-    const joker = hostReviewPage.getJokerIndicator(players[1].username, Joker.TRIVIA);
+    const joker = hostReviewPage.getJokerIndicator(players[1], Joker.TRIVIA);
     await expect(joker).toBeVisible();
     await expect(joker.locator('svg')).toBeVisible();
 
     // Verify player 2 has NO joker icon
-    await expect(hostReviewPage.getJokerIndicator(players[2].username)).toHaveCount(0);
+    await expect(hostReviewPage.getJokerIndicator(players[2])).toHaveCount(0);
   });
 
   test('should update streak badges correctly when submitting corrections', async ({

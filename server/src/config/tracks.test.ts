@@ -74,12 +74,12 @@ describe('loadTrackas', () => {
     const invalidConfig = [
       {
         game: '', // Invalid: empty string
-        title: 2, // Invalid: number
-        audio: 'track001.mp3',
+        title: 'Track A',
+        audio: '../track001.mp3', // Invalid: path escapes designated directory
       },
       {
         game: 'Game B',
-        title: 'Track B',
+        title: 2, // Invalid: number
         audio: 'track002.mp3', // Invalid: audio file does not exist
       },
     ];
@@ -99,15 +99,18 @@ describe('loadTrackas', () => {
     expect(error).toBeInstanceOf(ValidationError);
     const errorMessage = (error as ValidationError).message;
 
-    expect(errorMessage).toContain("Found 3 invalid configuration properties in 'invalid.json':");
+    expect(errorMessage).toContain("Found 4 invalid configuration properties in 'invalid.json':");
     expect(errorMessage).toContain(
       '1. Item 1: Property \'game\' received invalid value "" (Too small: expected string to have >=1 characters).'
     );
     expect(errorMessage).toContain(
-      "2. Item 1: Property 'title' received invalid value 2 (Invalid input: expected string, received number)"
+      "2. Item 1: Property 'audio' received invalid value \"../track001.mp3\" (File path escapes the designated directory ('music') or does not exist)."
     );
     expect(errorMessage).toContain(
-      '3. Item 2: Property \'audio\' received invalid value "track002.mp3" (Audio file does not exist in the designated track audio directory).'
+      "3. Item 2: Property 'title' received invalid value 2 (Invalid input: expected string, received number)."
+    );
+    expect(errorMessage).toContain(
+      "4. Item 2: Property 'audio' received invalid value \"track002.mp3\" (File path escapes the designated directory ('music') or does not exist)."
     );
     expect((error as ValidationError).exitCode).toBe(22);
   });

@@ -82,7 +82,7 @@ describe('loadPlaylists', () => {
       '2. Item 1: Property \'tracks\' received invalid value "track001.mp3" (Invalid input: expected array, received string).'
     );
     expect(errorMessage).toContain(
-      '3. Item 2: Property \'tracks.0\' received invalid value "track003.mp3" (Track file does not exist in the designated track audio directory).'
+      "3. Item 2: Property 'tracks.0' received invalid value \"track003.mp3\" (File path escapes the designated directory ('music') or does not exist)."
     );
   });
 

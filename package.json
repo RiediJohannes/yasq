@@ -13,6 +13,8 @@
     "shared"
   ],
   "scripts": {
+    "commands:register": "npm run commands:register -w server",
+    "commands:deregister": "npm run commands:deregister -w server",
     "dev:server": "npm run dev -w server",
     "dev:client": "npm run dev -w client",
     "dev": "concurrently \"npm run dev:server\" \"wait-on http://localhost:3001/health && npm run dev:client\"",
@@ -53,7 +55,8 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.63.0",
+    "@playwright/test": "^1.65.0",
+    "@typescript/native": "npm:typescript@^7.0.2",
     "@vitest/coverage-v8": "^5.0.3",
     "concurrently": "^10.0.5",
     "cross-env": "^10.1.0",
@@ -64,7 +67,6 @@
     "lint-staged": "^17.3.0",
     "prettier": "^3.9.6",
     "sharp": "^0.35.5",
-    "@typescript/native": "npm:typescript@^7.0.2",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-eslint": "^8.65.0",
     "vitest": "^5.0.3",

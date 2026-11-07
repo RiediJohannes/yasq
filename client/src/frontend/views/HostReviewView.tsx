@@ -82,10 +82,13 @@ export const HostReviewView = ({ isHost }: { isHost: boolean }) => {
                 {guess.joker &&
                   (() => {
                     const JokerIcon = ALL_JOKER_ICONS.find(icon => icon.jokerType === guess.joker);
+                    const tooltipId = `${guess.joker.toLowerCase()}-${userId}`;
+
                     return JokerIcon ? (
                       <TooltipDiv
+                        key={tooltipId}
+                        id={tooltipId}
                         text={capitalize(JokerIcon?.jokerType)}
-                        id={guess.joker.toLowerCase()}
                         className="joker-indicator"
                         role="img"
                       >

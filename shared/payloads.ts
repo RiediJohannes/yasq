@@ -4,8 +4,16 @@
  * for the domain models on the server.
  */
 
-import { type AchievementBonusType } from './constants.js';
-import type { PointsBonus, TrackInfo } from './types.js';
+import { Joker, type AchievementBonusType } from './constants.js';
+import type {
+  GlimpseHint,
+  MultipleChoiceHint,
+  ObfuscationHint,
+  PointsBonus,
+  SpyHint,
+  TrackInfo,
+  TriviaHint,
+} from './types.js';
 
 export interface RoundResultDto {
   round: number;
@@ -65,3 +73,10 @@ export interface FinalResultsResponse {
   };
   canExport: boolean;
 }
+
+export type JokerHintDto =
+  | { type: Joker.OBFUSCATION; data: ObfuscationHint }
+  | { type: Joker.TRIVIA; data: TriviaHint }
+  | { type: Joker.MULTIPLE_CHOICE; data: MultipleChoiceHint }
+  | { type: Joker.SPY; data: SpyHint }
+  | { type: Joker.GLIMPSE; data: GlimpseHint };

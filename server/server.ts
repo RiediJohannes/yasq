@@ -38,7 +38,7 @@ import { loadSettingsConfig } from './src/config/settings.js';
 import { setupWebsocketServer } from './src/socket_server.js';
 import { LogCategory, logger } from './src/utils/logger.js';
 import { loadTracks } from './src/config/tracks.js';
-import type { ValidationError } from './src/utils/validate_config.js';
+import type { ValidationError } from './src/config/validate_config.js';
 import { loadPlaylists } from './src/config/playlists.js';
 
 dotenv.config({ path: '../.env' });

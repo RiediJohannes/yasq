@@ -230,6 +230,11 @@ export class AchievementBonusManager {
     }
 
     if (bestValue !== null) {
+      const previousValue = state.value;
+      const isBetter =
+        previousValue === null ||
+        (state.rule.goal === AchievementBonusGoal.HIGHEST ? bestValue > previousValue : bestValue < previousValue);
+
       state.value = bestValue;
       state.userIds = bestUserIds;
 
@@ -240,7 +245,7 @@ export class AchievementBonusManager {
           aggregate
         );
 
-      if (!isCumulative && (trackInfo || roundResults)) {
+      if (!isCumulative && (trackInfo || roundResults) && isBetter) {
         state.extraData = {
           ...(trackInfo ? { trackInfo: trackInfo } : {}),
           ...(roundResults ? { round: roundResults[0]?.round } : {}),

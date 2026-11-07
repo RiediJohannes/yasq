@@ -10,6 +10,7 @@ import {
   GamePhase,
   INSTANCE_PATH,
   Joker,
+  type JokerHintDto,
   LogLevel,
   MAX_GUESS_LENGTH,
   type Participant,
@@ -185,64 +186,83 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
   });
 
   const useJokerBodySchema = defineSchema({
-    jokerType: z.enum(Joker),
+    type: z.enum(Joker),
     targetId: z.string().trim().nonempty().optional(),
   });
 
   router.patch(`/${INSTANCE_PATH}/jokers`, authenticateUser, async (req, res) => {
-    const { jokerType, targetId } = validateRequest(req, useJokerBodySchema);
+    const { type, targetId } = validateRequest(req, useJokerBodySchema);
 
     const userId = req.userId!;
     const game = req.game!;
 
-    if (!game.settings.enabledJokers.has(jokerType)) {
+    if (!game.settings.enabledJokers.has(type)) {
       throw new ApiError(403, 'Joker not enabled for this game', req);
     }
 
-    if (!game.canUseJoker(userId, jokerType)) {
+    if (!game.canUseJoker(userId, type)) {
       throw new ApiError(410, 'Joker already used', req);
     }
 
-    let hint: any;
-    switch (jokerType) {
-      case Joker.OBFUSCATION:
-        hint = game.getPartialHint();
+    let response: JokerHintDto;
+    switch (type) {
+      case Joker.OBFUSCATION: {
+        response = {
+          type,
+          data: game.getObfuscationHint(),
+        };
         break;
-      case Joker.TRIVIA:
-        hint = game.getTagHint();
+      }
+      case Joker.TRIVIA: {
+        response = {
+          type,
+          data: game.getTriviaHint(),
+        };
         break;
-      case Joker.MULTIPLE_CHOICE:
-        hint = game.getMultipleChoiceHint(getTracks());
+      }
+      case Joker.MULTIPLE_CHOICE: {
+        response = {
+          type,
+          data: game.getMultipleChoiceHint(getTracks()),
+        };
         break;
-      case Joker.SPY:
+      }
+      case Joker.SPY: {
         if (!targetId) {
           throw new ApiError(400, 'Spy joker requires additional property: targetId', req);
         }
 
-        hint = game.getSpyHint(targetId);
-        if (hint === null) {
+        const spyHint = game.getSpyHint(targetId);
+        if (spyHint === null) {
           throw new ApiError(202, "Target hasn't submitted yet.\nJoker not consumed.", req);
         }
+        response = {
+          type,
+          data: spyHint,
+        };
         break;
-      case Joker.GLIMPSE:
-        hint = await game.getGlimpseHint();
-        if (hint === null) {
+      }
+      case Joker.GLIMPSE: {
+        const glimpseHint = await game.getGlimpseHint();
+        if (glimpseHint === null) {
           throw new ApiError(500, 'Failed to generate blurred image.\nJoker not consumed.', req);
         }
+        response = {
+          type,
+          data: glimpseHint,
+        };
         break;
+      }
       default:
-        throw new ApiError(400, `Invalid joker type: ${jokerType}`, req);
+        throw new ApiError(400, `Invalid joker type: ${type}`, req);
     }
 
-    game.markJokerUsed(userId, jokerType);
-    logger.debug(`Player ${userId} has used Joker ${jokerType}`, LogCategory.GAME, game.instanceId);
+    game.markJokerUsed(userId, type);
+    logger.debug(`Player ${userId} has used Joker ${type}`, LogCategory.GAME, game.instanceId);
 
     game.notifyUpdate();
 
-    res.send({
-      jokerType,
-      hint,
-    });
+    res.send(response);
   });
 
   const sendGuessBodySchema = defineSchema({

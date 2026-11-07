@@ -1,5 +1,4 @@
 import fs from 'fs';
-import path from 'path';
 import { z } from 'zod';
 
 import {
@@ -17,9 +16,13 @@ import {
   TimeBonus,
 } from '@yasq/shared';
 
-import { getFilePath, isMockMode } from '../utils/helper.js';
 import { LogCategory, logger } from '../utils/logger.js';
-import { formatPropertyValidationIssue, type PropertyValidationIssue, resolveProperty } from './validate_config.js';
+import {
+  fileExistsAtValidLocation,
+  formatPropertyValidationIssue,
+  type PropertyValidationIssue,
+  resolveProperty,
+} from './validate_config.js';
 
 let issues: PropertyValidationIssue[] = [];
 let userDefinedGameSettings: GameSettings<Set<Joker>> | null = null;
@@ -83,17 +86,6 @@ const fallbackWithWarning = <T>(propertyName: string, fallback: T) => {
   };
 };
 
-const soundFileExists = (propertyName: string) =>
-  [
-    (fileName: string) => {
-      const absolutePath = getFilePath(path.join(APP_SOUNDS_DIR, fileName));
-      return isMockMode() || fs.existsSync(absolutePath);
-    },
-    {
-      error: `File for '${propertyName}' does not exist in the designated sound directory ('${APP_SOUNDS_DIR}')`,
-    },
-  ] as const;
-
 namespace Schemas {
   const gameSettingsSchema = z.object({
     rounds: z.number().int().positive().catch(fallbackWithWarning('rounds', DEFAULT_GAME_SETTINGS.rounds)),
@@ -149,12 +141,12 @@ namespace Schemas {
         finalResultsJingle: z
           .string()
           .nonempty()
-          .refine(...soundFileExists('finalResultsJingle'))
+          .refine(...fileExistsAtValidLocation(APP_SOUNDS_DIR))
           .nullish(),
         finalResultsLoop: z
           .string()
           .nonempty()
-          .refine(...soundFileExists('finalResultsLoop'))
+          .refine(...fileExistsAtValidLocation(APP_SOUNDS_DIR))
           .nullish(),
       })
       .catch(fallbackWithWarning('sounds', DEFAULT_APP_SETTINGS.sounds)),

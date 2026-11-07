@@ -9,6 +9,8 @@
     "url": "git+https://github.com/yadler97/yasq.git"
   },
   "scripts": {
+    "commands:register": "tsx commands.ts",
+    "commands:deregister": "tsx commands.ts --deregister",
     "dev": "cross-env NODE_ENV=development tsx watch main.ts",
     "prod": "cross-env NODE_ENV=production tsx main.ts",
     "test": "cross-env NODE_ENV=test vitest"
@@ -30,7 +32,7 @@
     "preact-render-to-string": "^6.8.0",
     "sharp": "^0.35.3",
     "socket.io": "^4.8.3",
-    "zod": "^4.5.4"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^9.6.0",
