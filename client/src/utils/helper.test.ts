@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { Participant } from '@yasq/shared';
 
-import { findUser, formatBonusMultiplier, getActionKeyLabel, getGameDuration } from './helper';
+import { findUser, formatBonusMultiplier, getActionKeyLabel, getGameDuration, getStreakTier } from './helper';
 
 const mockParticipants: Participant[] = [
   { id: '1', username: 'MockPlayer1' },
@@ -61,5 +61,35 @@ describe('getGameDuration', () => {
     const startTime = 0;
     const endTime = 125000; // 2 minutes and 5 seconds
     expect(getGameDuration(startTime, endTime)).toBe('2m 5s');
+  });
+});
+
+describe('getStreakTier', () => {
+  it.each([
+    [2, 1],
+    [4, 2],
+    [6, 3],
+    [8, 4],
+  ])('should return the correct streak tier for an even number (%i -> %i)', (streak, expected) => {
+    expect(getStreakTier(streak)).toBe(expected);
+  });
+
+  it.each([
+    [1, 1],
+    [3, 2],
+    [5, 3],
+    [7, 4],
+  ])('should return the correct streak tier for an odd number (%i -> %i)', (streak, expected) => {
+    expect(getStreakTier(streak)).toBe(expected);
+  });
+
+  it.each([
+    [8, 4],
+    [9, 4],
+    [10, 4],
+    [20, 4],
+    [10_0001, 4],
+  ])('should not exceed the maximum streak tier (%i -> %i)', (streak, expected) => {
+    expect(getStreakTier(streak)).toBe(expected);
   });
 });

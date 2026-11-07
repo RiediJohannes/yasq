@@ -35,6 +35,7 @@ dist-ssr
 server/data/*
 !server/data/sample
 **/coverage/*
+mock_data/dev
 
 # Playwright
 tests/**/playwright-report/*

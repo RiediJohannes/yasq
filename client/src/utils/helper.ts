@@ -35,6 +35,10 @@ export const getActionKeyLabel = (isMac: boolean) => {
   return isMac ? '⌘' : 'Alt';
 };
 
+export const getStreakTier = (streak: number): number => {
+  return Math.min(Math.ceil(streak / 2), 4);
+};
+
 export const getGameDuration = (startTime: number | null, endTime: number | null): string => {
   if (startTime === null || endTime === null) {
     return 'N/A';
