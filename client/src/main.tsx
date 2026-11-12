@@ -1,12 +1,12 @@
 import { render } from 'preact';
 import { signal } from '@preact/signals';
 
-import { backend, BackendContext, discordSdk, gameStatus, isMac, participants } from './globals';
 import { authenticateWithDiscord, establishServerConnection, syncParticipants } from './backend/connections';
 import { useKeyboardShortcut } from './frontend/hooks/useKeyboardShortcut';
+import { backend, BackendContext, discordSdk, gameStatus, isMac, participants } from '@globals';
 import { GamePhase } from '@yasq/shared';
 
-import { GameHeader, isHowToPlayOpen, isLocalSettingsOpen } from '@components/GameHeader';
+import { GameHeader, isGameSettingsOpen, isHowToPlayOpen, isLocalSettingsOpen } from '@components/GameHeader';
 import { HowToPlay } from '@components/HowToPlay';
 import { LocalSettings } from '@components/LocalSettings';
 import { Modal } from '@components/Modal';
@@ -22,6 +22,7 @@ import { RoundResultsView } from '@views/RoundResultsView';
 import { FinalResultsView } from '@views/FinalResultsView';
 
 import './style.css';
+import { GameSettings } from '@components/GameSettings';
 
 const isInitializing = signal<boolean>(true);
 const initError = signal<string | null>(null);
@@ -76,6 +77,15 @@ const App = () => {
           >
             {renderView(isHost)}
           </main>
+
+          <Modal
+            id="game-settings-modal"
+            isOpen={isGameSettingsOpen}
+            title="Game Settings"
+            width="500px"
+          >
+            <GameSettings />
+          </Modal>
 
           <Modal
             id="local-settings-modal"

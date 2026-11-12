@@ -4,8 +4,9 @@ import { GamePhase } from '@yasq/shared';
 import { gameStatus } from '@globals';
 import { WithTooltip } from './Tooltip';
 
-export const isLocalSettingsOpen = signal(false);
+export const isGameSettingsOpen = signal(false);
 export const isHowToPlayOpen = signal(false);
+export const isLocalSettingsOpen = signal(false);
 
 export const GameHeader = () => {
   const { state, settings } = gameStatus.value;
@@ -26,6 +27,17 @@ export const GameHeader = () => {
     <header className="game-header-stats">
       <p className="round-indicator">{renderHeaderContent()}</p>
       <div className="header-buttons">
+        <WithTooltip text="Game Settings">
+          <button
+            type="button"
+            id="game-settings-btn"
+            className="header-btn"
+            onClick={() => (isGameSettingsOpen.value = true)}
+          >
+            📋
+            {/* alternatives: 📋📏🧩♣️🎹🔧🪧🎬📃📝📆*/}
+          </button>
+        </WithTooltip>
         <WithTooltip text="How to Play">
           <button
             type="button"
