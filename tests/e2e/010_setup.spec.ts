@@ -222,36 +222,6 @@ test.describe('Host UI', () => {
     await expect(setupPage.waitingMsg).toBeVisible();
   });
 
-  test('should allow opening local settings modal and changing preferences', async ({
-    header,
-    localSettingsModal,
-    page,
-  }) => {
-    await expect(localSettingsModal.modal).toBeHidden();
-
-    // Open local settings modal
-    await header.settingsButton.click();
-    await expect(localSettingsModal.modal).toBeVisible();
-
-    // Change theme
-    await localSettingsModal.setTheme('light');
-    expect(await page.locator('html').getAttribute('data-theme')).toEqual('light');
-
-    await localSettingsModal.setTheme('dark');
-    expect(await page.locator('html').getAttribute('data-theme')).toEqual('dark');
-
-    // Change keyboard hints
-    await localSettingsModal.setKeyboardHints(false);
-    expect(await page.locator('html').getAttribute('data-keyboard-hints')).toEqual('false');
-
-    await localSettingsModal.setKeyboardHints(true);
-    expect(await page.locator('html').getAttribute('data-keyboard-hints')).toEqual('true');
-
-    // Close local settings modal
-    await localSettingsModal.closeBtn.click();
-    await expect(localSettingsModal.modal).toBeHidden();
-  });
-
   test('should not have any automatically detectable accessibility issues', async ({ setupPage, page }, testInfo) => {
     await setupPage.waitForLoaded();
 

@@ -23,7 +23,10 @@ export const HowToPlay = ({ isHost }: { isHost: boolean }) => {
       />
 
       {activeTab.value === 'player' && (
-        <div className="instructions-tab-content">
+        <div
+          className="instructions-tab-content"
+          data-active-tab="player"
+        >
           <div className="instruction-step">
             <NonDraggableImg
               src="/how-to-play-player-1.png"
@@ -159,7 +162,10 @@ export const HowToPlay = ({ isHost }: { isHost: boolean }) => {
       )}
 
       {activeTab.value === 'host' && (
-        <div className="instructions-tab-content">
+        <div
+          className="instructions-tab-content"
+          data-active-tab="host"
+        >
           <div className="instruction-step">
             <NonDraggableImg
               src="/how-to-play-host-1.png"

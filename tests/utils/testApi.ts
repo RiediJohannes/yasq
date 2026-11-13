@@ -1,4 +1,4 @@
-import { GamePhase, Joker, Playback, TEST_PREFIX } from '@yasq/shared';
+import { GamePhase, GameSettings, Joker, Playback, TEST_PREFIX } from '@yasq/shared';
 import { Player } from './helper';
 import { AuthenticationResult, BackendApiFacade } from '@yasq/client/src/backend/apiFacade';
 
@@ -76,6 +76,20 @@ export class TestBackendApi extends BackendApiFacade {
     return BackendApiFacade.apiFetch(`/${TEST_PREFIX}/instance/${this.instanceId}`, {
       method: 'PATCH',
       body: { leaderboard: { entries } },
+    });
+  }
+
+  async patchSettings(settings: Partial<GameSettings<Joker[]>>) {
+    return BackendApiFacade.apiFetch(`/${TEST_PREFIX}/instance/${this.instanceId}`, {
+      method: 'PATCH',
+      body: { settings },
+    });
+  }
+
+  async patchState(state: Partial<TestGameState>) {
+    return BackendApiFacade.apiFetch(`/${TEST_PREFIX}/instance/${this.instanceId}`, {
+      method: 'PATCH',
+      body: { state },
     });
   }
 

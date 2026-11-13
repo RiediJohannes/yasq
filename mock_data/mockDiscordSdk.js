@@ -1,9 +1,12 @@
-const urlParams = new window.URLSearchParams(window.location.search);
-const urlUserId = urlParams.get('user_id');
-const urlUserName = urlParams.get('user_name');
+function getActiveMockUser() {
+  const urlParams = new window.URLSearchParams(window.location.search);
+  const urlUserId = urlParams.get('user_id');
+  const urlUserName = urlParams.get('user_name');
 
-const activeUserId = window.__MOCK_USER_ID__ || urlUserId || '0';
-const activeUserName = window.__MOCK_USER_NAME__ || urlUserName || `MockPlayer${activeUserId}`;
+  const id = window.__MOCK_USER_ID__ || urlUserId || '0';
+  const username = window.__MOCK_USER_NAME__ || urlUserName || `MockPlayer${id}`;
+  return { id, username };
+}
 
 export const mockDiscordSdk = {
   instanceId: window.__MOCK_INSTANCE_ID__ || '123456789',
@@ -20,17 +23,20 @@ export const mockDiscordSdk = {
     authorize: async () => ({ code: 'mock_code' }),
 
     // Mock Authenticate
-    authenticate: async () => ({
-      access_token: `token_${activeUserId}`,
-      user: {
-        id: activeUserId,
-        username: activeUserName,
-        avatar: null,
-      },
-      scopes: ['identify', 'guilds'],
-      expires: 'never',
-      application: { id: 'mock_app_id' },
-    }),
+    authenticate: async () => {
+      const user = getActiveMockUser();
+      return {
+        access_token: `token_${user.id}`,
+        user: {
+          id: user.id,
+          username: user.username,
+          avatar: null,
+        },
+        scopes: ['identify', 'guilds'],
+        expires: 'never',
+        application: { id: 'mock_app_id' },
+      };
+    },
 
     // Mock Participants
     getInstanceConnectedParticipants: async () => ({

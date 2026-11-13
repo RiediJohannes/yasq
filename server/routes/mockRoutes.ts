@@ -63,7 +63,10 @@ export const setupMockRoutes = (
       game.settings = {
         ...game.settings,
         ...updates.settings,
-        enabledJokers: new Set(updates.settings.enabledJokers ?? []),
+        enabledJokers:
+          updates.settings.enabledJokers !== undefined
+            ? new Set(updates.settings.enabledJokers)
+            : game.settings.enabledJokers,
       };
     }
     if (updates.trackInfo) {

@@ -119,6 +119,7 @@ export const Modal = ({
               className="modal-close-cross"
               onClick={closeDialog}
               aria-label="Close modal"
+              data-action="close"
             >
               <CrossIcon className="modal-close-cross-icon" />
             </button>
@@ -137,6 +138,7 @@ export const Modal = ({
           className="modal-close-btn"
           onClick={closeDialog}
           aria-label="Close modal"
+          data-action="close"
         >
           Close
         </button>

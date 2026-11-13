@@ -1,4 +1,6 @@
 import { expect, test as base } from '@playwright/test';
+
+import { BackendApiFacade } from '@yasq/client/src/backend/apiFacade';
 import { generatePlayers, Player } from '../utils/helper';
 import { TestBackendApi } from '../utils/testApi';
 import { SetupPage } from './pages/SetupPage';
@@ -11,7 +13,7 @@ import { FinalResultsPage } from './pages/FinalResultsPage';
 import { Sidebar } from './pages/components/Sidebar';
 import { Header } from './pages/components/Header';
 import { LocalSettingsModal } from './pages/components/LocalSettingsModal';
-import { BackendApiFacade } from '@yasq/client/src/backend/apiFacade';
+import { HowToPlayModal } from './pages/components/HowToPlayModal';
 
 type GameOptions = {
   sessionConfig: {
@@ -21,8 +23,19 @@ type GameOptions = {
   };
 };
 
+type ClientOptions = {
+  /** Switches the user currently logged in on the YASQ client to change the perspective we see through the web app. */
+  switchUser: (userIndex: number) => Promise<void>;
+};
+
 type GameFixtures = {
-  session: { players: Player[]; api: TestBackendApi };
+  session: {
+    players: Player[];
+    /** API for server-side dev functionality to change the state of the current session. */
+    api: TestBackendApi;
+    /** Client-side dev functionality to change the state of the current session. */
+    client: ClientOptions;
+  };
   setupPage: SetupPage;
   lobbyPage: LobbyPage;
   trackSelectionPage: TrackSelectionPage;
@@ -33,6 +46,7 @@ type GameFixtures = {
   sidebar: Sidebar;
   header: Header;
   localSettingsModal: LocalSettingsModal;
+  howToPlayModal: HowToPlayModal;
 };
 
 export const test = base.extend<GameOptions & GameFixtures>({
@@ -65,8 +79,21 @@ export const test = base.extend<GameOptions & GameFixtures>({
       await api.setupSession(players, sessionData.state, sessionData);
       await page.goto('/?mock=true');
 
-      // Provide players & api to tests
-      await use({ players, api });
+      // Function to switch user and reload the page
+      const switchUser = async (targetIndex: number) => {
+        const targetUser = players[targetIndex];
+        await page.addInitScript(u => {
+          window.__MOCK_USER_ID__ = u.id;
+          window.__MOCK_USER_NAME__ = u.username;
+        }, targetUser);
+
+        await page.goto('/?mock=true');
+        await expect(page.locator('main')).toBeVisible();
+      };
+      const clientTools = { switchUser };
+
+      // Provide players and dev tools to tests
+      await use({ players, api, client: clientTools });
 
       // Teardown
       await api.deleteSession();
@@ -83,6 +110,7 @@ export const test = base.extend<GameOptions & GameFixtures>({
   sidebar: async ({ page }, use) => use(new Sidebar(page)),
   header: async ({ page }, use) => use(new Header(page)),
   localSettingsModal: async ({ page }, use) => use(new LocalSettingsModal(page)),
+  howToPlayModal: async ({ page }, use) => use(new HowToPlayModal(page)),
 });
 
 export { expect };

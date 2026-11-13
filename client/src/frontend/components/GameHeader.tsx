@@ -1,6 +1,6 @@
 import { signal } from '@preact/signals';
 
-import { GamePhase } from '@yasq/shared';
+import { GamePhase, IN_GAME_PHASES } from '@yasq/shared';
 import { gameStatus } from '@globals';
 import { WithTooltip } from './Tooltip';
 
@@ -12,31 +12,35 @@ export const GameHeader = () => {
   const { state, settings } = gameStatus.value;
 
   const renderHeaderContent = () => {
-    switch (state.phase) {
-      case GamePhase.TRACK_SELECTION:
-      case GamePhase.PLAYING:
-      case GamePhase.HOST_REVIEW:
-      case GamePhase.ROUND_RESULTS:
-        return `Round ${state.round} of ${settings.rounds}`;
-      default:
-        return 'YASQ';
-    }
+    return IN_GAME_PHASES.has(state.phase) ? `Round ${state.round} of ${settings.rounds}` : 'YASQ';
   };
 
+  const showGameSettings = IN_GAME_PHASES.has(state.phase) || state.phase === GamePhase.FINAL_RESULTS;
+
   return (
-    <header className="game-header-stats">
-      <p className="round-indicator">{renderHeaderContent()}</p>
+    <header
+      id="game-header"
+      className="game-header-stats"
+    >
+      <p
+        id="header-title"
+        className="round-indicator"
+      >
+        {renderHeaderContent()}
+      </p>
       <div className="header-buttons">
-        <WithTooltip text="Game Settings">
-          <button
-            type="button"
-            id="game-settings-btn"
-            className="header-btn"
-            onClick={() => (isGameSettingsOpen.value = true)}
-          >
-            📋
-          </button>
-        </WithTooltip>
+        {showGameSettings && (
+          <WithTooltip text="Game Settings">
+            <button
+              type="button"
+              id="game-settings-btn"
+              className="header-btn"
+              onClick={() => (isGameSettingsOpen.value = true)}
+            >
+              📋
+            </button>
+          </WithTooltip>
+        )}
         <WithTooltip text="How to Play">
           <button
             type="button"

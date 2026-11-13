@@ -8,6 +8,13 @@ export const enum GamePhase {
   FINAL_RESULTS = 'FINAL_RESULTS',
 }
 
+export const IN_GAME_PHASES = new Set([
+  GamePhase.TRACK_SELECTION,
+  GamePhase.PLAYING,
+  GamePhase.HOST_REVIEW,
+  GamePhase.ROUND_RESULTS,
+]);
+
 export enum Joker {
   OBFUSCATION = 'OBFUSCATION',
   TRIVIA = 'TRIVIA',
