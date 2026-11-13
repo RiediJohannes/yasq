@@ -35,7 +35,6 @@ export const GameHeader = () => {
             onClick={() => (isGameSettingsOpen.value = true)}
           >
             📋
-            {/* alternatives: 📋📏🧩♣️🎹🔧🪧🎬📃📝📆*/}
           </button>
         </WithTooltip>
         <WithTooltip text="How to Play">

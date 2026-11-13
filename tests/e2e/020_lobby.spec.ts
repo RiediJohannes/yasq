@@ -13,6 +13,22 @@ test.describe('Host UI', () => {
     },
   });
 
+  test('should be able to see the settings and edit button', async ({ lobbyPage }) => {
+    await lobbyPage.waitForLoaded();
+
+    await expect(lobbyPage.settingsSummary).toBeVisible();
+    await expect(lobbyPage.roundsDisplay).toBeVisible();
+    await expect(lobbyPage.guessTimeDisplay).toBeVisible();
+    await expect(lobbyPage.jokersContainer).toBeVisible();
+    await expect(lobbyPage.timeBonusDisplay).toBeVisible();
+    await expect(lobbyPage.firstBonusDisplay).toBeVisible();
+    await expect(lobbyPage.streakBonusDisplay).toBeVisible();
+    await expect(lobbyPage.achievementModeDisplay).toBeVisible();
+
+    await expect(lobbyPage.editBtn).toBeVisible();
+    await expect(lobbyPage.editBtn).toBeEnabled();
+  });
+
   test('should toggle start button based on participant ready-state updates', async ({ lobbyPage, session }) => {
     const { api, players } = session;
 
@@ -83,6 +99,21 @@ test.describe('Player UI', () => {
         state: { phase: GamePhase.LOBBY },
       },
     },
+  });
+
+  test('should only be able to see the settings, not the edit button', async ({ lobbyPage }) => {
+    await lobbyPage.waitForLoaded();
+
+    await expect(lobbyPage.settingsSummary).toBeVisible();
+    await expect(lobbyPage.roundsDisplay).toBeVisible();
+    await expect(lobbyPage.guessTimeDisplay).toBeVisible();
+    await expect(lobbyPage.jokersContainer).toBeVisible();
+    await expect(lobbyPage.timeBonusDisplay).toBeVisible();
+    await expect(lobbyPage.firstBonusDisplay).toBeVisible();
+    await expect(lobbyPage.streakBonusDisplay).toBeVisible();
+    await expect(lobbyPage.achievementModeDisplay).toBeVisible();
+
+    await expect(lobbyPage.editBtn).not.toBeVisible();
   });
 
   test('should display ready button and toggle status', async ({ lobbyPage, sidebar, session }) => {

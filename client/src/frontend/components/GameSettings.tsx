@@ -160,6 +160,7 @@ export const GameSettings = ({ onSettingsEdit }: { onSettingsEdit?: () => Promis
 
       {onSettingsEdit !== undefined && (
         <button
+          id="settings-edit-btn"
           onClick={onSettingsEdit}
           title="Edit Game Settings"
         >

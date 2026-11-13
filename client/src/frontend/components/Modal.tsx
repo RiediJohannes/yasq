@@ -127,7 +127,7 @@ export const Modal = ({
       )}
 
       {/* Body */}
-      <div className="modal-inner">{children}</div>
+      {showModal && <div className="modal-inner">{children}</div>}
 
       {/* Big close button at the bottom */}
       {hasBigCloseButton && (

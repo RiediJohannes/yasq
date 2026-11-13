@@ -14,14 +14,14 @@ export class TrackSelectionPage extends BasePage {
   constructor(page: Page) {
     super(page);
 
-    this.selectionTitle = page.locator('h2:has-text("Select the next track to challenge players:")');
-    this.waitingTitle = page.locator('h2:has-text("Waiting for players to submit their guesses...")');
-    this.trackList = page.locator('#track-selection-grid');
+    this.selectionTitle = this.content.locator('h2:has-text("Select the next track to challenge players:")');
+    this.waitingTitle = this.content.locator('h2:has-text("Waiting for players to submit their guesses...")');
+    this.trackList = this.content.locator('#track-selection-grid');
     this.trackItems = this.trackList.locator('button');
-    this.searchInput = page.locator('#track-search');
-    this.tagFilterDropdown = page.locator('.filter-dropdown');
-    this.hidePlayedCheckbox = page.locator('#hide-played');
-    this.clearFiltersButton = page.locator('button[title="Clear all filters"]');
+    this.searchInput = this.content.locator('#track-search');
+    this.tagFilterDropdown = this.content.locator('.filter-dropdown');
+    this.hidePlayedCheckbox = this.content.locator('#hide-played');
+    this.clearFiltersButton = this.content.locator('button[title="Clear all filters"]');
   }
 
   async selectTrack(index: number) {
@@ -33,6 +33,6 @@ export class TrackSelectionPage extends BasePage {
   }
 
   getTagItem(tagName: string): Locator {
-    return this.page.locator(`.dropdown-item:has-text("${tagName}")`);
+    return this.content.locator(`.dropdown-item:has-text("${tagName}")`);
   }
 }

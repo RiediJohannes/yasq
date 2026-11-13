@@ -12,12 +12,12 @@ export class FinalResultsPage extends BasePage {
   constructor(page: Page) {
     super(page);
 
-    this.playerCards = page.locator('.player-card');
-    this.readyBtn = page.locator('#btn-ready');
-    this.restartBtn = page.locator('#btn-restart');
-    this.gameStats = page.locator('.game-stats');
+    this.playerCards = this.content.locator('.player-card');
+    this.readyBtn = this.content.locator('#btn-ready');
+    this.restartBtn = this.content.locator('#btn-restart');
+    this.gameStats = this.content.locator('.game-stats');
     this.statItems = this.gameStats.locator('.game-stat-item');
-    this.imageDownloadBtn = page.locator('#btn-download-image');
+    this.imageDownloadBtn = this.content.locator('#btn-download-image');
   }
 
   getPlayerCard(index: number) {

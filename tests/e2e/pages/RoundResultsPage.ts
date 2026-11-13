@@ -15,11 +15,11 @@ export class RoundResultsPage extends BasePage {
   constructor(page: Page) {
     super(page);
 
-    this.playerResults = page.locator('.player-result');
-    this.resultsContainer = page.locator('#results');
-    this.readyBtn = page.locator('#btn-ready');
-    this.correctPlayersContainer = page.locator('#correct-players');
-    this.ownResults = page.locator('#own-results');
+    this.playerResults = this.content.locator('.player-result');
+    this.resultsContainer = this.content.locator('#results');
+    this.readyBtn = this.content.locator('#btn-ready');
+    this.correctPlayersContainer = this.content.locator('#correct-players');
+    this.ownResults = this.content.locator('#own-results');
     this.ownGuess = this.ownResults.locator('#guess');
     this.ownScoreBubble = this.ownResults.locator('#score');
     this.tagsContainer = this.resultsContainer.locator('#tags');

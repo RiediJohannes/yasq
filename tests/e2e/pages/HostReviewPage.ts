@@ -16,25 +16,25 @@ export class HostReviewPage extends BasePage {
   constructor(page: Page) {
     super(page);
 
-    this.resultsContainer = page.locator('#results');
-    this.guessList = page.locator('#guess-list');
-    this.resultsTitle = page.locator('main >> h2');
-    this.resultsTrackName = page.locator('#results p >> strong');
-    this.timedOutSection = page.locator('.timed-out-section');
-    this.submitReviewedBtn = page.locator('#btn-submit-reviewed-results');
+    this.resultsContainer = this.content.locator('#results');
+    this.guessList = this.content.locator('#guess-list');
+    this.resultsTitle = this.content.locator('h2');
+    this.resultsTrackName = this.content.locator('#results p >> strong');
+    this.timedOutSection = this.content.locator('.timed-out-section');
+    this.submitReviewedBtn = this.content.locator('#btn-submit-reviewed-results');
   }
 
   getGuessItem(username: string): Locator {
-    return this.page.locator(`.guess-item:has-text("${username}")`);
+    return this.content.locator(`.guess-item:has-text("${username}")`);
   }
 
   getCorrectionRadio(playerId: string, status: 'wrong' | 'correct'): Locator {
-    return this.page.locator(`#${status}-${playerId}`);
+    return this.content.locator(`#${status}-${playerId}`);
   }
 
   async setGuessResult(playerId: string, result: ResultType) {
     // Dynamically targeting the label based on the result type and playerId
-    await this.page.locator(`label[for="${result}-${playerId}"]`).click();
+    await this.content.locator(`label[for="${result}-${playerId}"]`).click();
   }
 
   getJokerIndicator(player: Player, jokerType?: Joker): Locator {
