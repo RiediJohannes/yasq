@@ -22,13 +22,7 @@ export const GameHeader = () => {
       id="game-header"
       className="game-header-stats"
     >
-      <p
-        id="header-title"
-        className="round-indicator"
-      >
-        {renderHeaderContent()}
-      </p>
-      <div className="header-buttons">
+      <div className="header-buttons left">
         {showGameSettings && (
           <WithTooltip text="Game Settings">
             <button
@@ -41,6 +35,14 @@ export const GameHeader = () => {
             </button>
           </WithTooltip>
         )}
+      </div>
+      <p
+        id="header-title"
+        className="round-indicator"
+      >
+        {renderHeaderContent()}
+      </p>
+      <div className="header-buttons right">
         <WithTooltip text="How to Play">
           <button
             type="button"
