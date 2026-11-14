@@ -1,7 +1,15 @@
 import { expect, test } from './test_setup.js';
-import { FirstBonusMultiplier, GamePhase, Joker, StreakBonusMultiplier, TimeBonus } from '@yasq/shared';
+import {
+  AchievementBonusMode,
+  FirstBonusMultiplier,
+  GamePhase,
+  Joker,
+  StreakBonusMultiplier,
+  TimeBonus,
+} from '@yasq/shared';
+import { EXPECTED_TIME_BONUS_LABELS, toBonusPercent } from '../utils/helper';
 
-test.describe('Home Screen', () => {
+test.describe('Home', () => {
   test.use({
     sessionConfig: {
       playerCount: 2,
@@ -53,6 +61,7 @@ test.describe('Home Screen', () => {
     // Open local settings modal
     await header.localSettingsBtn.click();
     await expect(localSettingsModal.modal).toBeVisible();
+    await expect(localSettingsModal.title).toContainText('Local Settings');
 
     // Change theme
     await localSettingsModal.setTheme('light');
@@ -81,6 +90,7 @@ test.describe('Home Screen', () => {
 
     // How to play modal opened
     await expect(howToPlayModal.modal).toBeVisible();
+    await expect(howToPlayModal.title).toContainText('How to Play');
     await expect(howToPlayModal.hostTabLabel).toBeVisible();
     await expect(howToPlayModal.playerTabLabel).toBeVisible();
 
@@ -137,12 +147,16 @@ test.describe('Home Screen', () => {
 test.describe('In-Game', () => {
   const CURRENT_ROUND = 3;
   const CUSTOM_SETTINGS = {
-    rounds: 10,
+    rounds: 12,
     maxGuessTime: 50_000,
     timeBonus: TimeBonus.LOGISTIC,
     firstBonusMultiplier: FirstBonusMultiplier.SMALL,
     streakBonusMultiplier: StreakBonusMultiplier.LARGE,
     enabledJokers: [Joker.TRIVIA, Joker.MULTIPLE_CHOICE, Joker.GLIMPSE],
+    achievementBonuses: {
+      mode: AchievementBonusMode.RANDOM,
+      randomCount: 2,
+    },
   };
 
   test.use({
@@ -158,8 +172,10 @@ test.describe('In-Game', () => {
     },
   });
 
-  test('should display a the current round and game settings button during a running game', async ({ header }) => {
-    // TODO Change round and phase and see if it still works
+  test('should display the current round and game settings button during a running game', async ({
+    header,
+    session,
+  }) => {
     await expect(header.title).toContainText(`Round ${CURRENT_ROUND} of ${CUSTOM_SETTINGS.rounds}`);
 
     await expect(header.gameSettingsBtn).toBeVisible();
@@ -171,9 +187,55 @@ test.describe('In-Game', () => {
 
     await expect(header.localSettingsBtn).toBeVisible();
     await expect(header.localSettingsBtn).toBeEnabled();
+
+    // Change current round
+    const newCurrentRound = 5;
+    expect(newCurrentRound).not.toBe(CURRENT_ROUND);
+    await session.api.patchState({ round: newCurrentRound });
+    await expect(header.title).toContainText(`Round ${newCurrentRound} of ${CUSTOM_SETTINGS.rounds}`);
+
+    // Change game settings
+    const newTotalRounds = 24;
+    expect(newTotalRounds).not.toBe(CUSTOM_SETTINGS.rounds);
+    await session.api.patchSettings({ rounds: newTotalRounds });
+    await expect(header.title).toContainText(`Round ${newCurrentRound} of ${newTotalRounds}`);
+
+    // Change to another in-game view
+    const viewPairs = [
+      [1, GamePhase.TRACK_SELECTION],
+      [2, GamePhase.PLAYING],
+      [3, GamePhase.HOST_REVIEW],
+    ] as const;
+    for (const [round, phase] of viewPairs) {
+      await session.api.patchState({ round, phase });
+      await expect(header.title).toContainText(`Round ${round} of ${newTotalRounds}`);
+    }
   });
 
-  test.skip('should display the current game settings in the game settings modal', async () => {
-    // TODO Implement later
+  test('should display the current game settings in the game settings modal', async ({ header, gameSettingsModal }) => {
+    await expect(gameSettingsModal.modal).toBeHidden();
+
+    await header.gameSettingsBtn.click();
+
+    await expect(gameSettingsModal.modal).toBeVisible();
+    await expect(gameSettingsModal.roundsDisplay).toBeVisible();
+    await expect(gameSettingsModal.title).toContainText('Game Settings');
+
+    await expect(gameSettingsModal.roundsDisplay).toHaveText(CUSTOM_SETTINGS.rounds.toString());
+    await expect(gameSettingsModal.guessTimeDisplay).toHaveText(`${CUSTOM_SETTINGS.maxGuessTime / 1000}s`);
+
+    const displayedJokers = await gameSettingsModal.getEnabledJokerTypes();
+    expect(displayedJokers.sort()).toEqual(Array.from(CUSTOM_SETTINGS.enabledJokers).sort());
+    await expect(gameSettingsModal.timeBonusDisplay).toContainText(
+      EXPECTED_TIME_BONUS_LABELS[CUSTOM_SETTINGS.timeBonus]
+    );
+
+    await expect(gameSettingsModal.firstBonusDisplay).toHaveText(toBonusPercent(CUSTOM_SETTINGS.firstBonusMultiplier));
+    await expect(gameSettingsModal.streakBonusDisplay).toHaveText(
+      toBonusPercent(CUSTOM_SETTINGS.streakBonusMultiplier)
+    );
+    await expect(gameSettingsModal.achievementModeDisplay).toHaveText(
+      `Random (${CUSTOM_SETTINGS.achievementBonuses.randomCount})`
+    );
   });
 });

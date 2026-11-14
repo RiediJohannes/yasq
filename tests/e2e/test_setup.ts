@@ -14,6 +14,7 @@ import { Sidebar } from './pages/components/Sidebar';
 import { Header } from './pages/components/Header';
 import { LocalSettingsModal } from './pages/components/LocalSettingsModal';
 import { HowToPlayModal } from './pages/components/HowToPlayModal';
+import { GameSettingsModal } from './pages/components/GameSettingsModal';
 
 type GameOptions = {
   sessionConfig: {
@@ -47,6 +48,7 @@ type GameFixtures = {
   header: Header;
   localSettingsModal: LocalSettingsModal;
   howToPlayModal: HowToPlayModal;
+  gameSettingsModal: GameSettingsModal;
 };
 
 export const test = base.extend<GameOptions & GameFixtures>({
@@ -111,6 +113,7 @@ export const test = base.extend<GameOptions & GameFixtures>({
   header: async ({ page }, use) => use(new Header(page)),
   localSettingsModal: async ({ page }, use) => use(new LocalSettingsModal(page)),
   howToPlayModal: async ({ page }, use) => use(new HowToPlayModal(page)),
+  gameSettingsModal: async ({ page }, use) => use(new GameSettingsModal(page)),
 });
 
 export { expect };
