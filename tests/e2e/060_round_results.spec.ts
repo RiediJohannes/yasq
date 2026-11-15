@@ -1,6 +1,7 @@
 import { expect, test } from './test_setup.js';
 import AxeBuilder from '@axe-core/playwright';
 import sessionData from '../../mock_data/fixtures/round_results.json';
+import { formatViolations, highlightAccessibilityViolations } from '../utils/accessibility.js';
 
 test.describe('Host UI', () => {
   test.use({
@@ -49,12 +50,17 @@ test.describe('Host UI', () => {
       .disableRules(['color-contrast', 'page-has-heading-one'])
       .analyze();
 
+    highlightAccessibilityViolations(page, accessibilityScanResults.violations);
+
     await testInfo.attach('violations', {
       body: JSON.stringify(accessibilityScanResults.violations, null, 2),
       contentType: 'application/json',
     });
 
-    expect(accessibilityScanResults.violations).toEqual([]);
+    expect(
+      accessibilityScanResults.violations.length,
+      `Accessibility violations found:${formatViolations(accessibilityScanResults.violations)}\n\nSee attached violations file for more details.`
+    ).toEqual(0);
   });
 });
 
@@ -204,11 +210,16 @@ test.describe('Player UI', () => {
       .disableRules(['color-contrast', 'page-has-heading-one'])
       .analyze();
 
+    highlightAccessibilityViolations(page, accessibilityScanResults.violations);
+
     await testInfo.attach('violations', {
       body: JSON.stringify(accessibilityScanResults.violations, null, 2),
       contentType: 'application/json',
     });
 
-    expect(accessibilityScanResults.violations).toEqual([]);
+    expect(
+      accessibilityScanResults.violations.length,
+      `Accessibility violations found:${formatViolations(accessibilityScanResults.violations)}\n\nSee attached violations file for more details.`
+    ).toEqual(0);
   });
 });

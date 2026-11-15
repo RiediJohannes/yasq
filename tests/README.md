@@ -1,6 +1,6 @@
 # Testing
 
-The project contains various unit tests for the client, server, and the shared library using vitest, integration tests to verify client-server communication, as well as end-to-end (E2E) and component-specific tests using Playwright to test the full app including correct behaviour of the client UI. To run the tests, execute the respective `npm` script in the project root:
+The project contains various unit tests for the client, server, and the shared library using vitest, integration tests to verify client-server communication, as well as end-to-end (E2E) and component-specific tests using Playwright to test the full app including correct behaviour of the client and creator UIs. To run the tests, execute the respective `npm` script in the project root:
 
 ## Unit Tests
 
@@ -29,6 +29,8 @@ npx playwright install        # install test devices (required for first executi
 
 npm run test:e2e              # E2E tests - headless mode
 npm run test:e2e:ui           # E2E tests - ui mode
+npm run test:e2e:creator      # Creator dashboard E2E tests - headless mode
+npm run test:e2e:creator:ui   # Creator dashboard E2E tests - ui mode
 npm run test:components       # component tests - headless mode
 npm run test:components:ui    # component tests - ui mode
 npm run test:gui              # all UI tests - headless mode

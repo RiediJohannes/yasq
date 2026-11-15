@@ -1,0 +1,22 @@
+{
+  "name": "@yasq/creator",
+  "private": true,
+  "description": "The creator UI for YASQ built with Preact",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yadler97/yasq.git"
+  },
+  "scripts": {
+    "dev": "vite --configLoader runner",
+    "build": "vite build --configLoader runner"
+  },
+  "dependencies": {
+    "@yasq/shared": "*",
+    "preact": "^11.0.0"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.5",
+    "vite": "^8.0.16"
+  }
+}

@@ -1,0 +1,23 @@
+[
+  {
+    "game": "Game A",
+    "title": "Track A",
+    "audio": "fixture-track.mp3",
+    "cover": "",
+    "tags": []
+  },
+  {
+    "game": "Game B",
+    "title": "Track B",
+    "audio": "fixture-track-2.mp3",
+    "cover": "",
+    "tags": []
+  },
+  {
+    "game": "Game C",
+    "title": "Track C",
+    "audio": "fixture-track-3.mp3",
+    "cover": "",
+    "tags": []
+  }
+]

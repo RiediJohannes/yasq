@@ -1,0 +1,5 @@
+[
+  { "type": "whitelist", "userIds": ["1"], "files": ["fixture-track-1.mp3"] },
+  { "type": "whitelist", "userIds": ["2"], "files": ["fixture-track-2.mp3"] },
+  { "type": "blacklist", "userIds": ["1", "2"], "files": ["fixture-track-3.mp3"] }
+]

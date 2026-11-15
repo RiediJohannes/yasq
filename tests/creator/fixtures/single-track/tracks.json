@@ -1,0 +1,12 @@
+[
+  {
+    "game": "Game A",
+    "title": "Track A",
+    "audio": "fixture-track.mp3",
+    "cover": "",
+    "tags": [
+      { "type": "platform", "value": "Platform A" },
+      { "type": "release", "value": "2026" }
+    ]
+  }
+]

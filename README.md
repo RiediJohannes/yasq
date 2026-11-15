@@ -10,8 +10,10 @@ A Multiplayer Soundtrack Quiz built as a Discord Activity.
    3. [Local Execution](#local-execution)
    4. [Game Setup](#game-setup)
       - [Data Location](#data-location)
-      - [Data Format](#data-format)
-      - [Settings Configuration](#settings-configuration-optional) (optional)
+      - [Creator Dashboard](#creator-dashboard)
+      - [Manual Setup](#manual-setup)
+        - [Data Format](#data-format)
+        - [Settings Configuration](#settings-configuration-optional) (optional)
       - [Bot Commands](#bot-commands-optional) (optional)
       - [Database](#database-optional) (optional)
 2. [Authors](#authors)
@@ -120,7 +122,19 @@ DATA_SOURCE=my_quiz                # loads data from server/data/my_quiz
 DATA_SOURCE=nested/example/quiz    # loads data from server/data/nested/example/quiz
 ```
 
-#### Data Format
+#### Creator Dashboard
+
+Run `npm run dev:creator` to start the creator dashboard at `http://localhost:5174`. Use it to create, edit, and delete tracks, playlists, permission rules, and settings.
+
+You can directly upload track audio files and game cover files in the dashboard and automatically create and store the required JSON files inside your set `DATA_SOURCE`.
+
+The creator dashboard is especially designed for new YASQ hosts to make game creation easier for them. If you want more control over the setup, see the following section `Manual Setup`; otherwise, you can skip it.
+
+#### Manual Setup
+
+Instead of using the creator dashboard, you can also setup the game manually, which will be explained in more detail in this section.
+
+##### Data Format
 
 In the following, we assume a custom quiz is set up in `server/data/my_quiz` and we call this location `quizDir` for short.
 Within a given quiz directory (`quizDir`), data must be structured in the following way:
@@ -190,7 +204,7 @@ Within a given quiz directory (`quizDir`), data must be structured in the follow
 - `blacklist`: Everyone except users in `userIds` can see/play these files.
 - Default: Files not listed in any set are public to everyone.
 
-#### Settings Configuration (Optional)
+##### Settings Configuration (Optional)
 
 In addition to the in-game setup mask that enables the host to customize the rule set for their quiz while the activity
 is running, users can also provide a JSON file to predefine default game settings before starting the application.

@@ -18,15 +18,26 @@ export default defineConfig({
   },
   retries: 2,
 
-  webServer: {
-    command: 'npm run dev:mock',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-    env: {
-      UI_TEST_MODE: 'true',
+  webServer: [
+    {
+      command: 'npm run dev:mock',
+      url: 'http://localhost:5173',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120 * 1000,
+      env: {
+        UI_TEST_MODE: 'true',
+      },
     },
-  },
+    {
+      command: 'npm run dev:creator',
+      url: 'http://localhost:5174',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120 * 1000,
+      env: {
+        NODE_ENV: 'test',
+      },
+    },
+  ],
 
   projects: [
     {
@@ -54,6 +65,16 @@ export default defineConfig({
       use: {
         ...devices['Pixel 7'],
         ...componentsProjectUseParams,
+      },
+    },
+    {
+      name: 'creator',
+      testDir: './creator',
+      workers: 1,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: 'http://localhost:5174',
+        trace: 'retain-on-failure',
       },
     },
   ],

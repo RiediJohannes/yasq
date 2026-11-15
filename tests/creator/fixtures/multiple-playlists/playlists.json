@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Playlist A",
+    "tracks": ["fixture-track-1.mp3", "fixture-track-2.mp3"]
+  },
+  {
+    "name": "Playlist B",
+    "tracks": ["fixture-track-1.mp3", "fixture-track-3.mp3"]
+  },
+  {
+    "name": "Playlist C",
+    "tracks": ["fixture-track-2.mp3", "fixture-track-3.mp3"]
+  }
+]

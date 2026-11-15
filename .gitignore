@@ -40,3 +40,4 @@ mock_data/dev
 # Playwright
 tests/**/playwright-report/*
 tests/**/test-results/*
+tests/creator/data/

@@ -10,6 +10,7 @@
   "workspaces": [
     "client",
     "server",
+    "creator",
     "shared"
   ],
   "scripts": {
@@ -17,6 +18,7 @@
     "commands:deregister": "npm run commands:deregister -w server",
     "dev:server": "npm run dev -w server",
     "dev:client": "npm run dev -w client",
+    "dev:creator": "npm run dev -w creator",
     "dev": "concurrently \"npm run dev:server\" \"wait-on http://localhost:3001/health && npm run dev:client\"",
     "dev:mock": "cross-env VITE_MOCK_MODE=true npm run dev",
     "dev:mock:track_selection": "cross-env MOCK_STATE=../mock_data/fixtures/track_selection.json npm run dev:mock",
@@ -46,6 +48,8 @@
     "test:e2e:ui": "playwright test --config=tests/playwright.config.ts --project=e2e --ui",
     "test:components": "playwright test --config=tests/playwright.config.ts --project=components",
     "test:components:ui": "playwright test --config=tests/playwright.config.ts --project=components --ui",
+    "test:e2e:creator": "playwright test --config=tests/playwright.config.ts --project=creator",
+    "test:e2e:creator:ui": "playwright test --config=tests/playwright.config.ts --project=creator --ui",
     "test:gui": "playwright test --config=tests/playwright.config.ts",
     "test:gui:ui": "playwright test --config=tests/playwright.config.ts --ui"
   },
@@ -55,7 +59,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.65.0",
+    "@playwright/test": "^1.65.1",
     "@typescript/native": "npm:typescript@^7.0.2",
     "@vitest/coverage-v8": "^5.0.3",
     "concurrently": "^10.0.5",

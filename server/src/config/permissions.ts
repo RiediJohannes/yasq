@@ -9,7 +9,6 @@ import {
   ValidationError,
 } from './validate_config.js';
 
-// Define Zod schemas for validation
 const permissionRuleSchema = z.object({
   type: z.enum(['whitelist', 'blacklist']),
   userIds: z.array(z.string()),

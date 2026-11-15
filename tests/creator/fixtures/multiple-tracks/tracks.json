@@ -1,0 +1,32 @@
+[
+  {
+    "game": "Game A",
+    "title": "Track A",
+    "audio": "fixture-track-1.mp3",
+    "cover": "",
+    "tags": [
+      { "type": "platform", "value": "Platform A" },
+      { "type": "release", "value": "2026" }
+    ]
+  },
+  {
+    "game": "Game B",
+    "title": "Track B",
+    "audio": "fixture-track-2.mp3",
+    "cover": "",
+    "tags": [
+      { "type": "platform", "value": "Platform B" },
+      { "type": "release", "value": "2026" }
+    ]
+  },
+  {
+    "game": "Game C",
+    "title": "Track C",
+    "audio": "fixture-track-3.mp3",
+    "cover": "",
+    "tags": [
+      { "type": "platform", "value": "Platform B" },
+      { "type": "release", "value": "2025" }
+    ]
+  }
+]
