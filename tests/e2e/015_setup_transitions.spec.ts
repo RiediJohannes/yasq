@@ -77,7 +77,7 @@ test.describe('Host UI', () => {
 
     // Compare enabled jokers as sorted arrays to also catch potential duplicates in the displayed list
     const displayedJokers = await lobbyPage.getEnabledJokerTypes();
-    await expect(displayedJokers.sort()).toEqual(Array.from(ENABLED_JOKERS).sort());
+    expect(displayedJokers.sort()).toEqual(Array.from(ENABLED_JOKERS).sort());
     await expect(lobbyPage.timeBonusDisplay).toContainText(EXPECTED_TIME_BONUS_LABELS[TIME_BONUS]);
     await expect(lobbyPage.firstBonusDisplay).toHaveText(toBonusPercent(FIRST_BONUS));
     await expect(lobbyPage.streakBonusDisplay).toHaveText(toBonusPercent(STREAK_BONUS));

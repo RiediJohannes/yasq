@@ -1,21 +1,15 @@
-import { Page, Locator } from '@playwright/test';
-import { BasePage } from '../BasePage';
+import { Locator, Page } from '@playwright/test';
+import { BaseModal } from './BaseModal';
 
-export class LocalSettingsModal extends BasePage {
-  readonly modal: Locator;
-  readonly closeBtn: Locator;
-
+export class LocalSettingsModal extends BaseModal {
   readonly themeGroup: Locator;
   readonly keyboardShortcutsGroup: Locator;
 
   constructor(page: Page) {
-    super(page);
+    super(page, '#local-settings-modal');
 
-    this.modal = page.locator('#local-settings-modal');
-    this.closeBtn = this.modal.locator('.modal-close-cross');
-
-    this.themeGroup = page.locator('#theme-group');
-    this.keyboardShortcutsGroup = page.locator('#keyboard-hints-group');
+    this.themeGroup = this.component.locator('#theme-group');
+    this.keyboardShortcutsGroup = this.component.locator('#keyboard-hints-group');
   }
 
   async setTheme(theme: 'auto' | 'dark' | 'light') {

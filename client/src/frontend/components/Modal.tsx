@@ -119,6 +119,7 @@ export const Modal = ({
               className="modal-close-cross"
               onClick={closeDialog}
               aria-label="Close modal"
+              data-action="close"
             >
               <CrossIcon className="modal-close-cross-icon" />
             </button>
@@ -127,7 +128,7 @@ export const Modal = ({
       )}
 
       {/* Body */}
-      <div className="modal-inner">{children}</div>
+      {showModal && <div className="modal-inner">{children}</div>}
 
       {/* Big close button at the bottom */}
       {hasBigCloseButton && (
@@ -137,6 +138,7 @@ export const Modal = ({
           className="modal-close-btn"
           onClick={closeDialog}
           aria-label="Close modal"
+          data-action="close"
         >
           Close
         </button>

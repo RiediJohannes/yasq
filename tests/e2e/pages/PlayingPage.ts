@@ -36,34 +36,34 @@ export class PlayingPage extends BasePage {
     super(page);
 
     // Player UI
-    this.guessInput = page.locator('#guess-input');
-    this.submitBtn = page.locator('#btn-submit');
-    this.waitMessage = page.locator('#waiting-msg');
-    this.resultsUI = page.locator('#results');
-    this.gameArena = page.locator('#game-arena');
-    this.countdownOverlay = page.locator('#countdown-overlay');
-    this.countdownText = page.locator('#countdown-text');
-    this.countdownNumber = page.locator('#countdown-number');
-    this.jokerObfuscationBtn = page.locator('#btn-joker-obfuscation');
-    this.jokerTriviaBtn = page.locator('#btn-joker-trivia');
-    this.jokerMcBtn = page.locator('#btn-joker-multiple-choice');
-    this.jokerSpyBtn = page.locator('#btn-joker-spy');
-    this.hintText = page.locator('#obfuscation-hint-text');
-    this.choiceButtons = page.locator('.choice-button');
-    this.spyOverlay = page.locator('.hint-container:has-text("Pick a player to spy on")');
+    this.guessInput = this.content.locator('#guess-input');
+    this.submitBtn = this.content.locator('#btn-submit');
+    this.waitMessage = this.content.locator('#waiting-msg');
+    this.resultsUI = this.content.locator('#results');
+    this.gameArena = this.content.locator('#game-arena');
+    this.countdownOverlay = this.content.locator('#countdown-overlay');
+    this.countdownText = this.content.locator('#countdown-text');
+    this.countdownNumber = this.content.locator('#countdown-number');
+    this.jokerObfuscationBtn = this.content.locator('#btn-joker-obfuscation');
+    this.jokerTriviaBtn = this.content.locator('#btn-joker-trivia');
+    this.jokerMcBtn = this.content.locator('#btn-joker-multiple-choice');
+    this.jokerSpyBtn = this.content.locator('#btn-joker-spy');
+    this.hintText = this.content.locator('#obfuscation-hint-text');
+    this.choiceButtons = this.content.locator('.choice-button');
+    this.spyOverlay = this.content.locator('.hint-container:has-text("Pick a player to spy on")');
     this.spyEmptyMsg = this.spyOverlay.locator('.no-results');
     this.spyActionButtons = this.spyOverlay.locator('.spy-select-button');
-    this.stolenResultBtn = page.locator('.choice-button');
+    this.stolenResultBtn = this.content.locator('.choice-button');
 
     // Host UI
-    this.hostUi = page.locator('#game-host-ui');
+    this.hostUi = this.content.locator('#game-host-ui');
     this.summary = this.hostUi.locator('.card-container');
-    this.tagsContainer = page.locator('.tags-container');
-    this.tagBadges = page.locator('.tag-badge');
+    this.tagsContainer = this.content.locator('.tags-container');
+    this.tagBadges = this.content.locator('.tag-badge');
   }
 
   getTagBadge(text: string): Locator {
-    return this.page.locator('.tag-badge', { hasText: text });
+    return this.content.locator('.tag-badge', { hasText: text });
   }
 
   getSpyPlayerButton(username: string): Locator {
@@ -72,7 +72,7 @@ export class PlayingPage extends BasePage {
 
   /** Observe and record distinct values shown in #countdown-number. */
   async startRecordingCountdown(): Promise<void> {
-    this.countdownRecorder = await this.page.evaluateHandle(() => {
+    this.countdownRecorder = await this.content.evaluateHandle(() => {
       const records: string[] = [];
 
       const observer = new MutationObserver(() => {

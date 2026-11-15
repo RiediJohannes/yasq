@@ -29,28 +29,28 @@ export class SetupPage extends BasePage {
   constructor(page: Page) {
     super(page);
 
-    this.hostSettings = page.locator('#host-settings');
-    this.advancedSettings = page.locator('#advanced-settings');
+    this.hostSettings = this.content.locator('#host-settings');
+    this.advancedSettings = this.content.locator('#advanced-settings');
 
-    this.roundsInput = page.locator('#rounds-input');
-    this.maxGuessTimeInput = page.locator('#guess-time-input');
-    this.firstJoker = page.locator('.joker-config-btn').first();
+    this.roundsInput = this.content.locator('#rounds-input');
+    this.maxGuessTimeInput = this.content.locator('#guess-time-input');
+    this.firstJoker = this.content.locator('.joker-config-btn').first();
 
-    this.advancedSettingsToggle = page.locator('#advanced-settings-btn');
-    this.timeBonusSelect = page.locator('#time-bonus-select');
-    this.timeBonusPlot = page.locator('.time-bonus-plot');
-    this.firstBonusGroup = page.locator('#first-bonus-group');
-    this.streakBonusGroup = page.locator('#streak-bonus-group');
-    this.achievementModeRadioGroup = page.locator('#achievement-mode-group');
-    this.achievementChecklist = page.locator('.achievement-checklist');
-    this.achievementRandomInput = page.locator('.achievement-settings input[type="number"]');
+    this.advancedSettingsToggle = this.content.locator('#advanced-settings-btn');
+    this.timeBonusSelect = this.content.locator('#time-bonus-select');
+    this.timeBonusPlot = this.content.locator('.time-bonus-plot');
+    this.firstBonusGroup = this.content.locator('#first-bonus-group');
+    this.streakBonusGroup = this.content.locator('#streak-bonus-group');
+    this.achievementModeRadioGroup = this.content.locator('#achievement-mode-group');
+    this.achievementChecklist = this.content.locator('.achievement-checklist');
+    this.achievementRandomInput = this.content.locator('.achievement-settings input[type="number"]');
 
-    this.hostTransferDropdownBtn = page.locator('#host-transfer-dropdown .dropdown-header');
-    this.hostTransferList = page.locator('#dropdown-list');
-    this.hostTransferConfirmBtn = page.locator('#btn-confirm-transfer');
+    this.hostTransferDropdownBtn = this.content.locator('#host-transfer-dropdown .dropdown-header');
+    this.hostTransferList = this.content.locator('#dropdown-list');
+    this.hostTransferConfirmBtn = this.content.locator('#btn-confirm-transfer');
 
-    this.startBtn = page.locator('#btn-start');
-    this.waitingMsg = page.locator('#waiting-setup-msg');
+    this.startBtn = this.content.locator('#btn-start');
+    this.waitingMsg = this.content.locator('#waiting-setup-msg');
   }
 
   async tabUntilFocused(locator: Locator) {
@@ -72,7 +72,7 @@ export class SetupPage extends BasePage {
   }
 
   getActiveFirstBonus(): Promise<string> {
-    return this.page.locator('input[name="first-bonus"]:checked').first().inputValue();
+    return this.content.locator('input[name="first-bonus"]:checked').first().inputValue();
   }
 
   getFirstBonusOptionAt(index: number): Locator {
@@ -84,7 +84,7 @@ export class SetupPage extends BasePage {
   }
 
   getActiveStreakBonus(): Promise<string> {
-    return this.page.locator('input[name="streak-bonus"]:checked').first().inputValue();
+    return this.content.locator('input[name="streak-bonus"]:checked').first().inputValue();
   }
 
   getStreakBonusOptionAt(index: number): Locator {
@@ -96,7 +96,7 @@ export class SetupPage extends BasePage {
   }
 
   getActiveAchievementMode(): Promise<string> {
-    return this.page.locator('input[name="achievement-mode"]:checked').inputValue();
+    return this.content.locator('input[name="achievement-mode"]:checked').inputValue();
   }
 
   async setAchievementMode(mode: AchievementBonusMode | 'off'): Promise<void> {
@@ -112,11 +112,11 @@ export class SetupPage extends BasePage {
   }
 
   async getAllJokerButtons(): Promise<Locator[]> {
-    return this.page.locator('.joker-config-btn').all();
+    return this.content.locator('.joker-config-btn').all();
   }
 
   async getEnabledJokerButtons(): Promise<Locator[]> {
-    return this.page.locator('.joker-config-btn.active').all();
+    return this.content.locator('.joker-config-btn.active').all();
   }
 
   async getEnabledJokerTypes(): Promise<string[]> {

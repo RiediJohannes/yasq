@@ -18,18 +18,18 @@ export class LobbyPage extends BasePage {
   constructor(page: Page) {
     super(page);
 
-    this.settingsSummary = page.locator('#settings-summary');
-    this.startBtn = page.locator('#btn-start');
-    this.readyBtn = page.locator('#btn-ready');
-    this.editBtn = page.locator('button[title="Edit Game Settings"]');
+    this.settingsSummary = this.content.locator('#settings-summary');
+    this.startBtn = this.content.locator('#btn-start');
+    this.readyBtn = this.content.locator('#btn-ready');
+    this.editBtn = this.content.locator('#settings-edit-btn');
 
-    this.roundsDisplay = page.locator('#settings-rounds');
-    this.guessTimeDisplay = page.locator('#settings-guess-time');
-    this.jokersContainer = page.locator('#settings-jokers');
-    this.timeBonusDisplay = page.locator('#settings-time-bonus');
-    this.firstBonusDisplay = page.locator('#settings-first-bonus');
-    this.streakBonusDisplay = page.locator('#settings-streak-bonus');
-    this.achievementModeDisplay = page.locator('#settings-achievements');
+    this.roundsDisplay = this.content.locator('#settings-rounds');
+    this.guessTimeDisplay = this.content.locator('#settings-guess-time');
+    this.jokersContainer = this.content.locator('#settings-jokers');
+    this.timeBonusDisplay = this.content.locator('#settings-time-bonus');
+    this.firstBonusDisplay = this.content.locator('#settings-first-bonus');
+    this.streakBonusDisplay = this.content.locator('#settings-streak-bonus');
+    this.achievementModeDisplay = this.content.locator('#settings-achievements');
   }
 
   get enabledJokerItems(): Locator {

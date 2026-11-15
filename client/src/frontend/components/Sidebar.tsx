@@ -44,7 +44,10 @@ export const Sidebar = () => {
   useKeyboardShortcut({ key: 'M', altKey: !isMac, metaKey: isMac }, () => toggleMute());
 
   return (
-    <aside className="sidebar">
+    <aside
+      id="sidebar"
+      className="sidebar"
+    >
       <div className="sidebar-box participants">
         <h2>Participating Players</h2>
         <div id="participant-list">

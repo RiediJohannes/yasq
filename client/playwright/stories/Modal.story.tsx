@@ -2,13 +2,13 @@ import { useState } from 'preact/hooks';
 import { Modal } from '@components/Modal';
 import { useSignal } from '@preact/signals';
 
-interface BasicModalProps {
+interface GeneralModalProps {
   startOpen: boolean;
   hasBigCloseButton?: boolean;
   title?: string | null;
 }
 
-const Basic = ({ startOpen, hasBigCloseButton, title = 'Custom Title' }: BasicModalProps) => {
+const GeneralModal = ({ startOpen, hasBigCloseButton, title = 'Custom Title' }: GeneralModalProps) => {
   const isOpen = useSignal<boolean>(startOpen);
   const [closeCount, setCloseCount] = useState<number>(0);
 
@@ -50,10 +50,10 @@ const Basic = ({ startOpen, hasBigCloseButton, title = 'Custom Title' }: BasicMo
   );
 };
 
-export const BasicClosed = () => Basic({ startOpen: false });
-export const BasicOpen = () => Basic({ startOpen: true });
+export const BasicClosed = () => GeneralModal({ startOpen: false });
+export const BasicOpen = () => GeneralModal({ startOpen: true });
 
-export const BigCloseButtonClosed = () => Basic({ startOpen: false, hasBigCloseButton: true });
-export const BigCloseButtonOpen = () => Basic({ startOpen: true, hasBigCloseButton: true });
+export const BigCloseButtonClosed = () => GeneralModal({ startOpen: false, hasBigCloseButton: true });
+export const BigCloseButtonOpen = () => GeneralModal({ startOpen: true, hasBigCloseButton: true });
 
-export const NoTitleOpen = () => Basic({ startOpen: true, title: null });
+export const NoTitleOpen = () => GeneralModal({ startOpen: true, title: null });
