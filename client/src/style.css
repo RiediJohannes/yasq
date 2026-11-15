@@ -2453,9 +2453,13 @@ input[value='1']:checked + .btn-radio.correct {
   border: 1px solid var(--color-plot-border);
   border-radius: 12px;
   padding: 25px 16px 10px 16px;
-  touch-action: none;
+  touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
+}
+
+.time-bonus-plot-canvas {
+  position: relative;
 }
 
 .time-bonus-plot {
@@ -2647,6 +2651,28 @@ input[value='1']:checked + .btn-radio.correct {
   font-weight: 400;
 }
 
+.zoom-lens-btn-wrapper {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+}
+
+.zoom-lens-btn {
+  width: 32px;
+  height: 32px;
+  background: var(--color-plot-background);
+  opacity: 0.8;
+  border: 1px solid var(--color-plot-tooltip-border, rgba(255, 255, 255, 0.2));
+  border-radius: 6px;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 @media (prefers-color-scheme: light) {
   .plot-tooltip {
     border: 2px solid var(--color-plot-tooltip-border);
@@ -2814,16 +2840,20 @@ input[value='1']:checked + .btn-radio.correct {
   display: flex;
   flex-direction: column;
   place-items: stretch;
-  will-change: transform, opacity;
-  animation: modal-slide-in var(--opening-speed, 0.15s) ease-out forwards;
+  animation: modal-slide-in var(--opening-speed, 0.15s) ease-out;
 }
 
 /* Dimmed, blurred backdrop behind modal */
 .modal-dialog::backdrop {
   background-color: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(2px);
-  will-change: opacity;
-  animation: modal-fade-in var(--opening-speed, 0.15s) ease-out forwards;
+  animation: modal-fade-in var(--opening-speed, 0.15s) ease-out;
+}
+
+/* A modal in a modal must not add a second backdrop blur for performance reasons */
+.modal-dialog .modal-dialog::backdrop {
+  backdrop-filter: none;
+  background-color: rgba(0, 0, 0, 0.35);
 }
 
 .modal-header {

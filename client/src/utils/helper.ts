@@ -59,6 +59,59 @@ export const isTouchDevice = (): boolean => {
   return isCoarsePointer || hasTouchEvents;
 };
 
+/** Extracts the x-coordinate in client viewport pixels from a mouse or touch event. */
+export const getPointerX = (e: MouseEvent | TouchEvent): number | null => {
+  if ('touches' in e) {
+    if (e.touches && e.touches.length > 0) {
+      return e.touches[0].clientX;
+    }
+    return null;
+  }
+  return e.clientX;
+};
+
+/**
+ * Finds the item whose value is closest to the target value using binary search.
+ * The items MUST be sorted in ascending order by the value returned by `getItemValue`.
+ *
+ * @returns The closest item, its index, and its absolute distance to the target value.
+ *          For an empty array: `{ item: null, index: -1, distance: Infinity }`.
+ *          On an exact tie, the item with the lower index wins.
+ */
+export function binarySearchClosestItem<Item>(
+  sortedItems: readonly Item[],
+  targetValue: number,
+  getItemValue: (item: Item) => number = (item: Item) => Number(item)
+): { item: Item | null; index: number; distance: number } {
+  if (sortedItems.length === 0) return { item: null, index: -1, distance: Infinity };
+
+  // Find the first item whose value is >= the target value (or the last item if there is none)
+  let lowerIndex = 0;
+  let upperIndex = sortedItems.length - 1;
+  while (lowerIndex < upperIndex) {
+    const middleIndex = Math.floor((lowerIndex + upperIndex) / 2);
+    if (getItemValue(sortedItems[middleIndex]) < targetValue) {
+      lowerIndex = middleIndex + 1;
+    } else {
+      upperIndex = middleIndex;
+    }
+  }
+
+  // The closest item is either that item or its predecessor
+  let closestIndex = lowerIndex;
+  let closestDistance = Math.abs(getItemValue(sortedItems[lowerIndex]) - targetValue);
+
+  if (lowerIndex > 0) {
+    const predecessorDistance = Math.abs(getItemValue(sortedItems[lowerIndex - 1]) - targetValue);
+    if (predecessorDistance <= closestDistance) {
+      closestIndex = lowerIndex - 1;
+      closestDistance = predecessorDistance;
+    }
+  }
+
+  return { item: sortedItems[closestIndex], index: closestIndex, distance: closestDistance };
+}
+
 /**
  * Blocks on a promise with a maximum timeout for waiting for a result.
  * If the promise finishes before the timeout, its return value is transparently passed on (both in the case of a

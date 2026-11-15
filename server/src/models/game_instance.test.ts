@@ -582,7 +582,7 @@ describe('GameInstance - submitResults', () => {
   });
 });
 
-describe('GameInstance - timeMultiplierEdgeCases', () => {
+describe('GameInstance - time multiplier edge-cases', () => {
   const MAX_GUESS_TIME: number = 10_000; // milliseconds
   const game = new GameInstance(INSTANCE_ID, HOST);
 
@@ -626,6 +626,29 @@ describe('GameInstance - timeMultiplierEdgeCases', () => {
       expect(game.calculateTimeMultiplier(MAX_GUESS_TIME + 100, IMMEDIATE_SUCCESS)).toBe(MIN_TIME_MULTIPLIER);
 
       expect(game.calculateTimeMultiplier(MAX_GUESS_TIME + 100, MAX_GUESS_TIME)).toBe(MIN_TIME_MULTIPLIER);
+    });
+
+    it(`should monotonically decrease between first success and track end - ${bonusType}`, () => {
+      const firstSuccessMillis = 2000;
+      const sampleSteps = 100;
+      const stepSize = (MAX_GUESS_TIME - firstSuccessMillis) / sampleSteps;
+
+      const functionValues: number[] = [];
+      for (let i = 0; i <= sampleSteps; i++) {
+        const evaluationTime = firstSuccessMillis + i * stepSize;
+        functionValues.push(game.calculateTimeMultiplier(evaluationTime, firstSuccessMillis));
+      }
+
+      for (let i = 1; i < functionValues.length; i++) {
+        const previous = functionValues[i - 1]!;
+        const current = functionValues[i];
+
+        expect(current).toBeDefined();
+        expect(
+          current,
+          `Time bonus function ${bonusType} violated monotonicity invariant at step ${i}: Increased from ${previous} to ${current}`
+        ).toBeLessThanOrEqual(previous);
+      }
     });
   }
 });

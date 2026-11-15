@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import { Participant } from '@yasq/shared';
 
-import { findUser, formatBonusMultiplier, getActionKeyLabel, getGameDuration, getStreakTier } from './helper';
+import {
+  binarySearchClosestItem,
+  findUser,
+  formatBonusMultiplier,
+  getActionKeyLabel,
+  getGameDuration,
+  getStreakTier,
+} from './helper';
 
 const mockParticipants: Participant[] = [
   { id: '1', username: 'MockPlayer1' },
@@ -91,5 +98,79 @@ describe('getStreakTier', () => {
     [10_0001, 4],
   ])('should not exceed the maximum streak tier (%i -> %i)', (streak, expected) => {
     expect(getStreakTier(streak)).toBe(expected);
+  });
+});
+
+describe('binarySearchClosestItem', () => {
+  describe('Edge Cases', () => {
+    it('should return a null item, -1 index, and infinite distance given an empty list', () => {
+      expect(binarySearchClosestItem([], 42)).toEqual({
+        item: null,
+        index: -1,
+        distance: Infinity,
+      });
+    });
+
+    it('should always return the single list item if it is the only option', () => {
+      expect(binarySearchClosestItem([7], 100)).toEqual({ item: 7, index: 0, distance: 93 });
+      expect(binarySearchClosestItem([7], -5)).toEqual({ item: 7, index: 0, distance: 12 });
+      expect(binarySearchClosestItem([7], 7)).toEqual({ item: 7, index: 0, distance: 0 });
+    });
+
+    it('should prefer the lower index on an exact midpoint tie', () => {
+      const { item, index } = binarySearchClosestItem([1, 3, 5, 7], 4);
+      expect(item).toBe(3);
+      expect(index).toBe(1);
+    });
+
+    it('should prefer the first of equally close values', () => {
+      const { item, index } = binarySearchClosestItem([5, 5, 5, 5], 5);
+      expect(item).toBe(5);
+      expect(index).toBe(0);
+    });
+
+    it('should auto-coerce strings into numbers if no custom getItemValue function is provided', () => {
+      const { item, index } = binarySearchClosestItem(['1', '3', '6', '9'], 4);
+      expect(item).toBe('3');
+      expect(index).toBe(1);
+    });
+  });
+
+  describe('Standard Number Cases', () => {
+    it.each([
+      { name: 'Exact match', items: [1, 3, 5, 7], target: 5, expectedIndex: 2 },
+      { name: 'Below everything -> first item', items: [1, 3, 5, 7], target: 0, expectedIndex: 0 },
+      { name: 'Above everything -> last item', items: [1, 3, 5, 7], target: 100, expectedIndex: 3 },
+      { name: 'Closest to 13', items: [1, 3, 6, 8, 13, 15], target: 11, expectedIndex: 4 },
+    ])('$name (target $target -> index $expectedIndex)', ({ items, target, expectedIndex }) => {
+      const result = binarySearchClosestItem(items, target);
+      expect(result.index).toBe(expectedIndex);
+      expect(result.item).toBe(items[expectedIndex]);
+      expect(result.distance).toBe(Math.abs(items[expectedIndex]! - target));
+    });
+  });
+
+  describe('Custom getItemValue Function', () => {
+    type TimePoint = { time: number; label: string };
+
+    const points: TimePoint[] = [
+      { time: 1000, label: 'A' },
+      { time: 4000, label: 'B' },
+      { time: 9000, label: 'C' },
+    ];
+    const getTime = (p: TimePoint) => p.time;
+
+    it('should find the closest point by mapped value', () => {
+      const { item, index, distance } = binarySearchClosestItem(points, 3500, getTime);
+      expect(item).toEqual({ time: 4000, label: 'B' });
+      expect(index).toBe(1);
+      expect(distance).toBe(500);
+    });
+
+    it('should snap to the first point for targets before the domain', () => {
+      const { item, index } = binarySearchClosestItem(points, 0, getTime);
+      expect(item?.label).toBe('A');
+      expect(index).toBe(0);
+    });
   });
 });

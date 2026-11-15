@@ -5,6 +5,8 @@ import { CommonCSSProperties } from '../../common/types';
 import { isTouchDevice } from '../../utils/helper';
 import { Signal } from '@preact/signals';
 
+let numOpenModals: number = 0;
+
 export interface BaseModalProps {
   id?: string;
   isOpen: Signal<boolean>;
@@ -59,9 +61,11 @@ export const Modal = ({
   useEffect(() => {
     if (!showModal) return;
 
-    document.body.style.overflow = 'hidden'; // prevent scrolling in the background
+    if (numOpenModals++ === 0) document.body.style.overflow = 'hidden'; // prevent scrolling in the background
 
-    return () => (document.body.style.overflow = ''); // always restore scrolling on clean-up
+    return () => {
+      if (--numOpenModals === 0) document.body.style.overflow = ''; // always restore scrolling on clean-up
+    };
   }, [showModal]);
 
   // Attach onClose event handler on load
