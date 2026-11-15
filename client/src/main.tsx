@@ -72,7 +72,7 @@ const App = () => {
 
           <main
             className="game-area"
-            key={`view-${isHost}-${gameStatus.value.state}`}
+            key={`view-${isHost}-${gameStatus.value.state.phase}`}
             tabIndex={0}
           >
             {renderView(isHost)}

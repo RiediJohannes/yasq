@@ -1,6 +1,7 @@
 import {
   type Participant,
   type PlayerTimeBonusPoint,
+  TIME_BONUS_SAMPLES,
   TimeBonus,
   type TimeBonusPoint,
   type TimeBonusSummary,
@@ -28,7 +29,7 @@ export function generateSampleTimeBonusSummary(bonusType: TimeBonus): TimeBonusS
   game.settings.maxGuessTime = totalTime;
 
   // Precompute time bonus curve samples
-  const samples = 200;
+  const samples = TIME_BONUS_SAMPLES;
   const curvePoints: TimeBonusPoint[] = [];
   for (let i = 0; i <= samples; i++) {
     const time = (i / samples) * totalTime;

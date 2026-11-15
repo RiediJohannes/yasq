@@ -230,6 +230,8 @@ export const DEFAULT_SETTINGS = {
 } as const;
 
 export const GLIMPSE_BLUR_INTENSITY: number = 25;
+/** Number of evenly spaced samples that will be calculated to draw the time bonus curve */
+export const TIME_BONUS_SAMPLES: number = 400;
 
 export const INT32_MAX_VALUE: number = 2 ** 31 - 1;
 export const MAX_GUESS_LENGTH = 100;

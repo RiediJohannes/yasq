@@ -1,7 +1,10 @@
+import { cloneElement, ComponentChildren, HTMLAttributes, isValidElement, VNode } from 'preact';
 import { useEffect, useId, useRef } from 'preact/hooks';
-import { cloneElement, HTMLAttributes, isValidElement, ComponentChildren, VNode } from 'preact';
-import { activeTooltipId, activeTooltipContent, measureBounds } from '../../utils/exclusiveTooltip';
+
 import { LONG_PRESS_MILLIS } from '@yasq/shared';
+
+import { activeTooltipContent, activeTooltipId, measureBounds } from '../../utils/exclusiveTooltip';
+import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
 
 interface WithTooltipProps {
   /** The text content or rich VNode to display in the tooltip */
@@ -23,7 +26,8 @@ export const WithTooltip = ({ text, children, id, disabled = false, elementRef }
   }
 
   const generatedId = useId();
-  const tooltipId = id ?? generatedId;
+  const targetId = id ?? generatedId;
+  const tooltipId = `${targetId}-tooltip`;
 
   const isTooltipOpen = activeTooltipId.value === tooltipId;
   const deferredToggleTimer = useRef<number | null>(null);
@@ -67,17 +71,25 @@ export const WithTooltip = ({ text, children, id, disabled = false, elementRef }
     }
   };
 
+  // Listen for the Escape key to close the tooltip as per MDN guidelines
+  useKeyboardShortcut({ key: 'Escape' }, () => {
+    if (isTooltipOpen) {
+      handleClose();
+    }
+  });
+
   const childProps = children.props || {};
   const childHasOnClick = !!childProps.onClick;
 
-  const ariaText = typeof text === 'string' ? text : 'Track details';
+  const ariaText = typeof text === 'string' ? text : 'Element with attached information';
 
-  const clonedTrigger = cloneElement(children, {
+  return cloneElement(children, {
     ...childProps,
     ref: elementRef ?? childProps.ref,
     'data-tooltip': text,
+    'aria-describedby': isTooltipOpen ? tooltipId : undefined,
     'aria-label': ariaText,
-    id: childProps.id ?? tooltipId,
+    id: childProps.id ?? targetId,
     className: `has-tooltip ${isTooltipOpen ? 'show-tooltip' : ''} ${childProps.className || ''}`.trim(),
     // Attach a bunch of event handlers that open/close the added tooltip as expected
     onPointerEnter: (e: PointerEvent) => {
@@ -137,16 +149,16 @@ export const WithTooltip = ({ text, children, id, disabled = false, elementRef }
       childProps.children,
       isTooltipOpen && (
         <span
+          id={tooltipId}
           className="tooltip-content"
           key="active-tooltip"
+          role="tooltip"
         >
           {activeTooltipContent.value}
         </span>
       ),
     ],
   });
-
-  return clonedTrigger;
 };
 
 interface TooltipDivProps extends HTMLAttributes<HTMLDivElement> {

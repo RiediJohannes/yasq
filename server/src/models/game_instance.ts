@@ -28,6 +28,7 @@ import {
   type SpyHint,
   STATIC_FILES_DIR,
   TEMP_FILES_DIR,
+  TIME_BONUS_SAMPLES,
   TimeBonus,
   type TimeBonusPoint,
   type TimeBonusSummary,
@@ -322,7 +323,7 @@ export class GameInstance {
     const roundGuesses = this.guesses[this.state.round] || {};
 
     // Precompute a fixed number of points of the time bonus function
-    const samples = 200; // number of evenly spaced samples to calculate to draw the time bonus curve
+    const samples = TIME_BONUS_SAMPLES;
     const curvePoints: TimeBonusPoint[] = [];
     for (let i = 0; i <= samples; i++) {
       const time = (i / samples) * this.settings.maxGuessTime;
