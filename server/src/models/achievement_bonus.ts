@@ -1,78 +1,27 @@
 import type { UserRoundResult } from './leaderboard.js';
-import { AchievementBonusType, type TrackInfo } from '@yasq/shared';
+import {
+  AchievementBonusAggregate,
+  AchievementBonusFilter,
+  AchievementBonusGoal,
+  AchievementBonusMetric,
+  DEFAULT_ACHIEVEMENT_BONUS_RULES,
+  type AchievementBonusRule,
+  type TrackInfo,
+} from '@yasq/shared';
+import { getAppSettings } from '../config/settings.js';
 
-export enum AchievementBonusMetric {
-  GUESS_TIME = 'guessTime',
-  SCORE = 'score',
-  TIME_BONUS = 'timeBonus',
-  STREAK = 'streak',
-}
+export {
+  AchievementBonusAggregate,
+  AchievementBonusFilter,
+  AchievementBonusGoal,
+  AchievementBonusMetric,
+} from '@yasq/shared';
 
-export enum AchievementBonusFilter {
-  CORRECT = 'correct',
-  PARTIALLY_CORRECT = 'partially correct',
-  INCORRECT = 'incorrect',
-  ANY = 'any',
-}
+export type AchievementRule = AchievementBonusRule;
 
-export enum AchievementBonusAggregate {
-  AVERAGE = 'average',
-  SUM = 'sum',
-  MIN = 'min',
-  MAX = 'max',
-  COUNT = 'count',
-}
-
-export enum AchievementBonusGoal {
-  HIGHEST = 'highest',
-  LOWEST = 'lowest',
-}
-
-export const ACHIEVEMENT_BONUS_RULES: AchievementRule[] = [
-  {
-    id: AchievementBonusType.HIGHEST_STREAK,
-    metric: AchievementBonusMetric.STREAK,
-    goal: AchievementBonusGoal.HIGHEST,
-    reward: 100,
-    description: 'Awarded to the player who built the highest continuous streak throughout the game.',
-  },
-  {
-    id: AchievementBonusType.FASTEST_CORRECT_GUESS,
-    metric: AchievementBonusMetric.GUESS_TIME,
-    filter: AchievementBonusFilter.CORRECT,
-    aggregate: AchievementBonusAggregate.MIN,
-    goal: AchievementBonusGoal.LOWEST,
-    reward: 100,
-    description: 'Awarded to the player who submitted a fully correct guess in the shortest amount of time.',
-  },
-  {
-    id: AchievementBonusType.MOST_PARTIALLY_CORRECT_GUESSES,
-    metric: AchievementBonusMetric.SCORE,
-    filter: AchievementBonusFilter.PARTIALLY_CORRECT,
-    aggregate: AchievementBonusAggregate.COUNT,
-    goal: AchievementBonusGoal.HIGHEST,
-    reward: 100,
-    description: 'Awarded to the player who achieved the highest number of partially correct guesses.',
-  },
-  {
-    id: AchievementBonusType.SLOWEST_AVERAGE_GUESS_TIME,
-    metric: AchievementBonusMetric.GUESS_TIME,
-    filter: AchievementBonusFilter.ANY,
-    aggregate: AchievementBonusAggregate.AVERAGE,
-    goal: AchievementBonusGoal.HIGHEST,
-    reward: 100,
-    description: 'Awarded to the player with the slowest average guess time throughout the game.',
-  },
-];
-
-export interface AchievementRule {
-  id: AchievementBonusType | string;
-  metric: AchievementBonusMetric;
-  filter?: AchievementBonusFilter;
-  aggregate?: AchievementBonusAggregate;
-  goal: AchievementBonusGoal;
-  reward?: number;
-  description?: string;
+export function getConfiguredAchievementBonusRules(): AchievementRule[] {
+  const configuredRules = getAppSettings().achievementBonuses;
+  return configuredRules ?? DEFAULT_ACHIEVEMENT_BONUS_RULES;
 }
 
 interface UserAccumulator {
@@ -97,7 +46,7 @@ export class AchievementBonusManager {
 
   constructor(rules: AchievementRule[]) {
     for (const rule of rules) {
-      this.achievements.set(rule.id, {
+      this.achievements.set(rule.name, {
         rule,
         userIds: [],
         value: null,
@@ -136,7 +85,7 @@ export class AchievementBonusManager {
 
       // Accumulate round data into this achievement's internal user map
       for (const result of roundResults) {
-        const userId = (result as any).userId;
+        const userId = result.userId;
         if (!userId) continue;
 
         if (!this.matchesFilter(result, state.rule.filter)) continue;
@@ -264,7 +213,7 @@ export class AchievementBonusManager {
         if (!savedState) continue;
         const typedState = savedState as AchievementState;
 
-        const ruleId = typedState.rule?.id || key;
+        const ruleId = typedState.rule?.name || key;
 
         const userValuesMap = new Map<string, number | UserAccumulator>();
         if (typedState.userValues) {

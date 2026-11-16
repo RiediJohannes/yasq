@@ -33,13 +33,13 @@ describe('AchievementBonusManager', () => {
   beforeEach(() => {
     rules = [
       {
-        id: 'highestStreak',
+        name: 'highestStreak',
         metric: AchievementBonusMetric.STREAK,
         goal: AchievementBonusGoal.HIGHEST,
         reward: 100,
       },
       {
-        id: 'slowestAverageGuess',
+        name: 'slowestAverageGuess',
         metric: AchievementBonusMetric.GUESS_TIME,
         filter: AchievementBonusFilter.CORRECT,
         aggregate: AchievementBonusAggregate.AVERAGE,
@@ -47,7 +47,7 @@ describe('AchievementBonusManager', () => {
         reward: 50,
       },
       {
-        id: 'mostPartiallyCorrectGuesses',
+        name: 'mostPartiallyCorrectGuesses',
         metric: AchievementBonusMetric.SCORE,
         filter: AchievementBonusFilter.PARTIALLY_CORRECT,
         aggregate: AchievementBonusAggregate.COUNT,
@@ -55,7 +55,7 @@ describe('AchievementBonusManager', () => {
         reward: 75,
       },
       {
-        id: 'fastestCorrectGuess',
+        name: 'fastestCorrectGuess',
         metric: AchievementBonusMetric.GUESS_TIME,
         filter: AchievementBonusFilter.CORRECT,
         aggregate: AchievementBonusAggregate.MIN,

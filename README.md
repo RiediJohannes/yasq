@@ -257,8 +257,7 @@ values initially prefilled on this setup screen.
 In contrast, `appSettings` govern global presets that affect the entire application rather than individual quiz sessions.
 These options _cannot_ be modified from the in-game setup screen.
 
-Currently, this section only supports customizing of a few sound effects, allowing you to supply your own audio files
-to replace the default sounds:
+This section supports customizing a few sound effects and defining achievement bonuses. If `achievementBonuses` is omitted, the four built-in rules are used. `gameSettings.achievementBonuses.enabledTypes` must refer to the rule names in `appSettings.achievementBonuses`.
 
 ```json
 {
@@ -266,7 +265,18 @@ to replace the default sounds:
     "sounds": {
       "finalResultsJingle": [?] <file name of jingle to be played when final results are revealed, or null>,
       "finalResultsLoop": [?] <file name of looping music to play on final results screen after the jingle, or null>
-    }
+    },
+    "achievementBonuses": [
+      {
+        "name": <display name>,
+        "metric": < (guessTime/score/timeBonus/streak)>,
+        "filter": < (correct/partiallyCorrect/incorrect/any)>,
+        "aggregate": < (average/sum/min/max/count)>,
+        "goal": < (highest/lowest)>,
+        "reward": <number of points rewarded for achievement bonus>,
+        "description": <description>
+      }
+    ]
   }
 }
 ```

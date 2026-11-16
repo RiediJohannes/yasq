@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 
-import type { Track } from '@yasq/shared';
+import { type Track } from '@yasq/shared';
+import defaultCover from '../../../client/src/assets/default.svg';
 
 import type { DiscordUser, PermissionRule } from '../types';
 
@@ -166,11 +167,11 @@ export function PermissionsList({
                             >
                               <img
                                 className="permission-rule-file-cover"
-                                src={track?.cover ? `/covers/${track.cover}` : '/default.svg'}
+                                src={track?.cover ? `/covers/${track.cover}` : defaultCover}
                                 alt=""
                                 loading="lazy"
                                 onError={event => {
-                                  event.currentTarget.src = '/default.svg';
+                                  event.currentTarget.src = defaultCover;
                                 }}
                               />
                               <span className="permission-rule-file-info">

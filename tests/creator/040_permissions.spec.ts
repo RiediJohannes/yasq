@@ -82,7 +82,7 @@ test.describe('Permission Rule Creation', () => {
     await expect(trackItem).toContainText('Game A');
     await expect(trackItem).toContainText('Track A');
     await expect(trackItem).toContainText('fixture-track-1.mp3');
-    await expect(trackItem.locator('img')).toHaveAttribute('src', '/default.svg');
+    await expect(trackItem.locator('img')).toHaveAttribute('src', /^data:image\/svg\+xml/);
   });
 
   test('should create a permission rule with a manually entered user ID when no server is selected', async ({
@@ -199,7 +199,7 @@ test.describe('Permission Rule Edit/Delete', () => {
     await expect(trackItem).toContainText('Game A');
     await expect(trackItem).toContainText('Track A');
     await expect(trackItem).toContainText('fixture-track.mp3');
-    await expect(trackItem.locator('img')).toHaveAttribute('src', '/default.svg');
+    await expect(trackItem.locator('img')).toHaveAttribute('src', /^data:image\/svg\+xml/);
   });
 
   test('should delete a permission rule', async ({ page, permissionsPage }) => {

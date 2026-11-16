@@ -61,6 +61,7 @@ export const gameStatus = signal<GameStatus>({
   settings: GameSettings.withJokerArray(),
   streaks: {},
   lostStreaks: {},
+  achievementBonusRules: [],
 });
 
 export const volume = signal(DEFAULT_VOLUME_SLIDER_VAL);

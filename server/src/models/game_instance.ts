@@ -8,7 +8,6 @@ import { clearTimeout } from 'node:timers';
 
 import {
   AchievementBonusMode,
-  AchievementBonusType,
   BASE_POINTS,
   BonusType,
   EXPONENTIAL_DECAY_INTENSITY,
@@ -43,8 +42,12 @@ import { LogCategory, logger } from '../utils/logger.js';
 import { Leaderboard, LeaderboardEntry, RoundResult, RoundSummary } from './leaderboard.js';
 import { GameStats } from './game_stats.js';
 import { saveLeaderboard } from '../db.js';
-import { ACHIEVEMENT_BONUS_RULES, AchievementBonusManager, AchievementBonusMetric } from './achievement_bonus.js';
-import { getDefaultGameSettings } from '../config/settings.js';
+import {
+  AchievementBonusManager,
+  AchievementBonusMetric,
+  getConfiguredAchievementBonusRules,
+} from './achievement_bonus.js';
+import { getGameSettings } from '../config/settings.js';
 
 type UserId = string;
 
@@ -67,8 +70,10 @@ export class GameInstance {
   public streaks: Record<UserId, number> = {};
   public currentRoundLostStreaks: Record<UserId, number> = {};
   public gameStats: GameStats = new GameStats();
-  public achievementBonusManager: AchievementBonusManager = new AchievementBonusManager(ACHIEVEMENT_BONUS_RULES);
-  public activeAchievementBonuses: AchievementBonusType[] = [];
+  public achievementBonusManager: AchievementBonusManager = new AchievementBonusManager(
+    getConfiguredAchievementBonusRules()
+  );
+  public activeAchievementBonuses: string[] = [];
 
   public onUpdate?: (game: GameInstance) => void;
 
@@ -79,7 +84,7 @@ export class GameInstance {
     this.instanceId = instanceId;
     this.hostId = hostId;
 
-    const settingsToApply = initialSettings ?? getDefaultGameSettings();
+    const settingsToApply = initialSettings ?? getGameSettings();
     this.settings = structuredClone(settingsToApply);
   }
 
@@ -126,7 +131,7 @@ export class GameInstance {
   }
 
   private resolveActiveAchievementBonuses(): void {
-    const allTypes = Object.values(AchievementBonusType);
+    const allTypes = [...this.achievementBonusManager.achievements.keys()];
     const achSettings = this.settings.achievementBonuses;
 
     if (achSettings?.mode === AchievementBonusMode.MANUAL) {
@@ -516,7 +521,7 @@ export class GameInstance {
     this.usedJokers = {};
     this.streaks = {};
     this.gameStats = new GameStats();
-    this.achievementBonusManager = new AchievementBonusManager(ACHIEVEMENT_BONUS_RULES);
+    this.achievementBonusManager = new AchievementBonusManager(getConfiguredAchievementBonusRules());
     this.activeAchievementBonuses = [];
   }
 
@@ -667,7 +672,7 @@ export class GameInstance {
     // Loop through all active achievements
     for (const [ruleId, state] of this.achievementBonusManager.achievements.entries()) {
       // Check if this achievement type is active/enabled for this game
-      if (!this.activeAchievementBonuses.includes(ruleId as AchievementBonusType)) {
+      if (!this.activeAchievementBonuses.includes(ruleId)) {
         continue;
       }
 
@@ -677,7 +682,7 @@ export class GameInstance {
 
         for (const userId of state.userIds) {
           const entry = this.leaderboard.getOrCreate(userId);
-          entry.addAchievementBonus(ruleId as AchievementBonusType, reward);
+          entry.addAchievementBonus(ruleId, reward);
         }
       }
     }

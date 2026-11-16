@@ -77,7 +77,7 @@ async function fetchGuildMembers(guildId: string, botToken: string): Promise<Dis
   return users;
 }
 
-export function registerDiscordUsersMiddleware(server: { middlewares: Connect.Server }) {
+export function registerDiscordMiddleware(server: { middlewares: Connect.Server }) {
   let clientPromise: Promise<Client> | undefined;
 
   const getClient = (): Promise<Client> => {

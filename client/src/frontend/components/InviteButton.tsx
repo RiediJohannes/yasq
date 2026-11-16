@@ -11,7 +11,6 @@ export function InviteButton() {
     async function checkPermissions() {
       try {
         const { permissions } = await discordSdk.commands.getChannelPermissions();
-        console.log(permissions);
         if (PermissionUtils.can(Permissions.CREATE_INSTANT_INVITE, permissions)) {
           setCanInvite(true);
         }

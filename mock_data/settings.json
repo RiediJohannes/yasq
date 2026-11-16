@@ -9,10 +9,10 @@
     "achievementBonuses": {
       "mode": "manual",
       "enabledTypes": [
-        "FASTEST_CORRECT_GUESS",
-        "HIGHEST_STREAK",
-        "SLOWEST_AVERAGE_GUESS_TIME",
-        "MOST_PARTIALLY_CORRECT_GUESSES"
+        "Fastest Correct Guess",
+        "Highest Streak",
+        "Slowest Average Guess Time",
+        "Most Partially Correct Guesses"
       ]
     }
   },

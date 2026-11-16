@@ -98,6 +98,7 @@ export function getGameStatus(game: GameInstance) {
     lastWinnerId: game.lastWinnerId,
     streaks: game.streaks,
     lostStreaks: game.currentRoundLostStreaks,
+    achievementBonusRules: [...game.achievementBonusManager.achievements.values()].map(({ rule }) => rule),
     settings: {
       ...game.settings,
       enabledJokers: game.settings.enabledJokers ? [...game.settings.enabledJokers] : [],

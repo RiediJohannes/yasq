@@ -1,19 +1,14 @@
 import { Signal, useSignal } from '@preact/signals';
+import { useEffect } from 'preact/hooks';
 
-import {
-  AchievementBonuses,
-  AchievementBonusMode,
-  AchievementBonusType,
-  capitalize,
-  DEFAULT_ENABLED_ACHIEVEMENT_TYPES,
-  DEFAULT_RANDOM_COUNT,
-} from '@yasq/shared';
+import { AchievementBonusRule, AchievementBonuses, AchievementBonusMode, DEFAULT_RANDOM_COUNT } from '@yasq/shared';
 import { RadioGroup } from './RadioGroup';
 
 type PanelMode = 'off' | AchievementBonusMode;
 
 interface AchievementBonusSettingsPanelProps {
   settingsSignal: Signal<AchievementBonuses | null>;
+  rules: AchievementBonusRule[];
 }
 
 /**
@@ -21,22 +16,52 @@ interface AchievementBonusSettingsPanelProps {
  * switches between the radio group panels.
  */
 interface BonusStateCache {
-  enabledTypes: AchievementBonusType[];
+  enabledTypes: string[];
   randomCount: number;
 }
 
-const initializeCache = (settings: AchievementBonuses | null): BonusStateCache => ({
+const initializeCache = (settings: AchievementBonuses | null, rules: AchievementBonusRule[]): BonusStateCache => ({
   enabledTypes:
-    settings?.mode === AchievementBonusMode.MANUAL ? settings.enabledTypes : DEFAULT_ENABLED_ACHIEVEMENT_TYPES,
+    settings?.mode === AchievementBonusMode.MANUAL
+      ? settings.enabledTypes.filter(name => rules.length === 0 || rules.some(rule => rule.name === name))
+      : rules.map(rule => rule.name),
   randomCount: settings?.mode === AchievementBonusMode.RANDOM ? settings.randomCount : DEFAULT_RANDOM_COUNT,
 });
 
-export function AchievementBonusSettingsPanel({ settingsSignal }: AchievementBonusSettingsPanelProps) {
+export function AchievementBonusSettingsPanel({ settingsSignal, rules }: AchievementBonusSettingsPanelProps) {
   const settings = settingsSignal.value; // AchievementBonuses | null
-  const allBonusTypes = Object.values(AchievementBonusType);
+  const allBonusTypes = rules.map(rule => rule.name);
 
-  const cache = useSignal<BonusStateCache>(initializeCache(settingsSignal.value));
+  const cache = useSignal<BonusStateCache>(initializeCache(settingsSignal.value, rules));
   const activePanel: PanelMode = !settings ? 'off' : settings.mode;
+  const ruleKey = allBonusTypes.join('\u0000');
+
+  useEffect(() => {
+    if (allBonusTypes.length === 0) return;
+
+    const cachedState = cache.value;
+    const selectedTypes = cachedState.enabledTypes.filter(name => allBonusTypes.includes(name));
+    if (selectedTypes.length === cachedState.enabledTypes.length) return;
+
+    const currentTypes =
+      settingsSignal.value?.mode === AchievementBonusMode.MANUAL
+        ? settingsSignal.value.enabledTypes.filter(name => allBonusTypes.includes(name))
+        : [];
+    cache.value = {
+      ...cachedState,
+      enabledTypes: currentTypes.length ? currentTypes : selectedTypes.length ? selectedTypes : allBonusTypes,
+    };
+  }, [ruleKey]);
+
+  const modeOptions = [
+    { label: 'Off', value: 'off' as const },
+    ...(allBonusTypes.length
+      ? [
+          { label: 'Manual', value: AchievementBonusMode.MANUAL },
+          { label: 'Random', value: AchievementBonusMode.RANDOM },
+        ]
+      : []),
+  ] satisfies { label: string; value: PanelMode }[];
 
   // Update the real settings signal when the user switches panels
   const updateBonusState = (activePanel: PanelMode) => {
@@ -60,10 +85,10 @@ export function AchievementBonusSettingsPanel({ settingsSignal }: AchievementBon
     }
   };
 
-  const toggleBonusType = (bonusType: AchievementBonusType) => {
+  const toggleBonusType = (bonusType: string) => {
     const cacheState = cache.value;
     const updatedEnabledTypes = cacheState.enabledTypes.includes(bonusType)
-      ? cacheState.enabledTypes.filter((t: AchievementBonusType) => t !== bonusType)
+      ? cacheState.enabledTypes.filter((t: string) => t !== bonusType)
       : [...cacheState.enabledTypes, bonusType];
 
     cache.value = { ...cacheState, enabledTypes: updatedEnabledTypes };
@@ -96,13 +121,7 @@ export function AchievementBonusSettingsPanel({ settingsSignal }: AchievementBon
         name="achievement-mode"
         value={activePanel}
         onChange={activePanel => updateBonusState(activePanel as PanelMode)}
-        options={
-          [
-            { label: 'Off', value: 'off' },
-            { label: 'Manual', value: AchievementBonusMode.MANUAL },
-            { label: 'Random', value: AchievementBonusMode.RANDOM },
-          ] satisfies { label: string; value: PanelMode }[]
-        }
+        options={modeOptions}
       />
 
       {settings?.mode === AchievementBonusMode.MANUAL && (
@@ -119,7 +138,7 @@ export function AchievementBonusSettingsPanel({ settingsSignal }: AchievementBon
                   checked={isChecked}
                   onChange={() => toggleBonusType(bonusType)}
                 />
-                <span>{capitalize(bonusType)}</span>
+                <span>{bonusType}</span>
               </label>
             );
           })}

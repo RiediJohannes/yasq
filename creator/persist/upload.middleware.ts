@@ -1,9 +1,12 @@
+import { Connect } from 'vite';
 import fs from 'fs';
+import http from 'http';
 import path from 'path';
+
 import { paths } from './paths.js';
 
-export function registerUploadMiddleware(server: any) {
-  server.middlewares.use('/api/upload', async (req: any, res: any) => {
+export function registerUploadMiddleware(server: { middlewares: Connect.Server }) {
+  server.middlewares.use('/api/upload', async (req: http.IncomingMessage, res: http.ServerResponse) => {
     if (req.method !== 'POST') return;
 
     const url = new URL(req.url || '', `http://${req.headers.host}`);

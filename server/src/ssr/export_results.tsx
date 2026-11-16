@@ -175,7 +175,7 @@ export async function generateResultsImage(
       colorScheme: 'dark',
     });
     const page = await context.newPage();
-    await page.setContent(htmlContent, { waitUntil: 'networkidle' });
+    await page.setContent(htmlContent, { waitUntil: 'domcontentloaded' });
 
     const elementLocator = page.locator('.final-leaderboard');
     const imageBuffer = await elementLocator.screenshot({ type: 'png' });

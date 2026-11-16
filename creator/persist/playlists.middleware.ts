@@ -1,5 +1,9 @@
+import { Connect } from 'vite';
 import fs from 'fs';
+import http from 'http';
+
 import { Playlist } from '@yasq/shared';
+
 import { paths } from './paths.js';
 
 const readPlaylists = (): Playlist[] => {
@@ -12,8 +16,8 @@ const writePlaylists = (playlists: Playlist[]) => {
   fs.writeFileSync(paths.playlistsFile, JSON.stringify(playlists, null, 2));
 };
 
-export function registerPlaylistsMiddleware(server: any) {
-  server.middlewares.use('/api/playlists', (req: any, res: any) => {
+export function registerPlaylistsMiddleware(server: { middlewares: Connect.Server }) {
+  server.middlewares.use('/api/playlists', (req: http.IncomingMessage, res: http.ServerResponse) => {
     const url = new URL(req.url || '', `http://${req.headers.host}`);
     const pathSegments = url.pathname.split('/').filter(Boolean);
     const indexParam = pathSegments[0] !== undefined ? parseInt(pathSegments[0], 10) : NaN;

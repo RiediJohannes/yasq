@@ -2,6 +2,10 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import fs from 'fs';
 
 import {
+  AchievementBonusAggregate,
+  AchievementBonusFilter,
+  AchievementBonusGoal,
+  AchievementBonusMetric,
   AchievementBonusMode,
   AchievementBonusType,
   DEFAULT_APP_SETTINGS,
@@ -14,7 +18,7 @@ import {
 
 import { LogCategory, logger } from '../utils/logger.js';
 import { setServerRootDir } from '../utils/helper.js';
-import { getAppSettings, getDefaultGameSettings, loadSettingsConfig } from './settings.js';
+import { getAppSettings, getGameSettings, loadSettingsConfig } from './settings.js';
 
 vi.mock('fs');
 
@@ -62,7 +66,7 @@ describe('settings', () => {
 
   describe('getDefaultGameSettings', () => {
     it('should return initial hard-coded defaults with enabledJokers as a Set', () => {
-      const settings = getDefaultGameSettings();
+      const settings = getGameSettings();
 
       expect(settings.rounds).toBe(DEFAULT_GAME_SETTINGS.rounds);
       expect(settings.maxGuessTime).toBe(DEFAULT_GAME_SETTINGS.maxGuessTime);
@@ -75,7 +79,7 @@ describe('settings', () => {
     });
 
     it('should return a deep clone to prevent mutation of internal defaults', () => {
-      const firstCall = getDefaultGameSettings();
+      const firstCall = getGameSettings();
       // Mutate the received settings object
       firstCall.rounds = 999;
       firstCall.enabledJokers.clear();
@@ -83,7 +87,7 @@ describe('settings', () => {
         firstCall.achievementBonuses.enabledTypes.pop();
       }
 
-      const secondCall = getDefaultGameSettings();
+      const secondCall = getGameSettings();
       expect(secondCall.rounds).toBe(DEFAULT_GAME_SETTINGS.rounds);
       expect(secondCall.enabledJokers.size).toBe(DEFAULT_GAME_SETTINGS.enabledJokers.length);
       expect(secondCall.achievementBonuses).toEqual(DEFAULT_GAME_SETTINGS.achievementBonuses);
@@ -105,7 +109,7 @@ describe('settings', () => {
 
       mockGameSettings(customConfig, true);
 
-      const settings = getDefaultGameSettings();
+      const settings = getGameSettings();
       expect(settings.rounds).toBe(10);
       expect(settings.maxGuessTime).toBe(45_000);
       expect(settings.enabledJokers).toEqual(new Set([Joker.TRIVIA]));
@@ -176,6 +180,33 @@ describe('settings', () => {
       expect(settings.sounds.finalResultsJingle).toBeNull();
       expect(settings.sounds.finalResultsLoop).toBeUndefined();
     });
+
+    it('should use configured achievement bonuses instead of the built-in rules', () => {
+      const customRules = [
+        {
+          name: 'Fastest Guess',
+          metric: AchievementBonusMetric.GUESS_TIME,
+          filter: AchievementBonusFilter.CORRECT,
+          aggregate: AchievementBonusAggregate.MIN,
+          goal: AchievementBonusGoal.LOWEST,
+          reward: 250,
+        },
+      ];
+      mockAppSettings({ achievementBonuses: customRules }, true);
+
+      expect(getAppSettings().achievementBonuses).toEqual(customRules);
+      expect(getGameSettings().achievementBonuses).toEqual({
+        mode: AchievementBonusMode.MANUAL,
+        enabledTypes: ['Fastest Guess'],
+      });
+    });
+
+    it('should preserve an explicitly empty custom achievement list', () => {
+      mockAppSettings({ achievementBonuses: [] }, true);
+
+      expect(getAppSettings().achievementBonuses).toEqual([]);
+      expect(getGameSettings().achievementBonuses).toBeNull();
+    });
   });
 
   describe('loadSettingsConfig', () => {
@@ -183,7 +214,8 @@ describe('settings', () => {
       it('should fallback to default settings and log info when config file does not exist', () => {
         vi.mocked(fs.existsSync).mockReturnValue(false);
 
-        const result = loadSettingsConfig('non_existent.json');
+        loadSettingsConfig('non_existent.json');
+        const result = getGameSettings();
 
         expect(result.rounds).toBe(DEFAULT_GAME_SETTINGS.rounds);
         expect(result.maxGuessTime).toBe(DEFAULT_GAME_SETTINGS.maxGuessTime);
@@ -198,7 +230,8 @@ describe('settings', () => {
         vi.mocked(fs.existsSync).mockReturnValue(true);
         vi.mocked(fs.readFileSync).mockReturnValue('{ invalid json format');
 
-        const result = loadSettingsConfig('invalid.json');
+        loadSettingsConfig('invalid.json');
+        const result = getGameSettings();
 
         expect(result.rounds).toBe(DEFAULT_GAME_SETTINGS.rounds);
         expect(result.enabledJokers).toEqual(new Set(DEFAULT_GAME_SETTINGS.enabledJokers));
@@ -226,7 +259,8 @@ describe('settings', () => {
 
         mockGameSettings(customConfig);
 
-        const result = loadSettingsConfig('custom.json');
+        loadSettingsConfig('custom.json');
+        const result = getGameSettings();
 
         expect(result).toEqual({
           rounds: 8,
@@ -251,7 +285,8 @@ describe('settings', () => {
 
         mockGameSettings(partialConfig);
 
-        const result = loadSettingsConfig('partial.json');
+        loadSettingsConfig('partial.json');
+        const result = getGameSettings();
 
         expect(result.rounds).toBe(12);
         expect(result.maxGuessTime).toBe(DEFAULT_GAME_SETTINGS.maxGuessTime);
@@ -292,7 +327,8 @@ describe('settings', () => {
         ])('should fallback rounds to default when value is %s', (_label, invalidValue) => {
           mockGameSettings({ rounds: invalidValue });
 
-          const result = loadSettingsConfig('config.json');
+          loadSettingsConfig('config.json');
+          const result = getGameSettings();
 
           expect(result.rounds).toBe(DEFAULT_GAME_SETTINGS.rounds);
           expect(warnSpy).toHaveBeenCalledWith(
@@ -311,7 +347,8 @@ describe('settings', () => {
         ])('should fallback maxGuessTime to default when value is %s', (_label, invalidValue) => {
           mockGameSettings({ maxGuessTime: invalidValue });
 
-          const result = loadSettingsConfig('config.json');
+          loadSettingsConfig('config.json');
+          const result = getGameSettings();
 
           expect(result.maxGuessTime).toBe(DEFAULT_GAME_SETTINGS.maxGuessTime);
           expect(warnSpy).toHaveBeenCalledWith(
@@ -329,7 +366,8 @@ describe('settings', () => {
         ])('should fallback enabledJokers to default when value is %s', (_label, invalidValue) => {
           mockGameSettings({ enabledJokers: invalidValue });
 
-          const result = loadSettingsConfig('config.json');
+          loadSettingsConfig('config.json');
+          const result = getGameSettings();
 
           expect(result.enabledJokers).toEqual(new Set(DEFAULT_GAME_SETTINGS.enabledJokers));
           expect(warnSpy).toHaveBeenCalledWith(
@@ -346,7 +384,8 @@ describe('settings', () => {
         ])('should fallback firstBonusMultiplier to default when value is %s', (_label, invalidValue) => {
           mockGameSettings({ firstBonusMultiplier: invalidValue });
 
-          const result = loadSettingsConfig('config.json');
+          loadSettingsConfig('config.json');
+          const result = getGameSettings();
 
           expect(result.firstBonusMultiplier).toBe(DEFAULT_GAME_SETTINGS.firstBonusMultiplier);
           expect(warnSpy).toHaveBeenCalledWith(
@@ -359,7 +398,8 @@ describe('settings', () => {
         it('should accept null as valid timeBonus', () => {
           mockGameSettings({ timeBonus: null });
 
-          const result = loadSettingsConfig('config.json');
+          loadSettingsConfig('config.json');
+          const result = getGameSettings();
 
           expect(result.timeBonus).toBeNull();
           expect(warnSpy).not.toHaveBeenCalled();
@@ -368,7 +408,8 @@ describe('settings', () => {
         it('should accept "off" as valid timeBonus', () => {
           mockGameSettings({ timeBonus: 'off' });
 
-          const result = loadSettingsConfig('config.json');
+          loadSettingsConfig('config.json');
+          const result = getGameSettings();
 
           expect(result.timeBonus).toBeNull();
           expect(warnSpy).not.toHaveBeenCalled();
@@ -380,7 +421,8 @@ describe('settings', () => {
         ])('should fallback timeBonus to default when value is %s', (_label, invalidValue) => {
           mockGameSettings({ timeBonus: invalidValue });
 
-          const result = loadSettingsConfig('config.json');
+          loadSettingsConfig('config.json');
+          const result = getGameSettings();
 
           expect(result.timeBonus).toBe(DEFAULT_GAME_SETTINGS.timeBonus);
           expect(warnSpy).toHaveBeenCalledWith(
@@ -397,7 +439,8 @@ describe('settings', () => {
         ])('should fallback streakBonusMultiplier to default when value is %s', (_label, invalidValue) => {
           mockGameSettings({ streakBonusMultiplier: invalidValue });
 
-          const result = loadSettingsConfig('config.json');
+          loadSettingsConfig('config.json');
+          const result = getGameSettings();
 
           expect(result.streakBonusMultiplier).toBe(DEFAULT_GAME_SETTINGS.streakBonusMultiplier);
           expect(warnSpy).toHaveBeenCalledWith(
@@ -416,7 +459,8 @@ describe('settings', () => {
 
             mockGameSettings({ achievementBonuses: validManual });
 
-            const result = loadSettingsConfig('config.json');
+            loadSettingsConfig('config.json');
+            const result = getGameSettings();
 
             expect(result.achievementBonuses).toEqual(validManual);
             expect(warnSpy).not.toHaveBeenCalled();
@@ -430,7 +474,8 @@ describe('settings', () => {
 
             mockGameSettings({ achievementBonuses: validRandom });
 
-            const result = loadSettingsConfig('config.json');
+            loadSettingsConfig('config.json');
+            const result = getGameSettings();
 
             expect(result.achievementBonuses).toEqual(validRandom);
             expect(warnSpy).not.toHaveBeenCalled();
@@ -439,7 +484,8 @@ describe('settings', () => {
           it('should accept null as valid achievementBonuses', () => {
             mockGameSettings({ achievementBonuses: null });
 
-            const result = loadSettingsConfig('config.json');
+            loadSettingsConfig('config.json');
+            const result = getGameSettings();
 
             expect(result.achievementBonuses).toBeNull();
             expect(warnSpy).not.toHaveBeenCalled();
@@ -448,7 +494,8 @@ describe('settings', () => {
           it('should accept "off" as valid achievementBonuses', () => {
             mockGameSettings({ achievementBonuses: 'off' });
 
-            const result = loadSettingsConfig('config.json');
+            loadSettingsConfig('config.json');
+            const result = getGameSettings();
 
             expect(result.achievementBonuses).toBeNull();
             expect(warnSpy).not.toHaveBeenCalled();
@@ -472,7 +519,8 @@ describe('settings', () => {
           ])('should fallback achievementBonuses to default when value has %s', (_label, invalidValue) => {
             mockGameSettings({ achievementBonuses: invalidValue });
 
-            const result = loadSettingsConfig('config.json');
+            loadSettingsConfig('config.json');
+            const result = getGameSettings();
 
             expect(result.achievementBonuses).toEqual(DEFAULT_GAME_SETTINGS.achievementBonuses);
             expect(warnSpy).toHaveBeenCalledWith(

@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 
-import type { Track } from '@yasq/shared';
+import { type Track } from '@yasq/shared';
+import defaultCover from '../../../client/src/assets/default.svg';
 
 interface TrackListProps {
   tracks: { track: Track; originalIndex: number }[];
@@ -117,10 +118,10 @@ export function TrackList({
                 >
                   <img
                     loading="lazy"
-                    src={track.cover ? `/covers/${track.cover}` : '/default.svg'}
+                    src={track.cover ? `/covers/${track.cover}` : defaultCover}
                     alt={`Cover of ${track.game}`}
                     onError={e => {
-                      (e.currentTarget as HTMLImageElement).src = '/default.svg';
+                      (e.currentTarget as HTMLImageElement).src = defaultCover;
                     }}
                   />
                   <div className="track-info">

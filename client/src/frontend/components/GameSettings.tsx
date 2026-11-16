@@ -7,7 +7,7 @@ import { useRovingTabIndex } from '../hooks/useRovingTabIndex';
 import { useTimeBonusSamples } from '../hooks/useTimeBonusSamples';
 
 import { gameStatus } from '@globals';
-import { AchievementBonusMode, AchievementBonusType, capitalize, Joker } from '@yasq/shared';
+import { AchievementBonusMode, capitalize, Joker } from '@yasq/shared';
 
 import { ALL_JOKER_ICONS, InfoIcon } from '@components/Icons';
 import { Modal } from '@components/Modal';
@@ -149,8 +149,8 @@ export const GameSettings = ({ onSettingsEdit }: { onSettingsEdit?: () => Promis
               <span className="achievement-text-name">Random ({achievementBonuses.randomCount})</span>
             ) : (
               <ul className="achievement-list">
-                {achievementBonuses.enabledTypes.map((achievementType: AchievementBonusType) => (
-                  <li key={achievementType}>{capitalize(achievementType)}</li>
+                {achievementBonuses.enabledTypes.map((achievementType: string) => (
+                  <li key={achievementType}>{achievementType}</li>
                 ))}
               </ul>
             )}

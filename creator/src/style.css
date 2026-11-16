@@ -139,6 +139,27 @@ button {
   letter-spacing: 0.05em;
 }
 
+.achievement-bonus-list {
+  display: flex;
+  flex-flow: column;
+  gap: 0.75rem;
+}
+
+.achievement-bonus-list li {
+  display: flex;
+  justify-content: space-between;
+}
+
+.achievement-bonus-form {
+  display: flex;
+  flex-flow: column;
+  gap: 0.75rem;
+}
+
+.achievement-bonus-form[hidden] {
+  display: none;
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -155,7 +176,8 @@ button {
 
 .field input[type='text'],
 .field input[type='number'],
-.field input[type='file'] {
+.field input[type='file'],
+.field select {
   padding: 0.7rem;
   border-radius: 6px;
   border: 1px solid #444;
@@ -485,7 +507,6 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
 }
 
 .playlist-card {
@@ -821,6 +842,16 @@ select {
 
 .page-size-selector select:focus {
   border-color: var(--blurple);
+}
+
+.settings-form {
+  gap: 2.5rem;
+}
+
+.settings-section {
+  display: flex;
+  flex-flow: column;
+  gap: 1rem;
 }
 
 .radio-group-pills {

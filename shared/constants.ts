@@ -63,10 +63,10 @@ export enum BonusType {
 }
 
 export enum AchievementBonusType {
-  FASTEST_CORRECT_GUESS = 'FASTEST_CORRECT_GUESS',
-  HIGHEST_STREAK = 'HIGHEST_STREAK',
-  SLOWEST_AVERAGE_GUESS_TIME = 'SLOWEST_AVERAGE_GUESS_TIME',
-  MOST_PARTIALLY_CORRECT_GUESSES = 'MOST_PARTIALLY_CORRECT_GUESSES',
+  FASTEST_CORRECT_GUESS = 'Fastest Correct Guess',
+  HIGHEST_STREAK = 'Highest Streak',
+  SLOWEST_AVERAGE_GUESS_TIME = 'Slowest Average Guess Time',
+  MOST_PARTIALLY_CORRECT_GUESSES = 'Most Partially Correct Guesses',
 }
 
 export enum AchievementBonusMode {
@@ -74,9 +74,83 @@ export enum AchievementBonusMode {
   RANDOM = 'random',
 }
 
+export enum AchievementBonusMetric {
+  GUESS_TIME = 'guessTime',
+  SCORE = 'score',
+  TIME_BONUS = 'timeBonus',
+  STREAK = 'streak',
+}
+
+export enum AchievementBonusFilter {
+  CORRECT = 'correct',
+  PARTIALLY_CORRECT = 'partiallyCorrect',
+  INCORRECT = 'incorrect',
+  ANY = 'any',
+}
+
+export enum AchievementBonusAggregate {
+  AVERAGE = 'average',
+  SUM = 'sum',
+  MIN = 'min',
+  MAX = 'max',
+  COUNT = 'count',
+}
+
+export enum AchievementBonusGoal {
+  HIGHEST = 'highest',
+  LOWEST = 'lowest',
+}
+
+export interface AchievementBonusRule {
+  name: string;
+  metric: AchievementBonusMetric;
+  filter?: AchievementBonusFilter | undefined;
+  aggregate?: AchievementBonusAggregate | undefined;
+  goal: AchievementBonusGoal;
+  reward?: number | undefined;
+  description?: string | undefined;
+}
+
+export const DEFAULT_ACHIEVEMENT_BONUS_RULES: AchievementBonusRule[] = [
+  {
+    name: AchievementBonusType.HIGHEST_STREAK,
+    metric: AchievementBonusMetric.STREAK,
+    goal: AchievementBonusGoal.HIGHEST,
+    reward: 100,
+    description: 'Awarded to the player who built the highest continuous streak throughout the game.',
+  },
+  {
+    name: AchievementBonusType.FASTEST_CORRECT_GUESS,
+    metric: AchievementBonusMetric.GUESS_TIME,
+    filter: AchievementBonusFilter.CORRECT,
+    aggregate: AchievementBonusAggregate.MIN,
+    goal: AchievementBonusGoal.LOWEST,
+    reward: 100,
+    description: 'Awarded to the player who submitted a fully correct guess in the shortest amount of time.',
+  },
+  {
+    name: AchievementBonusType.MOST_PARTIALLY_CORRECT_GUESSES,
+    metric: AchievementBonusMetric.SCORE,
+    filter: AchievementBonusFilter.PARTIALLY_CORRECT,
+    aggregate: AchievementBonusAggregate.COUNT,
+    goal: AchievementBonusGoal.HIGHEST,
+    reward: 100,
+    description: 'Awarded to the player who achieved the highest number of partially correct guesses.',
+  },
+  {
+    name: AchievementBonusType.SLOWEST_AVERAGE_GUESS_TIME,
+    metric: AchievementBonusMetric.GUESS_TIME,
+    filter: AchievementBonusFilter.ANY,
+    aggregate: AchievementBonusAggregate.AVERAGE,
+    goal: AchievementBonusGoal.HIGHEST,
+    reward: 100,
+    description: 'Awarded to the player with the slowest average guess time throughout the game.',
+  },
+];
+
 export interface ManualAchievementBonuses {
   mode: AchievementBonusMode.MANUAL;
-  enabledTypes: AchievementBonusType[];
+  enabledTypes: string[];
 }
 
 export interface RandomAchievementBonuses {

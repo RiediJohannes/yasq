@@ -1,6 +1,5 @@
 import {
   AchievementStateDto,
-  capitalize,
   getAvatarUrl,
   getDisplayName,
   type LeaderboardEntryDto,
@@ -36,7 +35,7 @@ export const Leaderboard = ({ leaderboard, achievements, participants }: Leaderb
             state?.userIds &&
             state.userIds.includes(player.userId) &&
             player.achievementBonuses &&
-            player.achievementBonuses.has(state.rule.id)
+            player.achievementBonuses.has(state.rule.name)
         );
 
         return (
@@ -68,7 +67,6 @@ export const Leaderboard = ({ leaderboard, achievements, participants }: Leaderb
                   <div className="player-achievements">
                     {playerAchievements.map(([ruleId, state]: [string, AchievementStateDto], aIndex: number) => {
                       const points = state.rule?.reward || 0;
-                      const label = capitalize(ruleId);
                       const icon =
                         state.rule?.metric === 'streak' ? '🔥' : state.rule?.metric === 'guessTime' ? '⌚' : '🏆';
 
@@ -78,7 +76,7 @@ export const Leaderboard = ({ leaderboard, achievements, participants }: Leaderb
                         <TooltipDiv
                           key={tooltipId}
                           id={tooltipId}
-                          text={`${label} (+${points} pts)`}
+                          text={`${ruleId} (+${points} pts)`}
                           className="badge winner"
                         >
                           {icon} +{points}

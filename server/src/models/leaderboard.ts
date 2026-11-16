@@ -1,4 +1,4 @@
-import { type AchievementBonusType, type PointsBonus, type TimeBonusSummary } from '@yasq/shared';
+import { type PointsBonus, type TimeBonusSummary } from '@yasq/shared';
 
 export class RoundResult {
   constructor(
@@ -20,7 +20,7 @@ export class LeaderboardEntry {
   public userId: string;
   public totalScore: number = 0;
   public roundHistory: RoundResult[] = [];
-  public achievementBonuses: Map<AchievementBonusType, number> = new Map<AchievementBonusType, number>();
+  public achievementBonuses: Map<string, number> = new Map<string, number>();
 
   constructor(userId: string) {
     this.userId = userId;
@@ -34,7 +34,7 @@ export class LeaderboardEntry {
     this.recalculateTotal();
   }
 
-  addAchievementBonus(type: AchievementBonusType, reward: number) {
+  addAchievementBonus(type: string, reward: number) {
     this.achievementBonuses.set(type, reward);
     this.recalculateTotal();
   }
@@ -57,8 +57,8 @@ export class LeaderboardEntry {
     entry.roundHistory = (data.roundHistory || []).map(
       (r: any) => new RoundResult(r.round, r.guess, r.points, r.scoreValue, r.isFirst, r.time, r.awardedBonuses)
     );
-    entry.achievementBonuses = new Map<AchievementBonusType, number>(
-      data.achievementBonuses ? (Object.entries(data.achievementBonuses) as [AchievementBonusType, number][]) : []
+    entry.achievementBonuses = new Map<string, number>(
+      data.achievementBonuses ? (Object.entries(data.achievementBonuses) as [string, number][]) : []
     );
     entry.recalculateTotal();
     return entry;

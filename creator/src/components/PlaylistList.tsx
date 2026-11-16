@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 
-import type { Playlist, Track } from '@yasq/shared';
+import { type Playlist, type Track } from '@yasq/shared';
+import defaultCover from '../../../client/src/assets/default.svg';
 
 interface PlaylistListProps {
   playlists: { playlist: Playlist; originalIndex: number }[];
@@ -167,10 +168,10 @@ export function PlaylistList({
                                 <>
                                   <img
                                     loading="lazy"
-                                    src={matchedTrack.cover ? `/covers/${matchedTrack.cover}` : '/default.svg'}
+                                    src={matchedTrack.cover ? `/covers/${matchedTrack.cover}` : defaultCover}
                                     alt={`Cover of ${matchedTrack.game}`}
                                     onError={e => {
-                                      (e.currentTarget as HTMLImageElement).src = '/default.svg';
+                                      (e.currentTarget as HTMLImageElement).src = defaultCover;
                                     }}
                                   />
                                   <div className="track-info">

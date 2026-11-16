@@ -4,6 +4,7 @@
 
 import {
   type AchievementBonuses,
+  type AchievementBonusRule,
   BonusType,
   DEFAULT_ACHIEVEMENT_BONUSES,
   DEFAULT_ENABLED_JOKERS,
@@ -91,6 +92,7 @@ export interface AppSettings {
     finalResultsJingle?: string | null | undefined;
     finalResultsLoop?: string | null | undefined;
   };
+  achievementBonuses?: AchievementBonusRule[] | undefined;
 }
 
 export interface TimeBonusPoint {
@@ -143,6 +145,7 @@ export interface GameStatus {
   streaks: Record<string, number>;
   lostStreaks: Record<string, number>;
   settings: GameSettings<Joker[]>;
+  achievementBonusRules: AchievementBonusRule[];
 }
 
 export interface Playback {

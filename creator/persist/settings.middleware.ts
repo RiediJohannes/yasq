@@ -2,22 +2,27 @@ import { Connect } from 'vite';
 import fs from 'fs';
 import http from 'http';
 
-import { DEFAULT_SETTINGS } from '@yasq/shared';
+import { type AppSettings, DEFAULT_SETTINGS, GameSettings, Joker } from '@yasq/shared';
 
 import { paths } from './paths.js';
 
-const readSettings = (): any => {
+interface Settings {
+  gameSettings: GameSettings<Joker[]>;
+  appSettings: AppSettings;
+}
+
+const readSettings = (): Settings => {
   if (!fs.existsSync(paths.settingsFile)) return DEFAULT_SETTINGS;
   try {
     const data = fs.readFileSync(paths.settingsFile, 'utf-8');
-    return data.trim() ? JSON.parse(data) : DEFAULT_SETTINGS;
+    return data.trim() ? (JSON.parse(data) as Settings) : DEFAULT_SETTINGS;
   } catch (err) {
     console.error('Failed to parse settings file, using defaults', err);
     return DEFAULT_SETTINGS;
   }
 };
 
-const writeSettings = (settings: any) => {
+const writeSettings = (settings: Settings) => {
   fs.mkdirSync(paths.baseDir, { recursive: true });
   fs.writeFileSync(paths.settingsFile, JSON.stringify(settings, null, 2));
 };
@@ -37,7 +42,7 @@ export function registerSettingsMiddleware(server: { middlewares: Connect.Server
         const chunks: Buffer[] = [];
         req.on('data', (chunk: Buffer) => chunks.push(chunk));
         req.on('end', () => {
-          const updatedSettings = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
+          const updatedSettings = JSON.parse(Buffer.concat(chunks).toString('utf-8')) as Settings;
 
           writeSettings(updatedSettings);
           res.end(JSON.stringify(updatedSettings));
@@ -63,9 +68,11 @@ export function registerSettingsMiddleware(server: { middlewares: Connect.Server
       // Fallthrough for unhandled HTTP methods or paths
       res.statusCode = 405; // Method Not Allowed
       return res.end(JSON.stringify({ error: `Method ${req.method} not allowed` }));
-    } catch (err: any) {
+    } catch (error) {
       res.statusCode = 500;
-      return res.end(JSON.stringify({ error: err.message }));
+      return res.end(
+        JSON.stringify({ error: error instanceof Error ? error.message : 'Failed to access settings file.' })
+      );
     }
   });
 }

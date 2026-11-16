@@ -29,7 +29,7 @@ import { Player } from '../utils/helper';
 
 vi.mock('../../server/src/config/settings', async importOriginal => ({
   ...(await importOriginal()),
-  getAppSettings: vi.fn(),
+  getAppSettings: vi.fn(() => ({ sounds: {} })),
 }));
 
 const makeAuth = (id: string, username: string): AuthenticationResult =>

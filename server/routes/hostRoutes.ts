@@ -7,7 +7,6 @@ import type { APIChannel } from 'discord-api-types/v10';
 import type { GameInstance } from '../src/models/game_instance.js';
 import {
   AchievementBonusMode,
-  AchievementBonusType,
   FirstBonusMultiplier,
   GamePhase,
   GameSettings,
@@ -27,6 +26,7 @@ import { isAllowed } from '../src/config/permissions.js';
 import { generateResultsImage } from '../src/ssr/export_results.js';
 import { LogCategory, logger } from '../src/utils/logger.js';
 import { getChannelsForGuild, postResultsToChannel } from '../src/utils/discord.js';
+import { getConfiguredAchievementBonusRules } from '../src/models/achievement_bonus.js';
 
 import { authenticateUser, createFetchGameMiddleware, defineSchema, isHost, validateRequest } from './middleware.js';
 import { ApiError } from './errors.js';
@@ -110,7 +110,12 @@ export const setupHostRoutes = (
         .discriminatedUnion('mode', [
           z.object({
             mode: z.literal(AchievementBonusMode.MANUAL),
-            enabledTypes: z.array(z.enum(AchievementBonusType)),
+            enabledTypes: z
+              .array(z.string())
+              .refine(
+                types => types.every(type => getConfiguredAchievementBonusRules().some(rule => rule.name === type)),
+                { error: 'Achievement bonuses must use configured names.' }
+              ),
           }),
           z.object({
             mode: z.literal(AchievementBonusMode.RANDOM),
@@ -118,8 +123,8 @@ export const setupHostRoutes = (
               .number()
               .int()
               .positive()
-              .lt(Object.keys(AchievementBonusType).length, {
-                error: `'randomCount' must be smaller than the total number of available achievement bonus types (${Object.keys(AchievementBonusType).length})`,
+              .lt(getConfiguredAchievementBonusRules().length, {
+                error: `'randomCount' must be smaller than the total number of available achievement bonus types (${getConfiguredAchievementBonusRules().length})`,
               }),
           }),
         ])

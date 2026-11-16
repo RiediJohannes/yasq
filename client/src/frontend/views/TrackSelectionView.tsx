@@ -1,8 +1,9 @@
 import { computed, signal, useSignal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 
-import { useBackend } from '@globals';
 import { GAME_COVERS_DIR, GameEvent, Playlist } from '@yasq/shared';
+
+import { useBackend } from '@globals';
 import { TrackViewModel } from '../../common/types';
 import {
   getAvailableTagsByType,

@@ -3,22 +3,85 @@ import AxeBuilder from '@axe-core/playwright';
 import { formatViolations, highlightAccessibilityViolations } from '../utils/accessibility.js';
 import { expect, test } from './test_setup.js';
 
-test('should save game settings', async ({ page, settingsPage }) => {
-  await settingsPage.goto('/settings');
-  await expect(settingsPage.roundsInput).toBeVisible();
-  await settingsPage.roundsInput.fill('17');
+test.describe('Settings Edit', () => {
+  test('should save game settings', async ({ page, settingsPage }) => {
+    await settingsPage.goto('/settings');
+    await expect(settingsPage.roundsInput).toBeVisible();
+    await settingsPage.roundsInput.fill('17');
 
-  const dialogMessage = page.waitForEvent('dialog').then(async dialog => {
-    const message = dialog.message();
-    await dialog.accept();
-    return message;
+    const dialogMessage = page.waitForEvent('dialog').then(async dialog => {
+      const message = dialog.message();
+      await dialog.accept();
+      return message;
+    });
+    await settingsPage.saveSettingsButton.click();
+    expect(await dialogMessage).toBe('Settings saved successfully!');
+
+    await expect(settingsPage.roundsInput).toHaveValue('17');
+    await page.reload();
+    await expect(settingsPage.roundsInput).toHaveValue('17');
   });
-  await settingsPage.saveSettingsButton.click();
-  expect(await dialogMessage).toBe('Settings saved successfully!');
 
-  await expect(settingsPage.roundsInput).toHaveValue('17');
-  await page.reload();
-  await expect(settingsPage.roundsInput).toHaveValue('17');
+  test('should create and persist a custom achievement bonus', async ({ page, settingsPage }) => {
+    await settingsPage.goto('/settings');
+    await expect(settingsPage.achievementRuleNameInput).not.toBeVisible();
+    await settingsPage.addCustomAchievementToggle.click();
+    await expect(settingsPage.achievementRuleNameInput).toBeVisible();
+    await settingsPage.achievementRuleNameInput.fill('Most Time Bonus');
+    await settingsPage.achievementRuleMetricSelect.selectOption('timeBonus');
+    await settingsPage.achievementRuleFilterSelect.selectOption('any');
+    await settingsPage.achievementRuleAggregateSelect.selectOption('sum');
+    await settingsPage.achievementRuleGoalSelect.selectOption('highest');
+    await settingsPage.achievementRuleRewardInput.fill('250');
+    await settingsPage.addAchievementBonusButton.click();
+
+    await expect(settingsPage.achievementBonuses).toContainText('Most Time Bonus');
+    await expect(settingsPage.achievementBonuses).toContainText('Highest Streak');
+    await expect(settingsPage.restoreDefaultBonusesButton).not.toBeVisible();
+
+    const dialogMessage = page.waitForEvent('dialog').then(async dialog => {
+      const message = dialog.message();
+      await dialog.accept();
+      return message;
+    });
+    await settingsPage.saveSettingsButton.click();
+    expect(await dialogMessage).toBe('Settings saved successfully!');
+
+    await page.reload();
+    await expect(settingsPage.achievementBonuses).toContainText('Most Time Bonus');
+    await expect(settingsPage.achievementBonuses).toContainText('Highest Streak');
+    await expect(settingsPage.achievementBonusCheckbox('Most Time Bonus')).toBeChecked();
+
+    await settingsPage.removeAchievementBonusButton('Highest Streak').click();
+    const removeDialogMessage = page.waitForEvent('dialog').then(async dialog => {
+      const message = dialog.message();
+      await dialog.accept();
+      return message;
+    });
+    await settingsPage.saveSettingsButton.click();
+    expect(await removeDialogMessage).toBe('Settings saved successfully!');
+
+    await page.reload();
+    await expect(settingsPage.achievementBonuses).not.toContainText('Highest Streak');
+    await expect(settingsPage.achievementBonuses).toContainText('Fastest Correct Guess');
+    await expect(settingsPage.achievementBonuses).toContainText('Most Time Bonus');
+
+    await expect(settingsPage.restoreDefaultBonusesButton).toBeEnabled();
+    await settingsPage.restoreDefaultBonusesButton.click();
+    await expect(settingsPage.achievementBonuses).toContainText('Highest Streak');
+    await expect(settingsPage.restoreDefaultBonusesButton).not.toBeVisible();
+
+    const restoreDialogMessage = page.waitForEvent('dialog').then(async dialog => {
+      const message = dialog.message();
+      await dialog.accept();
+      return message;
+    });
+    await settingsPage.saveSettingsButton.click();
+    expect(await restoreDialogMessage).toBe('Settings saved successfully!');
+    await page.reload();
+    await expect(settingsPage.achievementBonuses).toContainText('Highest Streak');
+    await expect(settingsPage.restoreDefaultBonusesButton).not.toBeVisible();
+  });
 });
 
 test.describe('Accessibility', () => {

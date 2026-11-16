@@ -6,7 +6,7 @@ import { registerTracksMiddleware } from './tracks.middleware';
 import { registerPlaylistsMiddleware } from './playlists.middleware';
 import { registerSettingsMiddleware } from './settings.middleware';
 import { registerPermissionsMiddleware } from './permissions.middleware';
-import { registerDiscordUsersMiddleware } from './discordUsers.middleware';
+import { registerDiscordMiddleware } from './discord.middleware';
 
 export function persistPlugin(): Plugin {
   return {
@@ -18,7 +18,7 @@ export function persistPlugin(): Plugin {
       registerPlaylistsMiddleware(server);
       registerSettingsMiddleware(server);
       registerPermissionsMiddleware(server);
-      registerDiscordUsersMiddleware(server);
+      registerDiscordMiddleware(server);
     },
   };
 }

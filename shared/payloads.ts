@@ -4,7 +4,7 @@
  * for the domain models on the server.
  */
 
-import { type AchievementBonusType, Joker } from './constants.js';
+import { type AchievementBonusRule, Joker } from './constants.js';
 import type {
   GlimpseHint,
   MultipleChoiceHint,
@@ -63,7 +63,7 @@ export interface LeaderboardEntryDto {
   userId: string;
   totalScore: number;
   roundHistory: RoundResultDto[];
-  achievementBonuses: Map<AchievementBonusType, number>;
+  achievementBonuses: Map<string, number>;
 }
 
 export interface GameStatsDto {
@@ -80,13 +80,7 @@ export interface AchievementStateDto {
   extraData?: any;
 }
 
-export interface AchievementRuleDto {
-  id: AchievementBonusType;
-  reward: number;
-  metric: string;
-  description: string;
-  aggregate: string;
-}
+export type AchievementRuleDto = AchievementBonusRule;
 
 export interface FinalResultsResponse {
   leaderboard: LeaderboardEntryDto[];
