@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
 import { TooltipDiv, WithTooltip } from '@components/Tooltip';
+import { TargetedKeyboardEvent } from 'preact';
 
 export const WrapBasicChild = () => (
   <div id="direct-parent">
@@ -30,7 +31,7 @@ export const WrapInteractiveChild = () => {
       </WithTooltip>
 
       {/* Clicks tracker for Playwright assertions */}
-      <span id="click-count">{clicks}</span>
+      <output id="click-count">{clicks}</output>
     </div>
   );
 };
@@ -44,6 +45,26 @@ export const Disabled = () => (
     <div tabIndex={0}>Disabled tooltip</div>
   </TooltipDiv>
 );
+
+export const EscapeCounter = () => {
+  const [escapes, setEscapes] = useState(0);
+  const countEscapeEvents = (e: TargetedKeyboardEvent<HTMLDivElement>) => e.key === 'Escape' && setEscapes(n => n + 1);
+
+  return (
+    <div
+      id="direct-parent"
+      onKeyDown={countEscapeEvents}
+    >
+      <WithTooltip
+        text="Close me by hitting ESC"
+        id="test-tooltip"
+      >
+        <div tabIndex={0}>Hover or focus me</div>
+      </WithTooltip>
+      <output id="escape-count">{escapes}</output>
+    </div>
+  );
+};
 
 export const DivAroundText = () => (
   <div id="direct-parent">
@@ -75,7 +96,7 @@ export const DivAroundHierarchy = () => {
           <span>Description next to the button</span>
         </div>
         <div id="tooltip-child-2">
-          <span id="click-count">{clicks}</span>
+          <output id="click-count">{clicks}</output>
         </div>
       </TooltipDiv>
     </div>
@@ -108,7 +129,7 @@ export const MultipleTooltips = () => {
           <button onClick={_ => setClicks((prev: number) => prev + 1)}>Third Child</button>
         </WithTooltip>
       </div>
-      <span id="click-count">{clicks}</span>
+      <output id="click-count">{clicks}</output>
     </div>
   );
 };
