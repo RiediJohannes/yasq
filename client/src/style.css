@@ -2458,6 +2458,12 @@ input[value='1']:checked + .btn-radio.correct {
   -webkit-user-select: none;
 }
 
+.time-bonus-plot-area {
+  position: relative;
+  scroll-margin: var(--space-large);
+  scroll-margin-top: 50px;
+}
+
 .time-bonus-plot-canvas {
   position: relative;
 }
@@ -2621,6 +2627,30 @@ input[value='1']:checked + .btn-radio.correct {
 
 .player-marker.is-hovered .player-avatar-ring {
   opacity: 1;
+}
+
+.plot-keyboard-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.plot-keyboard-target {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  outline: none;
+}
+
+.plot-keyboard-target:focus-visible {
+  outline: 2px solid var(--color-curve);
+  outline-offset: 2px;
+}
+
+.time-bonus-plot-area:has(.plot-keyboard-target:focus-visible) {
+  outline: 2px solid color-mix(in srgb, var(--color-curve) 10%, #ffffff44);
 }
 
 .plot-tooltip {
