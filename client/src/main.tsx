@@ -6,9 +6,9 @@ import { useKeyboardShortcut } from './frontend/hooks/useKeyboardShortcut';
 import { backend, BackendContext, discordSdk, gameStatus, isMac, participants } from '@globals';
 import { GamePhase } from '@yasq/shared';
 
-import { GameHeader, isGameSettingsOpen, isHowToPlayOpen, isLocalSettingsOpen } from '@components/GameHeader';
+import { GameHeader, isGameSettingsOpen, isHowToPlayOpen, isUserSettingsOpen } from '@components/GameHeader';
 import { HowToPlay } from '@components/HowToPlay';
-import { LocalSettings } from '@components/LocalSettings';
+import { UserSettings } from '@components/UserSettings';
 import { Modal } from '@components/Modal';
 import { Sidebar } from '@components/Sidebar';
 import { LoadingState } from '@components/LoadingSpinner';
@@ -88,12 +88,12 @@ const App = () => {
           </Modal>
 
           <Modal
-            id="local-settings-modal"
-            isOpen={isLocalSettingsOpen}
-            title="Local Settings"
+            id="user-settings-modal"
+            isOpen={isUserSettingsOpen}
+            title="User Settings"
             width="400px"
           >
-            <LocalSettings />
+            <UserSettings />
           </Modal>
 
           <Modal

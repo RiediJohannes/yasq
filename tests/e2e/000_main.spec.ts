@@ -33,8 +33,8 @@ test.describe('Home', () => {
     await expect(header.howToPlayBtn).toBeVisible();
     await expect(header.howToPlayBtn).toBeEnabled();
 
-    await expect(header.localSettingsBtn).toBeVisible();
-    await expect(header.localSettingsBtn).toBeEnabled();
+    await expect(header.userSettingsBtn).toBeVisible();
+    await expect(header.userSettingsBtn).toBeEnabled();
 
     // Same is true on the lobby page
     await session.api.patchState({ phase: GamePhase.LOBBY });
@@ -51,35 +51,35 @@ test.describe('Home', () => {
     await expect(header.gameSettingsBtn).toBeVisible();
   });
 
-  test('should allow opening local settings modal and changing preferences', async ({
+  test('should allow opening user settings modal and changing preferences', async ({
     page,
     header,
-    localSettingsModal,
+    userSettingsModal,
   }) => {
-    await expect(localSettingsModal.modal).toBeHidden();
+    await expect(userSettingsModal.modal).toBeHidden();
 
-    // Open local settings modal
-    await header.localSettingsBtn.click();
-    await expect(localSettingsModal.modal).toBeVisible();
-    await expect(localSettingsModal.title).toContainText('Local Settings');
+    // Open user settings modal
+    await header.userSettingsBtn.click();
+    await expect(userSettingsModal.modal).toBeVisible();
+    await expect(userSettingsModal.title).toContainText('User Settings');
 
     // Change theme
-    await localSettingsModal.setTheme('light');
+    await userSettingsModal.setTheme('light');
     expect(await page.locator('html').getAttribute('data-theme')).toEqual('light');
 
-    await localSettingsModal.setTheme('dark');
+    await userSettingsModal.setTheme('dark');
     expect(await page.locator('html').getAttribute('data-theme')).toEqual('dark');
 
     // Change keyboard hints
-    await localSettingsModal.setKeyboardHints(false);
+    await userSettingsModal.setKeyboardHints(false);
     expect(await page.locator('html').getAttribute('data-keyboard-hints')).toEqual('false');
 
-    await localSettingsModal.setKeyboardHints(true);
+    await userSettingsModal.setKeyboardHints(true);
     expect(await page.locator('html').getAttribute('data-keyboard-hints')).toEqual('true');
 
-    // Close local settings modal
-    await localSettingsModal.closeBtn.click();
-    await expect(localSettingsModal.modal).toBeHidden();
+    // Close user settings modal
+    await userSettingsModal.closeBtn.click();
+    await expect(userSettingsModal.modal).toBeHidden();
   });
 
   test('should allow opening the how-to-play modal and switching between tabs', async ({ header, howToPlayModal }) => {
@@ -185,8 +185,8 @@ test.describe('In-Game', () => {
     await expect(header.howToPlayBtn).toBeVisible();
     await expect(header.howToPlayBtn).toBeEnabled();
 
-    await expect(header.localSettingsBtn).toBeVisible();
-    await expect(header.localSettingsBtn).toBeEnabled();
+    await expect(header.userSettingsBtn).toBeVisible();
+    await expect(header.userSettingsBtn).toBeEnabled();
 
     // Change current round
     const newCurrentRound = 5;

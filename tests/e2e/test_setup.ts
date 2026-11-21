@@ -12,7 +12,7 @@ import { RoundResultsPage } from './pages/RoundResultsPage';
 import { FinalResultsPage } from './pages/FinalResultsPage';
 import { Sidebar } from './pages/components/Sidebar';
 import { Header } from './pages/components/Header';
-import { LocalSettingsModal } from './pages/components/LocalSettingsModal';
+import { UserSettingsModal } from './pages/components/UserSettingsModal';
 import { HowToPlayModal } from './pages/components/HowToPlayModal';
 import { GameSettingsModal } from './pages/components/GameSettingsModal';
 
@@ -46,7 +46,7 @@ type GameFixtures = {
   finalResultsPage: FinalResultsPage;
   sidebar: Sidebar;
   header: Header;
-  localSettingsModal: LocalSettingsModal;
+  userSettingsModal: UserSettingsModal;
   howToPlayModal: HowToPlayModal;
   gameSettingsModal: GameSettingsModal;
 };
@@ -111,7 +111,7 @@ export const test = base.extend<GameOptions & GameFixtures>({
   finalResultsPage: async ({ page }, use) => use(new FinalResultsPage(page)),
   sidebar: async ({ page }, use) => use(new Sidebar(page)),
   header: async ({ page }, use) => use(new Header(page)),
-  localSettingsModal: async ({ page }, use) => use(new LocalSettingsModal(page)),
+  userSettingsModal: async ({ page }, use) => use(new UserSettingsModal(page)),
   howToPlayModal: async ({ page }, use) => use(new HowToPlayModal(page)),
   gameSettingsModal: async ({ page }, use) => use(new GameSettingsModal(page)),
 });

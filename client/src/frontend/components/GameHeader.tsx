@@ -6,7 +6,7 @@ import { WithTooltip } from './Tooltip';
 
 export const isGameSettingsOpen = signal(false);
 export const isHowToPlayOpen = signal(false);
-export const isLocalSettingsOpen = signal(false);
+export const isUserSettingsOpen = signal(false);
 
 export const GameHeader = () => {
   const { state, settings } = gameStatus.value;
@@ -53,12 +53,12 @@ export const GameHeader = () => {
             ❔
           </button>
         </WithTooltip>
-        <WithTooltip text="Local Settings">
+        <WithTooltip text="User Settings">
           <button
             type="button"
-            id="local-settings-btn"
+            id="user-settings-btn"
             className="header-btn"
-            onClick={() => (isLocalSettingsOpen.value = true)}
+            onClick={() => (isUserSettingsOpen.value = true)}
           >
             ⚙️
           </button>

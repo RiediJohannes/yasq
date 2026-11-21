@@ -271,6 +271,7 @@ img {
   flex-direction: column;
   gap: var(--space-small);
   text-align: left;
+  overflow: visible;
 }
 
 .setting-item > span {
@@ -278,6 +279,32 @@ img {
   font-size: 0.8rem;
   font-weight: bold;
   text-transform: uppercase;
+}
+
+.setting-item .toggle-setting {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  padding-left: 5px;
+}
+
+.toggle-setting .info {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 1px;
+  aspect-ratio: 1 / 1;
+  border: 1px solid var(--text-muted);
+  border-radius: var(--border-radius-small);
+  outline-offset: 1px;
+  cursor: help;
+}
+
+.toggle-setting .info svg {
+  display: inline-block;
+  height: 1.3em;
+  color: var(--text-muted);
 }
 
 .joker-config-row {
@@ -420,6 +447,89 @@ select:disabled {
 }
 select:disabled option {
   color: graytext;
+}
+
+.toggle-switch {
+  display: inline-block;
+  width: 100%;
+  padding-top: 0.25em;
+  padding-bottom: 0.25em;
+  --toggle-width: 3em;
+  --toggle-height: 1.6em;
+  --circle-gap: 0.15em;
+}
+.toggle-switch label {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+@media (hover: hover) {
+  .toggle-switch label:hover {
+    color: var(--text-main);
+  }
+}
+
+.toggle-switch-track {
+  position: relative;
+  flex: 0 0 var(--toggle-width);
+  height: var(--toggle-height);
+  border-radius: var(--toggle-height);
+  background: var(--border-muted);
+  transition:
+    background-color 0.15s,
+    box-shadow 0.15s;
+}
+.toggle-switch label:hover .toggle-switch-track {
+  background: var(--border-input-header);
+}
+
+/* Circle moving within the track */
+.toggle-switch-track::after {
+  content: '';
+  position: absolute;
+  top: var(--circle-gap);
+  left: var(--circle-gap);
+  width: calc(var(--toggle-height) - 2 * var(--circle-gap));
+  height: calc(var(--toggle-height) - 2 * var(--circle-gap));
+  border-radius: 50%;
+  background: var(--fixed-white);
+  transform: translateX(0);
+  transition:
+    transform 0.15s,
+    background-color 0.15s;
+  will-change: transform;
+}
+.toggle-switch input[type='checkbox'] {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+/* Checked state */
+.toggle-switch input[type='checkbox']:checked + label .toggle-switch-track {
+  background: var(--blurple);
+}
+.toggle-switch input[type='checkbox']:checked:hover + label .toggle-switch-track {
+  filter: brightness(1.08);
+}
+.toggle-switch input[type='checkbox']:checked + label .toggle-switch-track::after {
+  transform: translateX(calc(var(--toggle-width) - var(--toggle-height)));
+}
+/* Focused state */
+.toggle-switch input[type='checkbox']:focus-visible + label .toggle-switch-track {
+  outline: 3px solid var(--blurple);
+  outline-offset: 2px;
+}
+/* Disabled state */
+.toggle-switch input[type='checkbox']:disabled + label {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.toggle-switch input[type='checkbox']:disabled + label .toggle-switch-track::after {
+  background: var(--text-muted);
 }
 
 .divider {
@@ -600,11 +710,20 @@ select:disabled option {
   justify-content: center;
 }
 
-.local-settings {
+.user-settings {
   display: flex;
   flex-flow: column;
   gap: var(--space-large);
 }
+
+/*.user-settings > hr {*/
+/*  width: 100%;*/
+/*  margin: 0;*/
+/*  border: 0;*/
+/*  height: 0;*/
+/*  !*border-top: 1px solid rgba(0, 0, 0, 0.1);*!*/
+/*  border-bottom: 1px solid color-mix(var(--text-main) 30%, transparent);*/
+/*}*/
 
 .instructions-tab-content {
   display: flex;
@@ -1642,7 +1761,7 @@ kbd {
 }
 
 .button-group input[type='radio']:focus-visible + .btn-radio {
-  outline: 3px solid var(--accent-color, #5865f2);
+  outline: 3px solid var(--blurple);
   outline-offset: 2px;
   border-radius: var(--border-radius-small);
 }
@@ -2965,6 +3084,10 @@ input[value='1']:checked + .btn-radio.correct {
   padding: 0.25em;
   border-radius: 0 var(--border-radius-medium) 0 0;
   transition: background-color 0.15s ease;
+
+  &:focus-visible {
+    outline-offset: -3px;
+  }
 }
 
 .modal-close-cross-icon {
@@ -3289,7 +3412,7 @@ input[value='1']:checked + .btn-radio.correct {
 @media (pointer: coarse) {
   /* Don't display shortcut badges on mobile devices */
   .shortcut-badge,
-  .shortcut-badge-settings {
+  .keyboard-only {
     display: none;
   }
 }

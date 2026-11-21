@@ -1,4 +1,5 @@
 import { Participant } from '@yasq/shared';
+import { Signal } from '@preact/signals';
 
 const userCache = new Map<string, Participant>();
 
@@ -50,6 +51,27 @@ export const getGameDuration = (startTime: number | null, endTime: number | null
 
   return `${minutes}m ${seconds}s`;
 };
+
+export const setSignal =
+  <T>(signal: Signal<T>) =>
+  (value: T) => {
+    signal.value = value;
+  };
+
+export function parseLiteral<T extends string | boolean | number>(raw: string | null, defaultValue: T): T {
+  if (raw === null) return defaultValue;
+
+  switch (typeof defaultValue) {
+    case 'boolean':
+      return (raw === 'true') as T;
+    case 'number': {
+      const n = Number(raw);
+      return (Number.isNaN(n) ? defaultValue : n) as T;
+    }
+    default:
+      return raw as T;
+  }
+}
 
 export const isTouchDevice = (): boolean => {
   const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;

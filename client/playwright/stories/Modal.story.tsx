@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
-import { Modal } from '@components/Modal';
 import { useSignal } from '@preact/signals';
+
+import { Modal } from '@components/Modal';
 
 interface GeneralModalProps {
   startOpen: boolean;

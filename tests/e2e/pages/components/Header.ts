@@ -6,7 +6,7 @@ export class Header extends BaseComponent {
   readonly title: Locator;
   readonly gameSettingsBtn: Locator;
   readonly howToPlayBtn: Locator;
-  readonly localSettingsBtn: Locator;
+  readonly userSettingsBtn: Locator;
 
   constructor(page: Page) {
     super(page, '#game-header');
@@ -15,6 +15,6 @@ export class Header extends BaseComponent {
     this.title = this.component.locator('#header-title');
     this.gameSettingsBtn = this.component.locator('#game-settings-btn');
     this.howToPlayBtn = this.component.locator('#how-to-play-btn');
-    this.localSettingsBtn = this.component.locator('#local-settings-btn');
+    this.userSettingsBtn = this.component.locator('#user-settings-btn');
   }
 }

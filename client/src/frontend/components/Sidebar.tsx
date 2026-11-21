@@ -6,6 +6,7 @@ import { gainNode, gameStatus, isMac, participants, volume } from '@globals';
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
 import { getActionKeyLabel, getStreakTier } from '../../utils/helper';
 import { DiscordAvatar } from './DiscordAvatar';
+import { WithTooltip } from '@components/Tooltip';
 
 export const Sidebar = () => {
   const mutedVolume = useSignal<number | null>(null);
@@ -118,12 +119,14 @@ export const Sidebar = () => {
               </span>
             </div>
             <div className="volume-stack">
-              <button
-                className="mute-button"
-                onClick={toggleMute}
-              >
-                {volume.value === 0 ? '🔇' : '🔊'}
-              </button>
+              <WithTooltip text={volume.value === 0 ? 'Unmute' : 'Mute'}>
+                <button
+                  className="mute-button"
+                  onClick={toggleMute}
+                >
+                  {volume.value === 0 ? '🔇' : '🔊'}
+                </button>
+              </WithTooltip>
               <span className="shortcut-badge">
                 <kbd>{getActionKeyLabel(isMac)}</kbd> + <kbd>M</kbd>
               </span>
