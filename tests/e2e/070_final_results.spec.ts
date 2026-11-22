@@ -28,15 +28,15 @@ test.describe('Host UI', () => {
 
     expect(metadata.format).toBe('png');
     expect(metadata.width).toBe(1300);
-    expect(metadata.height).toBe(1804);
+    expect(metadata.height).toBe(1940);
 
     // crop date to get fixed content
     const badgeBuffer = await sharp(filePath).extract({ left: 0, top: 0, width: 1300, height: 1750 }).png().toBuffer();
     const currentHash = crypto.createHash('sha256').update(badgeBuffer).digest('hex');
 
     const allowedHashes = [
-      '11bb343814d8eb6659b8af1e0a6e2387f1afbe215b12d6f26eda2cde590eea78', // Windows
-      '81f225b97fa35d0be70ae607f0192b0aa9a2d3b24a3bfa55b0b6596119e1ce6e', // CI Pipeline
+      '77626d7d310605ea16c4971c792cb6e69e98c15167f362cae79027d709b78a9c', // Windows
+      'f5f5e5e8ea327065cc352b4e52d0b5864c5e5c4beae1e7c79e0a2cea8e00110c', // CI Pipeline
     ];
 
     expect(allowedHashes).toContain(currentHash);

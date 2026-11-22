@@ -158,50 +158,54 @@ export const RoundResultsView = ({ isHost }: { isHost: boolean }) => {
         <hr className="divider" />
 
         {isHost ? (
-          <div>
-            {results
-              .filter((res: any) => res.points !== null)
-              .map((res: any) => {
-                const user = findUser(participants.value, res.userId);
+          <>
+            <div>
+              {results
+                .filter((res: RoundResultDto) => res.points !== null)
+                .map((res: RoundResultDto) => {
+                  const user = findUser(participants.value, res.userId!);
 
-                return (
-                  <div
-                    key={res.userId}
-                    className="player-result"
-                  >
-                    <DiscordAvatar
-                      src={getAvatarUrl(user)}
-                      userName={getDisplayName(user)}
-                    />
-                    <div className="name">{getDisplayName(user)}</div>
-
-                    <div className="round-result-box">
-                      <RoundBubblesGroup
-                        rounds={[res]}
-                        userId={res.userId}
+                  return (
+                    <div
+                      key={res.userId}
+                      className="player-result"
+                    >
+                      <DiscordAvatar
+                        src={getAvatarUrl(user)}
+                        userName={getDisplayName(user)}
                       />
-                      <span className="time-display">{res.time.toFixed(1)}s</span>
+                      <div className="name">{getDisplayName(user)}</div>
+
+                      <div className="round-result-box">
+                        <RoundBubblesGroup
+                          rounds={[res]}
+                          userId={res.userId!}
+                        />
+                        <span className="time-display">{res.time!.toFixed(1)}s</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              {lostStreaks.length > 0 && <div className="host-round-summary">{lostStreaksListHtml}</div>}
+            </div>
+            {hasTimeBonus && (
+              <>
+                <hr className="divider" />
+                <div id="host-details">
+                  <div className="host-details-panel">
+                    <h3 className="section-heading time-bonus-heading">Time bonus calculation:</h3>
+                    <div className="center-box">
+                      <TimeBonusPlot
+                        currentPlayer={currentPlayer}
+                        participants={participants.value}
+                        data={roundData.value.summary?.timeBonusSummary ?? null}
+                      />
                     </div>
                   </div>
-                );
-              })}
-            {lostStreaks.length > 0 && <div className="host-round-summary">{lostStreaksListHtml}</div>}
-            {hasTimeBonus && (
-              <div id="host-details">
-                <hr className="divider" />
-                <div className="host-details-panel">
-                  <h3 className="section-heading time-bonus-heading">Time bonus calculation:</h3>
-                  <div className="center-box">
-                    <TimeBonusPlot
-                      currentPlayer={currentPlayer}
-                      participants={participants.value}
-                      data={roundData.value.summary?.timeBonusSummary ?? null}
-                    />
-                  </div>
                 </div>
-              </div>
+              </>
             )}
-          </div>
+          </>
         ) : (
           <div
             id="own-results"

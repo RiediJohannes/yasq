@@ -50,7 +50,7 @@ export class PlayingPage extends BasePage {
     this.jokerSpyBtn = this.content.locator('#btn-joker-spy');
     this.hintText = this.content.locator('#obfuscation-hint-text');
     this.choiceButtons = this.content.locator('.choice-button');
-    this.spyOverlay = this.content.locator('.hint-container:has-text("Pick a player to spy on")');
+    this.spyOverlay = this.content.locator('.card-container:has-text("Pick a player to spy on")');
     this.spyEmptyMsg = this.spyOverlay.locator('.no-results');
     this.spyActionButtons = this.spyOverlay.locator('.spy-select-button');
     this.stolenResultBtn = this.content.locator('.choice-button');

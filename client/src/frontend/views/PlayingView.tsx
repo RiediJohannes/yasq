@@ -47,7 +47,7 @@ const renderJokerHint = (activeHint: JokerHintDto, submit: SubmitFunction) => {
               key={tag.type}
               className="tag-badge"
             >
-              <strong>{tag.type}:</strong> {tag.value}
+              <strong>{capitalize(tag.type)}:</strong> {tag.value}
             </span>
           ))}
         </div>
@@ -465,7 +465,7 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
       ) : (
         <div id="game-guesser-ui">
           {isSelectingSpyTarget.value && (
-            <div className="hint-container">
+            <div className="card-container">
               <h2>Pick a player to spy on:</h2>
               <hr className="divider" />
               <div className="spy-hint-player-list">
@@ -496,7 +496,7 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
           )}
 
           {activeHint.value && !hasSubmitted.value && (
-            <div className="hint-container">{renderJokerHint(activeHint.value, submitGuess)}</div>
+            <div className="card-container">{renderJokerHint(activeHint.value, submitGuess)}</div>
           )}
 
           {jokerError.value && (
@@ -507,7 +507,7 @@ export const PlayingView = ({ isHost }: { isHost: boolean }) => {
           )}
 
           {!hasSubmitted.value ? (
-            <div>
+            <div className="card-container">
               <form
                 id="game-guesser-form"
                 className="game-guesser-form"

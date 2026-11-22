@@ -109,7 +109,7 @@ export const TrackSelectionView = ({ isHost }: { isHost: boolean }) => {
   return (
     <div id="track-picker-container">
       <h2>Select the next track to challenge players:</h2>
-      <div className="controls">
+      <div className="card-container controls">
         <SimpleDropdown
           options={['Default Order', 'A-Z', 'Z-A']}
           value={sortOrder.value}

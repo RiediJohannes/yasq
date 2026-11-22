@@ -186,16 +186,13 @@ img {
 }
 
 .logo {
-  height: 6em;
-  padding: 1.5em;
+  width: 14em;
+  height: 9em;
+  background-color: var(--text-main);
+  -webkit-mask: url('/logo.svg') center / 11em 6em no-repeat;
+  mask: url('/logo.svg') center / 11em 6em no-repeat;
   will-change: filter;
   transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vanilla:hover {
-  filter: drop-shadow(0 0 2em #f7df1eaa);
 }
 
 .centered {
@@ -253,16 +250,10 @@ img {
   max-width: 500px;
   margin: 0 auto 20px;
   padding: var(--space-large);
-  padding-top: var(--space-small);
   background: var(--bg-sidebar-card);
   border-radius: var(--border-radius-medium);
   box-sizing: border-box;
   color: var(--text-main);
-}
-
-#results .card-container,
-#game-host-ui .card-container {
-  gap: 0;
 }
 
 .setting-item {
@@ -346,7 +337,7 @@ input[type='text'],
 input[type='number'],
 select {
   border-radius: var(--border-radius-medium);
-  border: 1px solid transparent;
+  border: 1px solid var(--border-muted);
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-weight: 500;
@@ -395,7 +386,7 @@ input[type='checkbox']:checked::after {
 
 button {
   border-radius: var(--border-radius-medium);
-  border: 1px solid transparent;
+  border: 1px solid var(--border-muted);
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-weight: 500;
@@ -415,6 +406,7 @@ select:disabled {
   color: graytext;
   cursor: not-allowed;
   background-color: rgb(from var(--bg-input) r g b / 0.7);
+  border: 1px solid transparent;
 }
 select:disabled option {
   color: graytext;
@@ -500,10 +492,9 @@ select:disabled option {
 }
 
 .card-container h2,
-.hint-container h2,
 .game-stats h2 {
   margin-top: 0;
-  margin-bottom: 4px;
+  margin-bottom: 0;
   text-align: center;
 }
 
@@ -985,21 +976,17 @@ input[type='radio']:checked + .btn-radio {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: var(--space-large);
   gap: var(--space-small);
 }
 
 .controls {
-  display: flex;
-  flex-wrap: wrap;
+  width: auto;
+  max-width: none;
+  flex-flow: wrap;
   gap: var(--space-large);
-  background: var(--bg-sidebar-card);
-  padding: var(--space-small);
-  border-radius: var(--border-radius-medium);
   margin-left: 100px;
   margin-right: 100px;
   margin-bottom: var(--space-large);
-  align-items: center;
 }
 
 .controls .dropdown-trigger,
@@ -1276,13 +1263,6 @@ input[type='radio']:checked + .btn-radio {
   text-align: left;
 }
 
-.hint-container {
-  background: var(--bg-input);
-  padding: var(--space-small);
-  border-radius: var(--border-radius-medium);
-  margin-bottom: var(--space-medium);
-}
-
 .joker-error-container {
   display: flex;
   flex-direction: column;
@@ -1331,14 +1311,8 @@ input[type='radio']:checked + .btn-radio {
 
 .tag-badge:hover,
 .tag-badge:focus-visible {
-  filter: brightness(120%);
+  background-color: color-mix(in srgb, var(--tags) 90%, currentColor);
   z-index: 1000;
-}
-
-.tag-badge strong {
-  text-transform: capitalize;
-  color: var(--text-muted);
-  margin-right: 4px;
 }
 
 .choices-grid {
@@ -1355,14 +1329,9 @@ input[type='radio']:checked + .btn-radio {
 }
 
 .choice-button {
-  background-color: var(--bg-sidebar-card);
-  border: 2px solid var(--border-muted);
-  color: var(--text-main);
   padding: 12px 8px;
-  border-radius: var(--border-radius-medium);
   font-size: 0.9rem;
   font-weight: 600;
-  cursor: pointer;
   transition: all 0.2s ease;
   white-space: normal;
   word-break: break-word;
@@ -1384,6 +1353,9 @@ input[type='radio']:checked + .btn-radio {
 }
 
 .spy-hint-player-list {
+  display: flex;
+  flex-flow: column;
+  gap: var(--space-tiny);
   height: 200px;
   overflow-y: scroll;
   padding: var(--space-small);
@@ -1407,6 +1379,7 @@ input[type='radio']:checked + .btn-radio {
   display: flex;
   align-items: center;
   gap: var(--space-small);
+  background: none;
 }
 
 .spy-target-info {
@@ -2162,6 +2135,7 @@ input[value='1']:checked + .btn-radio.correct {
   color: var(--text-main);
   padding: 8px 12px;
   border-radius: var(--border-radius-medium);
+  border: 1px solid var(--border-muted);
   font-size: 12px;
   text-align: left;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
@@ -2186,10 +2160,21 @@ input[value='1']:checked + .btn-radio.correct {
   left: 50%;
   /* Counter-shift arrow so it never detaches from the trigger element */
   transform: translateX(calc(-50% - var(--tooltip-shift, 0px)));
+  border-left: 9.5px solid transparent;
+  border-right: 9.5px solid transparent;
+  border-bottom: 9.5px solid var(--border-muted);
+  filter: drop-shadow(0 -2px 2px rgba(0, 0, 0, 0.2));
+}
+
+.has-tooltip .tooltip-content::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(calc(-50% - var(--tooltip-shift, 0px)));
   border-left: 8px solid transparent;
   border-right: 8px solid transparent;
   border-bottom: 8px solid var(--bg-dark);
-  filter: drop-shadow(0 -2px 2px rgba(0, 0, 0, 0.2));
 }
 
 /* --- Trigger Activation --- */

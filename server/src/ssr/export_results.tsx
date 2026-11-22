@@ -50,12 +50,15 @@ export async function generateResultsImage(
 
   const outputPath = path.join(tempDir, 'results.png');
   const cssFilePath = path.join(__dirname, '../../../client/src/style.css');
+  const logoFilePath = path.join(__dirname, '../../../client/src/assets/logo.svg');
   let cssContent = '';
   try {
     cssContent = fs.readFileSync(cssFilePath, 'utf8');
   } catch (err: unknown) {
     logger.error(`Could not load client-side stylesheet`, LogCategory.GAME, instanceId, err as Error);
   }
+  const logoData = fs.readFileSync(logoFilePath).toString('base64');
+  cssContent = cssContent.replaceAll("url('/logo.svg')", `url('data:image/svg+xml;base64,${logoData}')`);
 
   const currentDateFormatted = new Intl.DateTimeFormat('en-GB', {
     dateStyle: 'long',
@@ -114,6 +117,13 @@ export async function generateResultsImage(
             align-items: center;
           }
 
+          .final-leaderboard > .logo {
+            width: 7em;
+            height: 4.5em;
+            -webkit-mask-size: 5.5em 3em;
+            mask-size: 5.5em 3em;
+          }
+
           /* Force CSS Grid properties out of transitioning state */
           .player-wrapper {
             grid-template-rows: unset !important;
@@ -160,6 +170,12 @@ export async function generateResultsImage(
           <div class="stats-and-controls">
             ${gameStatsHtml}
           </div>
+
+          <div
+            class="logo"
+            role="img"
+            aria-label="YASQ logo"
+          ></div>
 
           <p>${currentDateFormatted}</p>
         </div>

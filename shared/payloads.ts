@@ -26,6 +26,8 @@ export type Fallible<T extends object> = ({ ok: true } & T) | { ok: false; error
 export interface RoundResultDto {
   round: number;
   guess?: string | undefined;
+  userId?: string;
+  time?: number;
   points: number;
   scoreValue: number;
   isFirst: boolean;
