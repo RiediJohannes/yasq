@@ -387,7 +387,7 @@ export class GameInstance {
       this.state.phase = GamePhase.FINAL_RESULTS;
       this.applyAchievementBonuses();
       this.leaderboard.sort();
-      this.lastWinnerId = this.leaderboard.getWinnerId();
+      this.lastWinnerId = this.leaderboard.winnerId;
       this.gameStats.endTime = Date.now();
       void saveLeaderboard(this.leaderboard);
     } else {

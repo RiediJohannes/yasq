@@ -26,7 +26,7 @@ export class LeaderboardEntry {
     this.userId = userId;
   }
 
-  addRound(result: RoundResult) {
+  public addRound(result: RoundResult) {
     const alreadyExists = this.roundHistory.some(r => r.round === result.round);
     if (alreadyExists) return;
 
@@ -34,7 +34,7 @@ export class LeaderboardEntry {
     this.recalculateTotal();
   }
 
-  addAchievementBonus(type: string, reward: number) {
+  public addAchievementBonus(type: string, reward: number) {
     this.achievementBonuses.set(type, reward);
     this.recalculateTotal();
   }
@@ -43,6 +43,14 @@ export class LeaderboardEntry {
     const roundPoints = this.roundHistory.reduce((sum, r) => sum + (r.points || 0), 0);
     const achievementPoints = Array.from(this.achievementBonuses.values()).reduce((sum, reward) => sum + reward, 0);
     this.totalScore = roundPoints + achievementPoints;
+  }
+
+  public get firstCount(): number {
+    return this.roundHistory.filter(r => r.isFirst).length;
+  }
+
+  public get totalTime(): number {
+    return this.roundHistory.reduce((sum, r) => sum + (r.time ?? 0), 0);
   }
 
   toJSON() {
@@ -109,15 +117,17 @@ export class Leaderboard {
   }
 
   public sort(): void {
-    this.entries.sort((a, b) => b.totalScore - a.totalScore);
+    this.entries.sort(
+      (a, b) => b.totalScore - a.totalScore || b.firstCount - a.firstCount || a.totalTime - b.totalTime
+    );
   }
 
   public getAll(): LeaderboardEntry[] {
     return this.entries;
   }
 
-  public getWinnerId(): string | null {
-    return this.entries[0]?.userId || null;
+  public get winnerId(): string | null {
+    return this.entries[0]?.userId ?? null;
   }
 
   public getRoundOverview(round: number): { userId: string; points: number }[] {

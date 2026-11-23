@@ -633,6 +633,10 @@ select:disabled option {
   flex-direction: column;
 }
 
+.instruction-step .note {
+  font-size: small;
+}
+
 .joker-list-item {
   display: flex;
   align-items: center;

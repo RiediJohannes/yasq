@@ -40,7 +40,7 @@ export const HowToPlay = ({ isHost }: { isHost: boolean }) => {
                 <kbd>Enter</kbd>.
               </p>
               <p>If you don't answer in time, you will get zero points!</p>
-              <p>
+              <p className="note">
                 Note: If the audio is too loud or quiet, you can adjust the volume via the controls in the bottom-right
                 corner.
               </p>
@@ -106,7 +106,7 @@ export const HowToPlay = ({ isHost }: { isHost: boolean }) => {
                 A table with the exact points calculation and a plot with the time bonus distribution can be seen when
                 clicking <strong>See score details</strong>.
               </p>
-              <p>
+              <p className="note">
                 Note: The host may adjust the balancing between all of the aforementioned bonuses to their liking, as
                 well as disable individual bonuses entirely. Therefore, watch out for the settings your host has chosen
                 before the game starts!
@@ -155,7 +155,13 @@ export const HowToPlay = ({ isHost }: { isHost: boolean }) => {
                 If achievement bonuses are activated, the best (or worst) players will receive some additional points,
                 e.g. for highest streak or fastest correct guess.
               </p>
-              <p>The player with the most points wins. Good luck!</p>
+              <p>
+                The player with the most points wins. <strong>Good luck!</strong>
+              </p>
+              <p className="note">
+                Note: If players are tied on points, ties are broken by most fastest correct guesses, and then by lowest
+                total time across all rounds.
+              </p>
             </div>
           </div>
         </div>
@@ -254,7 +260,7 @@ export const HowToPlay = ({ isHost }: { isHost: boolean }) => {
                 keywords in game or track title. You can also filter out previously played tracks.
               </p>
               <p>If you cannot decide, you can choose a random track from the current filtered track list.</p>
-              <p>Note: Every track can only be played once per game!</p>
+              <p className="note">Note: Every track can only be played once per game!</p>
             </div>
           </div>
 
