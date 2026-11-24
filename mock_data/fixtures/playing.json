@@ -10,7 +10,7 @@
   "settings": {
     "rounds": 5,
     "maxGuessTime": 60000,
-    "enabledJokers": ["OBFUSCATION", "TRIVIA", "MULTIPLE_CHOICE", "SPY"]
+    "enabledJokers": ["OBFUSCATION", "TRIVIA", "MULTIPLE_CHOICE", "SPY", "SHIELD"]
   },
   "trackInfo": {
     "url": "some url",

@@ -432,6 +432,45 @@ describe('GameInstance - submitResults', () => {
     expect(roundResult3.awardedBonuses.length).toBe(0);
   });
 
+  it('should protect streak with shield joker when answer is wrong', () => {
+    game.streaks[PLAYER_1] = 3;
+    game.streaks[PLAYER_2] = 2;
+    game.streaks[PLAYER_3] = 4;
+
+    // Player 1 used Shield in the current round; Player 2 only used Shield in a previous round; Player 3 had no Shield
+    const currentRound = game.state.round;
+    game.usedJokers[PLAYER_1] = { [Joker.SHIELD]: currentRound };
+    game.usedJokers[PLAYER_2] = { [Joker.SHIELD]: currentRound - 1 };
+
+    game.submitResults({ [PLAYER_1]: 0, [PLAYER_2]: 0, [PLAYER_3]: 0 });
+
+    const entry1 = game.leaderboard.getEntry(PLAYER_1);
+    const entry2 = game.leaderboard.getEntry(PLAYER_2);
+    const entry3 = game.leaderboard.getEntry(PLAYER_3);
+
+    const roundResult1 = entry1!.roundHistory[0]!;
+    const roundResult2 = entry2!.roundHistory[0]!;
+    const roundResult3 = entry3!.roundHistory[0]!;
+
+    // Player 1: Wrong guess, 0 points, but streak is preserved by Shield
+    expect(entry1!.totalScore).toBe(0);
+    expect(game.streaks[PLAYER_1]).toBe(3);
+    expect(roundResult1.scoreValue).toBe(0);
+    expect(roundResult1.awardedBonuses.length).toBe(0);
+
+    // Player 2: Wrong guess, old Shield does not apply, streak resets to 0
+    expect(entry2!.totalScore).toBe(0);
+    expect(game.streaks[PLAYER_2]).toBe(0);
+    expect(roundResult2.scoreValue).toBe(0);
+    expect(roundResult2.awardedBonuses.length).toBe(0);
+
+    // Player 3: Wrong guess without Shield, streak resets to 0
+    expect(entry3!.totalScore).toBe(0);
+    expect(game.streaks[PLAYER_3]).toBe(0);
+    expect(roundResult3.scoreValue).toBe(0);
+    expect(roundResult3.awardedBonuses.length).toBe(0);
+  });
+
   it('should not award deactivated bonuses', () => {
     game.setupGame({
       rounds: 10,

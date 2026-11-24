@@ -17,12 +17,14 @@ export class PlayingPage extends BasePage {
   readonly jokerTriviaBtn: Locator;
   readonly jokerMcBtn: Locator;
   readonly jokerSpyBtn: Locator;
-  readonly hintText: Locator;
+  readonly jokerShieldBtn: Locator;
+  readonly hintContainer: Locator;
   readonly choiceButtons: Locator;
   readonly spyOverlay: Locator;
   readonly spyEmptyMsg: Locator;
   readonly spyActionButtons: Locator;
   readonly stolenResultBtn: Locator;
+  readonly guessText: Locator;
 
   // Host UI
   readonly hostUi: Locator;
@@ -48,12 +50,14 @@ export class PlayingPage extends BasePage {
     this.jokerTriviaBtn = this.content.locator('#btn-joker-trivia');
     this.jokerMcBtn = this.content.locator('#btn-joker-multiple-choice');
     this.jokerSpyBtn = this.content.locator('#btn-joker-spy');
-    this.hintText = this.content.locator('#obfuscation-hint-text');
+    this.jokerShieldBtn = this.content.locator('#btn-joker-shield');
+    this.hintContainer = this.content.locator('#hint-container');
     this.choiceButtons = this.content.locator('.choice-button');
     this.spyOverlay = this.content.locator('.card-container:has-text("Pick a player to spy on")');
     this.spyEmptyMsg = this.spyOverlay.locator('.no-results');
     this.spyActionButtons = this.spyOverlay.locator('.spy-select-button');
     this.stolenResultBtn = this.content.locator('.choice-button');
+    this.guessText = this.content.locator('#guess');
 
     // Host UI
     this.hostUi = this.content.locator('#game-host-ui');

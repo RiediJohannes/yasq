@@ -100,4 +100,5 @@ export type JokerHintDto =
   | { type: Joker.TRIVIA; data: TriviaHint }
   | { type: Joker.MULTIPLE_CHOICE; data: MultipleChoiceHint }
   | { type: Joker.SPY; data: SpyHint }
-  | { type: Joker.GLIMPSE; data: GlimpseHint };
+  | { type: Joker.GLIMPSE; data: GlimpseHint }
+  | { type: Joker.SHIELD; data: boolean };

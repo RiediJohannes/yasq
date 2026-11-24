@@ -21,6 +21,7 @@ export enum Joker {
   MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',
   SPY = 'SPY',
   GLIMPSE = 'GLIMPSE',
+  SHIELD = 'SHIELD',
 }
 
 export enum FirstBonusMultiplier {
@@ -203,6 +204,7 @@ export const DEFAULT_ENABLED_JOKERS: Joker[] = [
   Joker.MULTIPLE_CHOICE,
   Joker.SPY,
   Joker.GLIMPSE,
+  Joker.SHIELD,
 ];
 
 export const DEFAULT_ENABLED_ACHIEVEMENT_TYPES = Object.values(AchievementBonusType);

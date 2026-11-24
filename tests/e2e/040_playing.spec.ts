@@ -125,6 +125,7 @@ test.describe('Player UI', () => {
       await expect(playingPage.guessInput).toBeHidden();
       await expect(playingPage.waitMessage).toBeVisible();
       await expect(playingPage.waitMessage).toHaveText(/wait/i);
+      await expect(playingPage.guessText).toHaveText('Game XY');
 
       // Check for the GUESSED badge
       await expect(sidebar.getBadge(session.players[1].username, 'guessed')).toBeVisible();
@@ -152,13 +153,13 @@ test.describe('Player UI', () => {
 
       // Verify UI change
       await expect(playingPage.jokerObfuscationBtn).toBeDisabled();
-      await expect(playingPage.hintText).toBeVisible();
+      await expect(playingPage.hintContainer).toBeVisible();
       const validChars = /^[a-zA-Z0-9_\s\-!:'?]+$/;
-      const text = await playingPage.hintText.innerText();
+      const text = await playingPage.hintContainer.innerText();
       await expect(text).toMatch(validChars);
     });
 
-    test('should display trivia hint when using tags joker', async ({ playingPage }) => {
+    test('should display trivia hint when using trivia joker', async ({ playingPage }) => {
       // Activate joker
       await playingPage.jokerTriviaBtn.click();
 
@@ -225,6 +226,35 @@ test.describe('Player UI', () => {
       // Verify UI change
       await expect(playingPage.waitMessage).toBeVisible();
       await expect(playingPage.waitMessage).toHaveText(/wait/i);
+    });
+
+    test('should display activation note when using shield joker', async ({ playingPage }) => {
+      // Activate joker
+      await playingPage.jokerShieldBtn.click();
+
+      // Verify UI change
+      await expect(playingPage.hintContainer).toBeVisible();
+      await expect(playingPage.hintContainer).toContainText(/shield activated/i);
+    });
+
+    test('should be able to activate shield joker after submitting a guess', async ({ playingPage }) => {
+      // Submit a guess
+      await playingPage.guessInput.fill('Game XY');
+      await playingPage.submitBtn.click();
+
+      // Verify all joker buttons except shield joker being disabled
+      await expect(playingPage.jokerObfuscationBtn).toBeDisabled();
+      await expect(playingPage.jokerTriviaBtn).toBeDisabled();
+      await expect(playingPage.jokerMcBtn).toBeDisabled();
+      await expect(playingPage.jokerSpyBtn).toBeDisabled();
+      await expect(playingPage.jokerShieldBtn).toBeEnabled();
+
+      // Activate joker
+      await playingPage.jokerShieldBtn.click();
+
+      // Verify UI change
+      await expect(playingPage.hintContainer).toBeVisible();
+      await expect(playingPage.hintContainer).toContainText(/shield activated/i);
     });
 
     test('should not have any automatically detectable accessibility issues', async ({

@@ -7,9 +7,9 @@ const ObfuscationIcon = ({ size = 24, className = '' }) => (
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
-    stroke-width="2"
-    stroke-linecap="round"
-    stroke-linejoin="round"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
     className={className}
   >
     <path d="M2 19L7 5L12 19M5 14H9" />
@@ -32,9 +32,9 @@ const TriviaIcon = ({ size = 24, className = '' }) => (
     transform="translate(-0.5 -1)"
     fill="none"
     stroke="currentColor"
-    stroke-width="2"
-    stroke-linecap="round"
-    stroke-linejoin="round"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
     className={className}
   >
     <circle
@@ -60,9 +60,9 @@ const MultipleChoiceIcon = ({ size = 24, className = '' }) => (
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
-    stroke-width="2"
-    stroke-linecap="round"
-    stroke-linejoin="round"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
     className={className}
   >
     <rect
@@ -104,8 +104,9 @@ const SpyIcon = ({ size = 24, className = '' }) => (
     width={size}
     height={size}
     viewBox="0 0 24 24"
-    fill="currentColor"
+    fill="none"
     stroke="currentColor"
+    strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
     className={className}
@@ -172,7 +173,25 @@ const GlimpseIcon = ({ size = 24, className = '' }) => (
 GlimpseIcon.jokerType = Joker.GLIMPSE;
 GlimpseIcon.description = "Reveals a blurred image of the game's cover art";
 
-export const ALL_JOKER_ICONS = [ObfuscationIcon, TriviaIcon, MultipleChoiceIcon, SpyIcon, GlimpseIcon];
+const ShieldIcon = ({ size = 24, className = '' }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+  </svg>
+);
+ShieldIcon.jokerType = Joker.SHIELD;
+ShieldIcon.description = 'Protects you from losing your streak on a wrong answer';
+
+export const ALL_JOKER_ICONS = [ObfuscationIcon, TriviaIcon, MultipleChoiceIcon, SpyIcon, GlimpseIcon, ShieldIcon];
 
 export const InfoIcon = ({ size = 24, className = '' }) => (
   <svg

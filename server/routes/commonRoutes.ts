@@ -253,6 +253,13 @@ export const setupCommonRoutes = (instances: Record<string, GameInstance>, getTr
         };
         break;
       }
+      case Joker.SHIELD: {
+        response = {
+          type,
+          data: true,
+        };
+        break;
+      }
       default:
         throw new ApiError(400, `Invalid joker type: ${type}`, req);
     }

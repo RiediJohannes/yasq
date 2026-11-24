@@ -286,7 +286,10 @@ export class GameInstance {
     if (scoreMultiplier === 1) {
       this.streaks[userId] += 1;
     } else if (scoreMultiplier === 0) {
-      this.streaks[userId] = 0;
+      const hasShield = this.usedJokers[userId]?.[Joker.SHIELD] === this.state.round;
+      if (!hasShield) {
+        this.streaks[userId] = 0;
+      }
     }
 
     this.achievementBonusManager.updateMetric(
