@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { TooltipDiv, WithTooltip } from '@components/Tooltip';
+import { Placement, TooltipDiv, WithTooltip } from '@components/Tooltip';
 import { TargetedKeyboardEvent } from 'preact';
 
 export const WrapBasicChild = () => (
@@ -152,6 +152,92 @@ export const BoundaryTest = () => {
         style={{ position: 'absolute', top: '10px', right: '10px' }}
       >
         Top Right
+      </TooltipDiv>
+    </>
+  );
+};
+
+/**
+ * Triggers sit in the vertical middle of the viewport, so there is plenty of room
+ * both above and below, and the requested placement is never constrained by space.
+ */
+export const PlacementTest = () => {
+  const triggerStyle = (left: string) => ({ position: 'absolute' as const, top: '50vh', left });
+
+  return (
+    <>
+      {/* No placement given -> falls back to the default */}
+      <TooltipDiv
+        id="placement-default"
+        text="Default placement"
+        style={triggerStyle('10vw')}
+      >
+        Default
+      </TooltipDiv>
+      <TooltipDiv
+        id="placement-below"
+        text="Placed below"
+        placement={Placement.BELOW}
+        style={triggerStyle('30vw')}
+      >
+        Below
+      </TooltipDiv>
+      <TooltipDiv
+        id="placement-above"
+        text="Placed above"
+        placement={Placement.ABOVE}
+        style={triggerStyle('50vw')}
+      >
+        Above
+      </TooltipDiv>
+      {/* Same property, but through the lower-level WithTooltip wrapper */}
+      <WithTooltip
+        id="placement-with-tooltip-above"
+        text="Placed above via WithTooltip"
+        placement={Placement.ABOVE}
+      >
+        <div
+          tabIndex={0}
+          style={triggerStyle('70vw')}
+        >
+          WithTooltip above
+        </div>
+      </WithTooltip>
+    </>
+  );
+};
+
+const OVERLONG_TEXT =
+  'This tooltip text is intentionally long so that it has to wrap whenever a maximum width applies. '.repeat(3);
+
+export const MaxWidthTest = () => {
+  const triggerStyle = (left: string) => ({ position: 'absolute' as const, top: '10px', left });
+
+  return (
+    <>
+      <TooltipDiv
+        id="max-width-px"
+        text={OVERLONG_TEXT}
+        maxWidthPx={150}
+        style={triggerStyle('10px')}
+      >
+        Pixels
+      </TooltipDiv>
+      <TooltipDiv
+        id="max-width-default"
+        text={OVERLONG_TEXT}
+        style={triggerStyle('50vw')}
+      >
+        Default
+      </TooltipDiv>
+      {/* Short text must stay narrower than the limit: it is a maximum, not a fixed width */}
+      <TooltipDiv
+        id="max-width-short-text"
+        text="Short"
+        maxWidthPx={300}
+        style={triggerStyle('75vw')}
+      >
+        Short
       </TooltipDiv>
     </>
   );

@@ -1,24 +1,63 @@
-import { cloneElement, ComponentChildren, HTMLAttributes, isValidElement, VNode } from 'preact';
-import { useEffect, useId, useRef } from 'preact/hooks';
+import {
+  cloneElement,
+  ComponentChildren,
+  createContext,
+  HTMLAttributes,
+  isValidElement,
+  RefObject,
+  VNode,
+} from 'preact';
+import { useContext, useEffect, useId, useRef } from 'preact/hooks';
 
 import { LONG_PRESS_MILLIS } from '@yasq/shared';
 
-import { activeTooltipContent, activeTooltipId, closeActiveTooltip, measureBounds } from '../../utils/exclusiveTooltip';
+import {
+  activeTooltipContent,
+  activeTooltipId,
+  adjustTooltipPlacement,
+  closeActiveTooltip,
+  Placement,
+} from '../../utils/exclusiveTooltip';
 
-interface WithTooltipProps {
+export { Placement } from '../../utils/exclusiveTooltip';
+
+/**
+ * Provide a value to this context in order to constraint the placement of any tooltip inside it to the bounding
+ * box of the given HTMLElement.
+ */
+export const TooltipBoundaryContext = createContext<RefObject<HTMLElement | null> | undefined>(undefined);
+
+interface BaseTooltipProps {
   /** The text content or rich VNode to display in the tooltip */
   text: ComponentChildren;
-  /** Single child element extended by the dynamic tooltip */
-  children: VNode<any>;
   /** Optional custom ID. If omitted, useId() generates a unique stable ID */
   id?: string;
   /** Disable tooltip functionality entirely */
   disabled?: boolean;
+  /** Where to place the tooltip relative to the target element - if space permits */
+  placement?: Placement;
+  /** Maximum width of the tooltip body in pixels. Falls back to the stylesheet's default if omitted */
+  maxWidthPx?: number;
   /** Custom ref callback to forward to the underlying DOM node */
   elementRef?: (el: HTMLElement | null) => void;
 }
 
-export const WithTooltip = ({ text, children, id, disabled = false, elementRef }: WithTooltipProps) => {
+interface WithTooltipProps extends BaseTooltipProps {
+  /** Single child element extended by the dynamic tooltip */
+  children: VNode<any>;
+}
+
+export const WithTooltip = ({
+  text,
+  children,
+  id,
+  disabled = false,
+  placement = Placement.ABOVE,
+  maxWidthPx = 220,
+  elementRef,
+}: WithTooltipProps) => {
+  const boundary = useContext(TooltipBoundaryContext);
+
   const generatedId = useId();
   const targetId = id ?? generatedId;
   const tooltipId = `${targetId}-tooltip`;
@@ -33,15 +72,19 @@ export const WithTooltip = ({ text, children, id, disabled = false, elementRef }
     };
   }, []);
 
-  // Fall back gracefully if disabled or if children is not a valid VNode
+  // Fall back gracefully if disabled or if children are not a valid VNode
   if (disabled || !text || !isValidElement(children)) {
     return children;
   }
 
-  const handleOpen = (el: HTMLElement) => {
-    measureBounds(el);
+  const triggerBoundsFitting = (target: HTMLElement) => {
+    adjustTooltipPlacement(target, tooltipId, placement, boundary?.current, maxWidthPx);
+  };
+
+  const handleOpen = (target: HTMLElement) => {
     activeTooltipContent.value = text;
     activeTooltipId.value = tooltipId;
+    triggerBoundsFitting(target);
   };
 
   const handleClose = () => {
@@ -50,14 +93,14 @@ export const WithTooltip = ({ text, children, id, disabled = false, elementRef }
     }
   };
 
-  const handleToggle = (el: HTMLElement) => {
-    measureBounds(el);
+  const handleToggle = (target: HTMLElement) => {
     if (isTooltipOpen) {
       activeTooltipId.value = null;
       activeTooltipContent.value = null;
     } else {
       activeTooltipContent.value = text;
       activeTooltipId.value = tooltipId;
+      triggerBoundsFitting(target);
     }
   };
 
@@ -144,6 +187,7 @@ export const WithTooltip = ({ text, children, id, disabled = false, elementRef }
           className="tooltip-content"
           key="active-tooltip"
           role="tooltip"
+          data-placement={placement}
         >
           {activeTooltipContent.value}
         </span>
@@ -152,24 +196,19 @@ export const WithTooltip = ({ text, children, id, disabled = false, elementRef }
   });
 };
 
-interface TooltipDivProps extends HTMLAttributes<HTMLDivElement> {
-  /** The text content to display in the tooltip */
-  text: ComponentChildren;
+/** Accepts all properties of {@link BaseTooltipProps} and those that an HTML `div` element supports. */
+interface TooltipDivProps extends Omit<HTMLAttributes<HTMLDivElement>, keyof BaseTooltipProps>, BaseTooltipProps {
   /** Single child element or inline text wrapped by div with dynamic tooltip */
   children: ComponentChildren;
-  /** Optional custom ID. If omitted, useId() generates a unique stable ID */
-  id?: string;
-  /** Disable tooltip functionality entirely */
-  disabled?: boolean;
-  className?: string;
-  elementRef?: (el: HTMLElement | null) => void;
 }
 
 export const TooltipDiv = ({
   text,
   children,
   id,
-  disabled = false,
+  disabled,
+  placement,
+  maxWidthPx,
   className = '',
   tabIndex = 0,
   elementRef,
@@ -180,6 +219,8 @@ export const TooltipDiv = ({
       text={text}
       id={id}
       disabled={disabled}
+      placement={placement}
+      maxWidthPx={maxWidthPx}
       elementRef={elementRef}
     >
       <div

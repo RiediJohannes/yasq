@@ -1,9 +1,11 @@
 import { ComponentChildren, CSSProperties, TargetedKeyboardEvent, TargetedMouseEvent } from 'preact';
+import { Signal } from '@preact/signals';
 import { useEffect, useRef } from 'preact/hooks';
+
 import { CrossIcon } from './Icons';
+import { TooltipBoundaryContext } from './Tooltip';
 import { CommonCSSProperties } from '../../common/types';
 import { isTouchDevice } from '../../utils/helper';
-import { Signal } from '@preact/signals';
 
 let numOpenModals: number = 0;
 
@@ -36,6 +38,7 @@ export const Modal = ({
   ...styleProps
 }: ModalProps) => {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const modalContentRef = useRef<HTMLDivElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const showModal = isOpen.value;
@@ -132,7 +135,14 @@ export const Modal = ({
       )}
 
       {/* Body */}
-      {showModal && <div className="modal-inner">{children}</div>}
+      {showModal && (
+        <div
+          ref={modalContentRef}
+          className="modal-inner"
+        >
+          <TooltipBoundaryContext.Provider value={modalContentRef}>{children}</TooltipBoundaryContext.Provider>
+        </div>
+      )}
 
       {/* Big close button at the bottom */}
       {hasBigCloseButton && (

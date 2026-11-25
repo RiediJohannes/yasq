@@ -1,4 +1,5 @@
-import { render } from 'preact';
+import { ComponentClass, render } from 'preact';
+
 import '../../src/style.css';
 import './style.css';
 
@@ -32,7 +33,7 @@ window.mount = async ({ story, props }: MountParams) => {
     throw new Error(`Story "${story}" not found. Available modules: ${Object.keys(storyModules).join(', ')}`);
   }
 
-  const storyModule = match[1] as Record<string, any>;
+  const storyModule = match[1] as Record<string, ComponentClass>;
   const TestComponent = storyModule[scenario];
 
   if (!TestComponent) {

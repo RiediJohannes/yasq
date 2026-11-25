@@ -1,10 +1,12 @@
-import { expect as baseExpect, type Locator } from '@playwright/test';
+import { expect as baseExpect, type Locator, MatcherReturnType } from '@playwright/test';
+import { MatchError } from '../utils/types';
 
 export const expect = baseExpect.extend({
   toHaveTooltip,
   toHaveActiveTooltip,
   toKeepTooltipWithinViewportBounds: toBeWithinViewportBounds,
   toHaveCenteredTooltipArrow,
+  toHaveTooltipPlacement,
 });
 
 async function toHaveTooltip(locator: Locator, tooltipText?: string) {
@@ -71,14 +73,14 @@ async function toHaveActiveTooltip(locator: Locator, options?: { timeout?: numbe
   }
 
   let pass: boolean;
-  let matcherResult: any;
+  let matcherResult: MatcherReturnType | undefined;
 
   try {
     const poller = baseExpect.poll(() => isTooltipActive(locator), { timeout: options?.timeout });
     await poller.toBe(!this.isNot);
     pass = true;
-  } catch (e: any) {
-    matcherResult = e.matcherResult;
+  } catch (e: unknown) {
+    matcherResult = (e as MatchError).matcherResult;
     pass = false;
   }
 
@@ -107,7 +109,7 @@ async function isTooltipActive(locator: Locator): Promise<boolean> {
 async function toBeWithinViewportBounds(locator: Locator, options?: { timeout?: number }) {
   const assertionName = 'toBeWithinViewportBounds';
   let pass: boolean;
-  let matcherResult: any;
+  let matcherResult: MatcherReturnType | undefined;
   let lastResult: BoundsCheckResult | null = null;
 
   try {
@@ -121,8 +123,8 @@ async function toBeWithinViewportBounds(locator: Locator, options?: { timeout?: 
 
     await poller.toBe(!this.isNot);
     pass = true;
-  } catch (e: any) {
-    matcherResult = e.matcherResult;
+  } catch (e: unknown) {
+    matcherResult = (e as MatchError).matcherResult;
     pass = false;
   }
 
@@ -201,7 +203,7 @@ interface ArrowCenterCheckResult {
 async function toHaveCenteredTooltipArrow(locator: Locator, options?: { timeout?: number }) {
   const assertionName = 'toHaveCenteredTooltipArrow';
   let pass: boolean;
-  let matcherResult: any;
+  let matcherResult: MatcherReturnType | undefined;
   let lastResult: ArrowCenterCheckResult | null = null;
 
   try {
@@ -215,8 +217,8 @@ async function toHaveCenteredTooltipArrow(locator: Locator, options?: { timeout?
 
     await poller.toBe(!this.isNot);
     pass = true;
-  } catch (e: any) {
-    matcherResult = e.matcherResult;
+  } catch (e: unknown) {
+    matcherResult = (e as MatchError).matcherResult;
     pass = false;
   }
 
@@ -278,4 +280,102 @@ async function isArrowCentered(locator: Locator): Promise<ArrowCenterCheckResult
       hostCenterX,
     };
   }, ARROW_CENTER_TOLERANCE_PX);
+}
+
+type TooltipPlacement = 'above' | 'below';
+
+interface PlacementCheckResult {
+  actual: TooltipPlacement | 'overlapping';
+  triggerTop: number;
+  triggerBottom: number;
+  contentTop: number;
+  contentBottom: number;
+}
+
+/**
+ * Checks where the tooltip body is rendered relative to its trigger element.
+ * Deliberately geometric (not a `data-placement` attribute check), so it only passes if the CSS really moves the tooltip.
+ */
+async function toHaveTooltipPlacement(
+  locator: Locator,
+  expectedPlacement: TooltipPlacement,
+  options?: { timeout?: number }
+) {
+  const assertionName = 'toHaveTooltipPlacement';
+  let pass: boolean;
+  let matcherResult: MatcherReturnType | undefined;
+  let lastResult: PlacementCheckResult | null = null;
+
+  try {
+    const poller = baseExpect.poll(
+      async () => {
+        lastResult = await getTooltipPlacement(locator);
+        return lastResult?.actual === expectedPlacement;
+      },
+      { timeout: options?.timeout }
+    );
+
+    await poller.toBe(!this.isNot);
+    pass = true;
+  } catch (e: unknown) {
+    matcherResult = (e as MatchError).matcherResult;
+    pass = false;
+  }
+
+  if (this.isNot) pass = !pass;
+
+  return {
+    pass,
+    name: assertionName,
+    message: () => {
+      const hint = this.utils.matcherHint(assertionName, undefined, undefined, { isNot: this.isNot });
+
+      if (lastResult === null) {
+        return `${hint}\n\nElement's .tooltip-content tooltip element is currently not visible.`;
+      }
+
+      return (
+        `${hint}\n\n` +
+        `Locator: ${locator}\n` +
+        `Expected placement: ${this.utils.printExpected(expectedPlacement)}\n` +
+        `Received placement: ${this.utils.printReceived(lastResult.actual)}\n` +
+        `Trigger: top ${lastResult.triggerTop.toFixed(2)}, bottom ${lastResult.triggerBottom.toFixed(2)}\n` +
+        `Tooltip: top ${lastResult.contentTop.toFixed(2)}, bottom ${lastResult.contentBottom.toFixed(2)}` +
+        (matcherResult ? `\n${this.utils.printReceived(matcherResult.actual)}` : '')
+      );
+    },
+  };
+}
+
+const PLACEMENT_SUBPIXEL_TOLERANCE_PX = 0.5;
+
+async function getTooltipPlacement(locator: Locator): Promise<PlacementCheckResult | null> {
+  return await locator.evaluate((triggerEl, tolerance) => {
+    const contentEl = triggerEl.querySelector('.tooltip-content');
+    if (!contentEl) {
+      return null;
+    }
+
+    const trigger = triggerEl.getBoundingClientRect();
+    const content = contentEl.getBoundingClientRect();
+
+    if (content.width === 0 && content.height === 0) {
+      return null;
+    }
+
+    let actual: 'above' | 'below' | 'overlapping' = 'overlapping';
+    if (content.bottom <= trigger.top + tolerance) {
+      actual = 'above';
+    } else if (content.top >= trigger.bottom - tolerance) {
+      actual = 'below';
+    }
+
+    return {
+      actual,
+      triggerTop: trigger.top,
+      triggerBottom: trigger.bottom,
+      contentTop: content.top,
+      contentBottom: content.bottom,
+    };
+  }, PLACEMENT_SUBPIXEL_TOLERANCE_PX);
 }

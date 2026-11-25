@@ -43,6 +43,7 @@
   --space-tiny: 5px;
   --space-small: 10px;
   --space-medium: 15px;
+  --space-semilarge: 18px;
   --space-large: 20px;
   --border-radius-small: 4px;
   --border-radius-medium: 8px;
@@ -2134,18 +2135,13 @@ input[value='1']:checked + .btn-radio.correct {
   position: relative;
 }
 
-/* Tooltip Body & Wrapper Container */
+/* Shared tooltip body styling (no positioning) */
 .has-tooltip .tooltip-content {
   position: absolute;
-  top: 100%;
-  left: 50%;
-  /* Shift body away from screen border when overflowing */
-  transform: translateX(calc(-50% + var(--tooltip-shift, 0px)));
-  margin-top: 6px;
+  --tooltip-gap: 6px;
 
   box-sizing: border-box;
   width: max-content;
-  max-width: 200px;
   z-index: 1000;
 
   background: var(--bg-dark);
@@ -2169,34 +2165,59 @@ input[value='1']:checked + .btn-radio.correct {
   --screen-margin: 15px; /* used for mobile mode */
 }
 
-/* Tooltip Arrow - Counter-shifts to stay glued to the trigger center */
-.has-tooltip .tooltip-content::before {
-  content: '';
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  /* Counter-shift arrow so it never detaches from the trigger element */
-  transform: translateX(calc(-50% - var(--tooltip-shift, 0px)));
-  border-left: 9.5px solid transparent;
-  border-right: 9.5px solid transparent;
-  border-bottom: 9.5px solid var(--border-muted);
-  filter: drop-shadow(0 -2px 2px rgba(0, 0, 0, 0.2));
+/* Visibility trigger */
+.has-tooltip.show-tooltip .tooltip-content {
+  opacity: 1;
 }
 
+/* Shared arrow base: ::before is the border-coloured outline, ::after the fill */
+.has-tooltip .tooltip-content::before,
 .has-tooltip .tooltip-content::after {
   content: '';
   position: absolute;
+  border-style: solid;
+  border-color: transparent;
+}
+.has-tooltip .tooltip-content::before {
+  border-width: 9.5px;
+  --arrow-color: var(--border-muted);
+}
+.has-tooltip .tooltip-content::after {
+  border-width: 8px;
+  --arrow-color: var(--bg-dark);
+}
+
+/* Tooltip positioning: BELOW */
+.has-tooltip .tooltip-content[data-placement='below'] {
+  top: 100%;
+  left: 50%;
+  margin-top: var(--tooltip-gap);
+  /* Shift body away from screen border when overflowing */
+  transform: translateX(calc(-50% + var(--tooltip-shift, 0px)));
+}
+.has-tooltip .tooltip-content[data-placement='below']::before,
+.has-tooltip .tooltip-content[data-placement='below']::after {
   bottom: 100%;
   left: 50%;
   transform: translateX(calc(-50% - var(--tooltip-shift, 0px)));
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-bottom: 8px solid var(--bg-dark);
+  border-top-width: 0;
+  border-bottom-color: var(--arrow-color);
 }
 
-/* --- Trigger Activation --- */
-.has-tooltip.show-tooltip .tooltip-content {
-  opacity: 1;
+/* Tooltip positioning: ABOVE */
+.has-tooltip .tooltip-content[data-placement='above'] {
+  bottom: 100%;
+  left: 50%;
+  margin-bottom: var(--tooltip-gap);
+  transform: translateX(calc(-50% + var(--tooltip-shift, 0px)));
+}
+.has-tooltip .tooltip-content[data-placement='above']::before,
+.has-tooltip .tooltip-content[data-placement='above']::after {
+  top: 100%;
+  left: 50%;
+  transform: translateX(calc(-50% - var(--tooltip-shift, 0px)));
+  border-bottom-width: 0;
+  border-top-color: var(--arrow-color);
 }
 
 .user-evaluation {
@@ -2916,8 +2937,9 @@ input[value='1']:checked + .btn-radio.correct {
 .modal-inner {
   display: block;
   position: relative;
-  padding: var(--space-large);
+  padding: var(--space-semilarge);
   padding-top: var(--space-medium);
+  scrollbar-width: thin;
   overflow-x: hidden;
   overflow-y: auto;
 }

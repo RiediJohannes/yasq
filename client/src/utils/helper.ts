@@ -59,6 +59,12 @@ export const isTouchDevice = (): boolean => {
   return isCoarsePointer || hasTouchEvents;
 };
 
+const MOBILE_BREAKPOINT_PX = 768;
+
+export const isMobileSize = (): boolean => {
+  return window.innerWidth <= MOBILE_BREAKPOINT_PX;
+};
+
 /** Extracts the x-coordinate in client viewport pixels from a mouse or touch event. */
 export const getPointerX = (e: MouseEvent | TouchEvent): number | null => {
   if ('touches' in e) {

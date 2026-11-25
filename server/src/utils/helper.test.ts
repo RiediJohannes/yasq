@@ -125,7 +125,7 @@ describe('getAudioDuration', () => {
 
   it('should correctly format valid seconds output from ffprobe', () => {
     // Mock execSync to return 135.5 seconds (2 minutes 15 seconds)
-    vi.mocked(execSync).mockReturnValue('135.5\n' as any);
+    vi.mocked(execSync).mockReturnValue('135.5\n');
 
     const duration = getAudioDuration('/path/to/track.mp3');
 
@@ -135,7 +135,7 @@ describe('getAudioDuration', () => {
 
   it('should pad single-digit seconds correctly', () => {
     // Mock execSync to return 65 seconds (1 minute 5 seconds)
-    vi.mocked(execSync).mockReturnValue('65\n' as any);
+    vi.mocked(execSync).mockReturnValue('65\n');
 
     const duration = getAudioDuration('/path/to/track.mp3');
 
@@ -143,7 +143,7 @@ describe('getAudioDuration', () => {
   });
 
   it('should return "Unknown" if ffprobe returns non-numeric output', () => {
-    vi.mocked(execSync).mockReturnValue('N/A\n' as any);
+    vi.mocked(execSync).mockReturnValue('N/A\n');
 
     const duration = getAudioDuration('/path/to/track.mp3');
 

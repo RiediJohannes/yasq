@@ -1,5 +1,7 @@
-import { test } from '@playwright/test';
+import { Locator, test } from '@playwright/test';
 import { expect } from './Tooltip.assertions';
+
+const DEFAULT_MAX_WIDTH = 220;
 
 test.describe('Tooltip - General', () => {
   test.describe('WithTooltip', () => {
@@ -141,6 +143,82 @@ test.describe('Tooltip - General', () => {
     await button.click();
     await expect(count).toHaveText('1'); // click was registered
     await expect(button).not.toHaveActiveTooltip();
+  });
+
+  test.describe('Tooltip - Placement', () => {
+    const cases = [
+      { id: 'placement-default', expected: 'above', description: 'the element by default' },
+      { id: 'placement-below', expected: 'below', description: 'the element when requested' },
+      { id: 'placement-above', expected: 'above', description: 'the element when requested' },
+      { id: 'placement-with-tooltip-above', expected: 'above', description: 'the element when using WithTooltip' },
+    ] as const;
+
+    for (const { id, expected, description } of cases) {
+      test(`should place the tooltip ${expected} ${description}`, async ({ mount }) => {
+        const component = await mount('Tooltip/PlacementTest');
+        const trigger = component.locator(`#${id}`);
+
+        await trigger.hover();
+
+        await expect(trigger).toHaveActiveTooltip();
+        await expect(trigger).toHaveTooltipPlacement(expected);
+
+        // The opposite direction must NOT match (guards against a vacuous check)
+        await expect(trigger).not.toHaveTooltipPlacement(expected === 'above' ? 'below' : 'above');
+      });
+    }
+
+    test('should keep the tooltip arrow centered on the element when placed above', async ({ mount }) => {
+      const component = await mount('Tooltip/PlacementTest');
+      const trigger = component.locator('#placement-above');
+
+      await trigger.hover();
+
+      await expect(trigger).toHaveActiveTooltip();
+      await expect(trigger).toHaveCenteredTooltipArrow();
+    });
+  });
+
+  test.describe('Tooltip - Max width', () => {
+    const tooltipWidthOf = async (trigger: Locator): Promise<number> => {
+      const box = await trigger.locator('.tooltip-content').boundingBox();
+      expect(box, 'tooltip body should be rendered').not.toBeNull();
+      return box!.width;
+    };
+
+    test('should limit the tooltip width to a custom pixel value and wrap the text', async ({ mount }) => {
+      const component = await mount('Tooltip/MaxWidthTest');
+      const trigger = component.locator('#max-width-px');
+
+      await trigger.hover();
+      await expect(trigger).toHaveActiveTooltip();
+
+      await expect(trigger.locator('.tooltip-content')).toHaveCSS('max-width', '150px');
+      // The text is far wider than 150px, so the tooltip is exactly as wide as allowed
+      expect(await tooltipWidthOf(trigger)).toBeCloseTo(150, 0);
+    });
+
+    test('should fall back to the default maximum width', async ({ mount }) => {
+      const component = await mount('Tooltip/MaxWidthTest');
+      const trigger = component.locator('#max-width-default');
+
+      await trigger.hover();
+      await expect(trigger).toHaveActiveTooltip();
+
+      expect(await tooltipWidthOf(trigger)).toBeCloseTo(DEFAULT_MAX_WIDTH, 0);
+    });
+
+    test('should not stretch short tooltip text up to the maximum width', async ({ mount }) => {
+      const component = await mount('Tooltip/MaxWidthTest');
+      const trigger = component.locator('#max-width-short-text');
+
+      await trigger.hover();
+      await expect(trigger).toHaveActiveTooltip();
+
+      const width = await tooltipWidthOf(trigger);
+      expect(width).toBeGreaterThan(0);
+      expect(width).toBeLessThan(DEFAULT_MAX_WIDTH);
+    });
   });
 });
 

@@ -149,7 +149,8 @@ export const initializeApplication = async () => {
 
     // Sync local information of the activity's participants with the Discord backend
     await syncParticipants(discordSdk, participants);
-  } catch (error: any) {
+  } catch (e: unknown) {
+    const error = e as Error;
     console.error('[INIT] Initialization Failed:', error);
     initError.value = error.message || 'An unknown connection error occurred.';
   } finally {
