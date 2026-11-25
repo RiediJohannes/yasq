@@ -26,6 +26,7 @@ import { TimeBonusPlot } from '@components/TimeBonusPlot';
 import { WithTooltip } from '@components/Tooltip';
 import { RadioGroup } from '@components/RadioGroup';
 import { AchievementBonusSettingsPanel } from '@components/AchievementBonusSettings';
+import { YasqLogo } from '@components/YasqLogo';
 
 export const SetupView = ({ isHost }: { isHost: boolean }) => {
   const backend = useBackend();
@@ -98,10 +99,14 @@ export const SetupView = ({ isHost }: { isHost: boolean }) => {
 
   return (
     <div className="view-container centered">
-      <div
-        className="logo"
-        role="img"
-        aria-label="YASQ logo"
+      {/*<div*/}
+      {/*  className="logo"*/}
+      {/*  role="img"*/}
+      {/*  aria-label="YASQ logo"*/}
+      {/*/>*/}
+      <YasqLogo
+        className="logo-new"
+        forceJs={false}
       />
 
       {!isHost ? (

@@ -186,6 +186,13 @@ img {
   box-sizing: border-box;
 }
 
+.logo-new {
+  width: 12rem;
+  color: color-mix(white 87%, var(--bg-main));
+  padding: 0 1.5rem;
+  margin: 1.5rem 0;
+}
+
 .logo {
   width: 14em;
   height: 9em;

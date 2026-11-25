@@ -1,0 +1,166 @@
+/* YasqLogo.css – import once. Class names are scoped under .yasq-logo.
+   Tuning guide: the values marked [TUNE] are the knobs. */
+
+/* Master progress: 0 = rest, 1 = fully pulled (springs overshoot it). Must be global. */
+@property --p {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+.yasq-logo {
+  width: 100%;
+  height: auto;
+  overflow: visible; /* the beam and tail leave the viewBox on hover */
+  cursor: pointer;
+  color: #000; /* logo colour: everything uses currentColor */
+  --pull: calc(var(--p) * 145); /* [TUNE] rope travel in SVG units (JS mode: PULL) */
+}
+
+/* ---------- Y, A, S ---------- */
+.yasq-logo .letter {
+  fill: currentColor;
+  transform-box: fill-box;
+}
+.yasq-logo .y {
+  transform-origin: 96% 10%;
+  transform: translate(calc(var(--p) * 180px), calc(var(--p) * 11px)) /* [TUNE] shift of the Y beam */
+    scale(calc(1 + 0.16 * var(--p)), calc(1 + 0.08 * var(--p))) /* [TUNE] stretch x / y */
+    skewX(calc(var(--p) * -15deg));
+} /* [TUNE] skew */
+.yasq-logo .a,
+.yasq-logo .s {
+  transform-origin: 50% 100%;
+}
+.yasq-logo .a {
+  transform: scaleY(calc(1 - 0.05 * var(--p))) translateY(calc(var(--p) * 2.7px));
+} /* [TUNE] squash A */
+.yasq-logo .s {
+  transform: scaleY(calc(1 - 0.04 * var(--p))) translateY(calc(var(--p) * 1.8px));
+} /* [TUNE] squash S */
+
+/* ---------- Q rope: hook, dot and C-arc are dash "windows" on one centre-line ---------- */
+.yasq-logo .seg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 52;
+  stroke-linecap: butt; /* 52 = rope thickness */
+  stroke-dasharray: calc(1px * var(--len)) 99999px;
+  stroke-dashoffset: calc(-1px * (var(--a) + var(--pull)));
+}
+.yasq-logo .hook {
+  --a: 182;
+  --len: 577.3;
+}
+.yasq-logo .arc {
+  --a: 777.3;
+  --len: 367.9;
+} /* ends at the hinge (x = 1035 at rest) */
+.yasq-logo .dot {
+  --a: 120;
+  --len: 0.01;
+  stroke-width: 60;
+  stroke-linecap: round;
+} /* 60 = dot diameter */
+
+/* Loose end: 100-unit ribbon hinged at the end of the C-arc. Position follows --pull. */
+.yasq-logo .end {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 52;
+  stroke-linecap: butt;
+  transform-box: view-box;
+  transform-origin: 0 0;
+  transform: translate(calc(1px * (1035 + var(--pull))), 457px);
+}
+
+/* Underpass band cut out of the rope below the hook */
+.yasq-logo .halo {
+  stroke: #000;
+}
+.yasq-logo .halo.band {
+  --a: 120;
+  --len: 639.3;
+  stroke-width: 90;
+} /* [TUNE] 52 + 2 x gap (19) */
+.yasq-logo .halo.dot {
+  stroke-width: 92;
+} /* [TUNE] 60 + 2 x gap (16) */
+
+/* ================= CSS-only mode (skipped when the component is in JS mode) ================= */
+.yasq-logo:not(.is-js) {
+  transition: --p 1s cubic-bezier(0.25, 1.4, 0.5, 1); /* fallback if linear() is unsupported */
+  transition: --p 1s linear(); /* [TUNE] return: duration + spring curve */
+}
+.yasq-logo:not(.is-js):hover {
+  --p: 1.1;
+  transition: --p 0.55s cubic-bezier(0.25, 1.4, 0.5, 1);
+  transition: --p 0.55s
+    linear(
+      0,
+      0.018,
+      0.068,
+      0.14,
+      0.227,
+      0.322,
+      0.422,
+      0.52,
+      0.615,
+      0.703,
+      0.783,
+      0.853,
+      0.914,
+      0.965,
+      1.006,
+      1.038,
+      1.062,
+      1.079,
+      1.089,
+      1.094,
+      1.095,
+      1.092,
+      1.086,
+      1.079,
+      1.07,
+      1.061,
+      1.051,
+      1.042,
+      1.033,
+      1.025,
+      1.018,
+      1.012,
+      1.006,
+      1.002,
+      0.998,
+      0.995,
+      0.993,
+      0.992,
+      0.991,
+      0.991,
+      1
+    ); /* [TUNE] pull: duration + spring curve */
+}
+@supports (d: path('M0 0')) {
+  .yasq-logo:not(.is-js) .end {
+    /* released: hanging in a curve */
+    d: path(
+      'M 0 0 C 34.12 0 65.64 18.20 82.70 47.75'
+    ); /* [TUNE] hang shape (keep in sync with the d attribute in the JSX) */
+    transition: d 0.6s cubic-bezier(0.3, 1.2, 0.5, 1); /* [TUNE] droop speed; 2nd value >1 = tiny sag */
+  }
+  .yasq-logo:not(.is-js):hover .end {
+    /* pulled: straight */
+    d: path('M 0 0 C 33.33 0 66.67 0 100 0');
+    transition: d 0.28s cubic-bezier(0.4, 0, 0.2, 1); /* [TUNE] how fast the end lifts */
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .yasq-logo:not(.is-js),
+  .yasq-logo:not(.is-js):hover {
+    transition-duration: 0.2s;
+    transition-timing-function: ease;
+  }
+  .yasq-logo:not(.is-js):hover {
+    --p: 0.35;
+  }
+}
