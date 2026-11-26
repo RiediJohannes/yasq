@@ -1,20 +1,40 @@
-/* YasqLogo.css – import once. Class names are scoped under .yasq-logo.
-   Tuning guide: the values marked [TUNE] are the knobs. */
+/* YasqLogo.css – import once.
+ *
+ * This file contains NO tuning numbers. Every tunable value arrives as a `--yasq-*` custom property that
+ * <YasqLogo> sets inline from its props (defaults: yasqLogoParams.ts). Only structural geometry lives here.
+ *
+ * Sections:  1) SHARED (both modes)   2) CSS-ONLY MODE (`.yasq-logo:not(.is-js)`)
+ * JS mode needs no animation CSS: it only writes --yasq-progress and the loose end's `d` (useYasqJsAnimation.ts).
+ */
 
-/* Master progress: 0 = rest, 1 = fully pulled (springs overshoot it). Must be global. */
-@property --p {
+/* Animation progress: 0 = rest, ~1 = rope pulled (springs overshoot it). Registered so CSS can transition it. */
+@property --yasq-progress {
   syntax: '<number>';
   inherits: true;
   initial-value: 0;
 }
 
+/* ============================================ 1) SHARED ============================================ */
+
 .yasq-logo {
+  /* structural geometry of the logo (not tunable) */
+  --yasq-rope-width: 52;
+  --yasq-dot-diameter: 60;
+  --yasq-ring-center-x: 983;
+  --yasq-ring-center-y: 320;
+  --yasq-ring-radius: 137;
+  --yasq-ring-cut-angle: -135; /* resting position of the ring cut, in degrees (up-left diagonal) */
+  --yasq-looseend-hinge-x: 1035; /* where the loose end is attached at rest */
+  --yasq-looseend-hinge-y: 457;
+
+  /* how far the rope has travelled, in logo units */
+  --yasq-rope-offset: calc(var(--yasq-progress) * var(--yasq-pull-distance));
+
   width: 100%;
   height: auto;
-  overflow: visible; /* the beam and tail leave the viewBox on hover */
+  overflow: visible; /* the beam and the tail leave the viewBox on hover */
   cursor: pointer;
   color: #000; /* logo colour: everything uses currentColor */
-  --pull: calc(var(--p) * 145); /* [TUNE] rope travel in SVG units (JS mode: PULL) */
 }
 
 /* ---------- Y, A, S ---------- */
@@ -24,143 +44,135 @@
 }
 .yasq-logo .y {
   transform-origin: 96% 10%;
-  transform: translate(calc(var(--p) * 180px), calc(var(--p) * 11px)) /* [TUNE] shift of the Y beam */
-    scale(calc(1 + 0.16 * var(--p)), calc(1 + 0.08 * var(--p))) /* [TUNE] stretch x / y */
-    skewX(calc(var(--p) * -15deg));
-} /* [TUNE] skew */
+  transform: translate(
+      calc(var(--yasq-progress) * var(--yasq-beam-shift-x) * 1px),
+      calc(var(--yasq-progress) * var(--yasq-beam-shift-y) * 1px)
+    )
+    scale(
+      calc(1 + var(--yasq-beam-stretch-x) * var(--yasq-progress)),
+      calc(1 + var(--yasq-beam-stretch-y) * var(--yasq-progress))
+    )
+    skewX(calc(var(--yasq-progress) * var(--yasq-beam-skew) * 1deg));
+}
 .yasq-logo .a,
 .yasq-logo .s {
   transform-origin: 50% 100%;
 }
 .yasq-logo .a {
-  transform: scaleY(calc(1 - 0.05 * var(--p))) translateY(calc(var(--p) * 2.7px));
-} /* [TUNE] squash A */
+  transform: scaleY(calc(1 - var(--yasq-a-squash) * var(--yasq-progress)))
+    translateY(calc(var(--yasq-progress) * var(--yasq-a-sink) * 1px));
+}
 .yasq-logo .s {
-  transform: scaleY(calc(1 - 0.04 * var(--p))) translateY(calc(var(--p) * 1.8px));
-} /* [TUNE] squash S */
+  transform: scaleY(calc(1 - var(--yasq-s-squash) * var(--yasq-progress)))
+    translateY(calc(var(--yasq-progress) * var(--yasq-s-sink) * 1px));
+}
 
-/* ---------- Q rope: hook, dot and C-arc are dash "windows" on one centre-line ---------- */
+/* ---------- Q rope ----------
+ * Hook, dot and C-arc are "dash windows" on one centre-line (#…-rope): stroke-dasharray picks the window's
+ * length, stroke-dashoffset its start. Sliding every window by --yasq-rope-offset pulls the rope. */
 .yasq-logo .seg {
   fill: none;
   stroke: currentColor;
-  stroke-width: 52;
-  stroke-linecap: butt; /* 52 = rope thickness */
-  stroke-dasharray: calc(1px * var(--len)) 99999px;
-  stroke-dashoffset: calc(-1px * (var(--a) + var(--pull)));
+  stroke-width: calc(1px * var(--yasq-rope-width));
+  stroke-linecap: butt;
+  stroke-dasharray: calc(1px * var(--yasq-window-length)) 99999px;
+  stroke-dashoffset: calc(-1px * (var(--yasq-window-start) + var(--yasq-rope-offset)));
 }
 .yasq-logo .hook {
-  --a: 182;
-  --len: 577.3;
+  --yasq-window-start: 182; /* stem bottom */
+  --yasq-window-length: 586.91; /* … up to the ring cut */
 }
 .yasq-logo .arc {
-  --a: 777.3;
-  --len: 367.9;
-} /* ends at the hinge (x = 1035 at rest) */
+  --yasq-window-start: 768.91; /* abuts the hook; the ring cut separates them */
+  --yasq-window-length: 376.3; /* … to the hinge of the loose end (+1.5 overlap) */
+}
 .yasq-logo .dot {
-  --a: 120;
-  --len: 0.01;
-  stroke-width: 60;
+  --yasq-window-start: 120;
+  --yasq-window-length: 0.01; /* zero-length dash + round cap = disc */
+  stroke-width: calc(1px * var(--yasq-dot-diameter));
   stroke-linecap: round;
-} /* 60 = dot diameter */
+}
 
-/* Loose end: 100-unit ribbon hinged at the end of the C-arc. Position follows --pull. */
+/* Loose end: ribbon hinged at the end of the C-arc. Its position follows the rope; its shape is animated
+ * by `d` (CSS mode: transition below, JS mode: attribute written per frame). */
 .yasq-logo .end {
   fill: none;
   stroke: currentColor;
-  stroke-width: 52;
+  stroke-width: calc(1px * var(--yasq-rope-width));
   stroke-linecap: butt;
   transform-box: view-box;
   transform-origin: 0 0;
-  transform: translate(calc(1px * (1035 + var(--pull))), 457px);
+  transform: translate(
+    calc(1px * (var(--yasq-looseend-hinge-x) + var(--yasq-rope-offset))),
+    calc(1px * var(--yasq-looseend-hinge-y))
+  );
 }
 
-/* Underpass band cut out of the rope below the hook */
+/* Whitespace, drawn inside the masks: black shapes are cut out of whatever lies underneath. */
 .yasq-logo .halo {
   stroke: #000;
 }
 .yasq-logo .halo.band {
-  --a: 120;
-  --len: 639.3;
-  stroke-width: 90;
-} /* [TUNE] 52 + 2 x gap (19) */
+  --yasq-window-start: 120;
+  --yasq-window-length: 648.91; /* from the dot to the ring cut */
+  stroke-width: calc(1px * (var(--yasq-rope-width) + 2 * var(--yasq-rope-gap)));
+}
 .yasq-logo .halo.dot {
-  stroke-width: 92;
-} /* [TUNE] 60 + 2 x gap (16) */
+  stroke-width: calc(1px * (var(--yasq-dot-diameter) + 2 * var(--yasq-dot-gap)));
+}
+/* Straight cut with parallel edges across the ring. It starts at the resting angle and rides along with the
+ * rope: one radian of ring angle per `ring-radius` units of rope travel. */
+.yasq-logo .ring-cut {
+  stroke: #000;
+  stroke-width: calc(1px * var(--yasq-ring-cut-gap));
+  transform-box: view-box;
+  transform-origin: 0 0;
+  transform: translate(calc(1px * var(--yasq-ring-center-x)), calc(1px * var(--yasq-ring-center-y)))
+    rotate(calc(1deg * (var(--yasq-ring-cut-angle) - var(--yasq-rope-offset) / var(--yasq-ring-radius) * 57.29578)));
+}
 
-/* ================= CSS-only mode (skipped when the component is in JS mode) ================= */
+/* ====================================== 2) CSS-ONLY MODE ====================================== */
+/* Everything below is skipped when the component runs in JS mode (`.is-js`). */
+
+/* Rope progress. The cubic-bezier is only a fallback for browsers without linear(). */
 .yasq-logo:not(.is-js) {
-  transition: --p 1s cubic-bezier(0.25, 1.4, 0.5, 1); /* fallback if linear() is unsupported */
-  transition: --p 1s linear(); /* [TUNE] return: duration + spring curve */
+  transition: --yasq-progress var(--yasq-release-duration) cubic-bezier(0.25, 1.2, 0.5, 1);
 }
 .yasq-logo:not(.is-js):hover {
-  --p: 1.1;
-  transition: --p 0.55s cubic-bezier(0.25, 1.4, 0.5, 1);
-  transition: --p 0.55s
-    linear(
-      0,
-      0.018,
-      0.068,
-      0.14,
-      0.227,
-      0.322,
-      0.422,
-      0.52,
-      0.615,
-      0.703,
-      0.783,
-      0.853,
-      0.914,
-      0.965,
-      1.006,
-      1.038,
-      1.062,
-      1.079,
-      1.089,
-      1.094,
-      1.095,
-      1.092,
-      1.086,
-      1.079,
-      1.07,
-      1.061,
-      1.051,
-      1.042,
-      1.033,
-      1.025,
-      1.018,
-      1.012,
-      1.006,
-      1.002,
-      0.998,
-      0.995,
-      0.993,
-      0.992,
-      0.991,
-      0.991,
-      1
-    ); /* [TUNE] pull: duration + spring curve */
+  --yasq-progress: var(--yasq-hover-progress);
+  transition: --yasq-progress var(--yasq-pull-duration) cubic-bezier(0.25, 1.2, 0.5, 1);
 }
+/* The spring curves are `linear()` tables generated from the damping props. */
+@supports (transition-timing-function: linear(0, 1)) {
+  .yasq-logo:not(.is-js) {
+    transition: --yasq-progress var(--yasq-release-duration) var(--yasq-release-easing);
+  }
+  .yasq-logo:not(.is-js):hover {
+    transition: --yasq-progress var(--yasq-pull-duration) var(--yasq-pull-easing);
+  }
+}
+
+/* Loose end: hangs in a curve when released, is straight when taut. */
 @supports (d: path('M0 0')) {
   .yasq-logo:not(.is-js) .end {
-    /* released: hanging in a curve */
-    d: path(
-      'M 0 0 C 34.12 0 65.64 18.20 82.70 47.75'
-    ); /* [TUNE] hang shape (keep in sync with the d attribute in the JSX) */
-    transition: d 0.6s cubic-bezier(0.3, 1.2, 0.5, 1); /* [TUNE] droop speed; 2nd value >1 = tiny sag */
+    d: var(--yasq-looseend-hanging-path);
+    transition: d var(--yasq-droop-duration) var(--yasq-droop-easing);
   }
   .yasq-logo:not(.is-js):hover .end {
-    /* pulled: straight */
-    d: path('M 0 0 C 33.33 0 66.67 0 100 0');
-    transition: d 0.28s cubic-bezier(0.4, 0, 0.2, 1); /* [TUNE] how fast the end lifts */
+    d: var(--yasq-looseend-taut-path);
+    transition: d var(--yasq-straighten-duration) var(--yasq-straighten-easing);
   }
 }
+
 @media (prefers-reduced-motion: reduce) {
-  .yasq-logo:not(.is-js),
   .yasq-logo:not(.is-js):hover {
-    transition-duration: 0.2s;
-    transition-timing-function: ease;
+    --yasq-progress: var(--yasq-reduced-motion-progress);
   }
-  .yasq-logo:not(.is-js):hover {
-    --p: 0.35;
+  .yasq-logo:not(.is-js),
+  .yasq-logo:not(.is-js):hover,
+  .yasq-logo:not(.is-js) .end,
+  .yasq-logo:not(.is-js):hover .end {
+    transition-duration: var(--yasq-reduced-motion-duration);
+    transition-timing-function: ease;
   }
 }
