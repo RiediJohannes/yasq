@@ -5,7 +5,7 @@ export function success<T extends object>(data: T): Fallible<T> {
   return { ok: true, ...data };
 }
 
-export function failure<T = unknown>(error: string): Fallible<T> {
+export function failure(error: string): Fallible<never> {
   return { ok: false, error };
 }
 

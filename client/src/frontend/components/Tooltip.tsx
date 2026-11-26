@@ -3,8 +3,7 @@ import { useEffect, useId, useRef } from 'preact/hooks';
 
 import { LONG_PRESS_MILLIS } from '@yasq/shared';
 
-import { activeTooltipContent, activeTooltipId, measureBounds } from '../../utils/exclusiveTooltip';
-import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
+import { activeTooltipContent, activeTooltipId, closeActiveTooltip, measureBounds } from '../../utils/exclusiveTooltip';
 
 interface WithTooltipProps {
   /** The text content or rich VNode to display in the tooltip */
@@ -20,11 +19,6 @@ interface WithTooltipProps {
 }
 
 export const WithTooltip = ({ text, children, id, disabled = false, elementRef }: WithTooltipProps) => {
-  // Fall back gracefully if disabled or if children is not a valid VNode
-  if (disabled || !text || !isValidElement(children)) {
-    return children;
-  }
-
   const generatedId = useId();
   const targetId = id ?? generatedId;
   const tooltipId = `${targetId}-tooltip`;
@@ -39,6 +33,11 @@ export const WithTooltip = ({ text, children, id, disabled = false, elementRef }
     };
   }, []);
 
+  // Fall back gracefully if disabled or if children is not a valid VNode
+  if (disabled || !text || !isValidElement(children)) {
+    return children;
+  }
+
   const handleOpen = (el: HTMLElement) => {
     measureBounds(el);
     activeTooltipContent.value = text;
@@ -47,8 +46,7 @@ export const WithTooltip = ({ text, children, id, disabled = false, elementRef }
 
   const handleClose = () => {
     if (activeTooltipId.value === tooltipId) {
-      activeTooltipId.value = null;
-      activeTooltipContent.value = null;
+      closeActiveTooltip();
     }
   };
 
@@ -70,13 +68,6 @@ export const WithTooltip = ({ text, children, id, disabled = false, elementRef }
       deferredToggleTimer.current = null;
     }
   };
-
-  // Listen for the Escape key to close the tooltip as per MDN guidelines
-  useKeyboardShortcut({ key: 'Escape' }, () => {
-    if (isTooltipOpen) {
-      handleClose();
-    }
-  });
 
   const childProps = children.props || {};
   const childHasOnClick = !!childProps.onClick;

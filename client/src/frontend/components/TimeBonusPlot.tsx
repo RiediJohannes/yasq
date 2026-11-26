@@ -10,7 +10,7 @@
  * the file.
  */
 
-import { useMemo, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { memo } from 'preact/compat';
 
 import {
@@ -28,6 +28,7 @@ import { WithTooltip } from '@components/Tooltip';
 import { ZoomLens } from '@components/Icons';
 
 import { binarySearchClosestItem, findUser, getPointerX } from '../../utils/helper';
+import { useRovingTabIndex } from '../hooks/useRovingTabIndex';
 
 enum DataPointType {
   CURVE = 'curve',
@@ -116,7 +117,6 @@ const TimeBonusPlotSettings = {
 const { plot, yDomain, zoom, interaction, tooltip, markers } = TimeBonusPlotSettings;
 const svgHeight = plot.height + plot.avatarRowHeight;
 
-/** Formats a time from the domain space (ms) in seconds. */
 const formatTimeInSeconds = (timeInMilliseconds: number) => (timeInMilliseconds / 1000).toFixed(tooltip.timeDecimals);
 
 const isSameHoverTarget = (first: DataPoint, second: DataPoint) =>
@@ -312,6 +312,12 @@ const PlayerMarker = memo(
 
         {/* Player avatar at the bottom of the plot */}
         <g class="player-avatar-bundle">
+          <circle
+            cx={plotX}
+            cy={avatarCenterY}
+            r={markers.avatarRadius}
+            class="player-avatar-background"
+          />
           {avatarUrl !== null && (
             <image
               href={avatarUrl}
@@ -362,6 +368,7 @@ interface TimeBonusPlotProps {
 export const TimeBonusPlot = ({ data, participants, currentPlayer }: TimeBonusPlotProps) => {
   if (!data) return null;
 
+  const plotRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
   const touchGestureStartRef = useRef<ClientPoint | null>(null);
@@ -433,6 +440,25 @@ export const TimeBonusPlot = ({ data, participants, currentPlayer }: TimeBonusPl
     [playerGuessesSortedByTime, minVisibleTime, maxVisibleTime]
   );
 
+  const { getTabProps, handleKeyDown, setFocusedIndex } = useRovingTabIndex(visiblePlayerGuessesSortedByTime.length);
+
+  /** Guess of the current roving tab stop. Survives blur so it can be re-located after a zoom change. */
+  const tabStopGuessRef = useRef<PlayerTimeBonusPoint | null>(null);
+  const showFocusedMarkerTooltip = useRef(false);
+
+  // Re-locate the tab stop by player identity when the visible list changes - falling back to the nearest visible guess otherwise.
+  useEffect(() => {
+    const tabStop = tabStopGuessRef.current;
+    if (!tabStop) return;
+
+    let index = visiblePlayerGuessesSortedByTime.findIndex(g => g.playerId === tabStop.playerId);
+    if (index === -1) {
+      const { item: nearest } = binarySearchClosestItem(visiblePlayerGuessesSortedByTime, tabStop.time, g => g.time);
+      index = nearest ? visiblePlayerGuessesSortedByTime.indexOf(nearest) : 0;
+    }
+    setFocusedIndex(index);
+  }, [visiblePlayerGuessesSortedByTime, setFocusedIndex]);
+
   // Functions to convert between the domain space (time/multiplier) and plot space (SVG viewBox units),
   // dynamically adjusting to the currently visible time range
   const timeToPlotX = (time: number) => ((time - minVisibleTime) / visibleTimeSpan) * plot.width;
@@ -497,17 +523,24 @@ export const TimeBonusPlot = ({ data, participants, currentPlayer }: TimeBonusPl
         : multiplierToPlotY(hoverTarget.item.multiplier),
   };
 
-  const getMarkerColor = (playerGuess: PlayerTimeBonusPoint) => {
-    if (playerGuess.playerId === currentPlayerId) return 'var(--color-marker-current)';
-    if (playerGuess.multiplier === null) return 'var(--color-marker-incorrect)';
-    if (playerGuess.fullyCorrect) return 'var(--color-marker-correct)';
-    return 'var(--color-marker-partial)';
-  };
-
   const getPlayerName = (playerGuess: PlayerTimeBonusPoint) => {
     if (playerGuess.playerId === currentPlayerId) return 'You';
     const participant = findUser(participants, playerGuess.playerId);
     return participant !== null ? getDisplayName(participant) : 'Unknown Player';
+  };
+
+  const getGuessLabel = (guess: PlayerTimeBonusPoint) => {
+    const result =
+      guess.multiplier !== null ? `${(100 * guess.multiplier).toFixed(tooltip.multiplierDecimals)}%` : 'incorrect';
+    return `${getPlayerName(guess)}: ${result}, ${formatTimeInSeconds(guess.time)} seconds`;
+  };
+
+  const getMarkerColor = (playerGuess: PlayerTimeBonusPoint) => {
+    if (playerGuess.playerId === currentPlayerId && playerGuess.multiplier === null)
+      return 'var(--color-marker-current)';
+    if (playerGuess.multiplier === null) return 'var(--color-marker-incorrect)';
+    if (playerGuess.fullyCorrect) return 'var(--color-marker-correct)';
+    return 'var(--color-marker-partial)';
   };
 
   const tooltipAccentColor = hoverTarget
@@ -632,17 +665,47 @@ export const TimeBonusPlot = ({ data, participants, currentPlayer }: TimeBonusPl
   };
 
   const handlePointerLeave = (_: MouseEvent | TouchEvent) => {
-    setHoverTarget(null);
+    // Show the focused marker tooltip again when the mouse leaves the plot
+    const focusedGuess = showFocusedMarkerTooltip.current ? tabStopGuessRef.current : null;
+    setHoverTarget(focusedGuess && { type: DataPointType.PLAYER, item: focusedGuess });
   };
 
   const handleTouchEnd = (e: TouchEvent) => {
     touchGestureStartRef.current = null;
     touchGestureDirectionRef.current = GestureDirection.NONE;
+    if (e.cancelable) e.preventDefault();
     handlePointerLeave(e);
+  };
+
+  const handleMarkerFocus = (guess: PlayerTimeBonusPoint) => {
+    tabStopGuessRef.current = guess;
+    showFocusedMarkerTooltip.current = true;
+    updateHoverTarget({ type: DataPointType.PLAYER, item: guess });
+  };
+
+  const handleMarkerBlur = (guess: PlayerTimeBonusPoint) => {
+    if (tabStopGuessRef.current?.playerId === guess.playerId) {
+      showFocusedMarkerTooltip.current = false;
+    }
+    // Only clear the tooltip if it still belongs to this marker
+    setHoverTarget(prev =>
+      prev?.type === DataPointType.PLAYER && prev.item.playerId === guess.playerId ? null : prev
+    );
+  };
+
+  const revealPlot = () => {
+    const plot = plotRef.current;
+    if (!plot) return;
+
+    // Wait a frame as to not interfere with the browser's focus-scrolling towards the marker
+    requestAnimationFrame(() => {
+      plot.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+    });
   };
 
   return (
     <div
+      ref={plotRef}
       class="time-bonus-plot-area"
       onMouseMove={handlePointerInteraction}
       onMouseLeave={handlePointerLeave}
@@ -753,6 +816,51 @@ export const TimeBonusPlot = ({ data, participants, currentPlayer }: TimeBonusPl
             );
           })}
         </svg>
+
+        {/* Invisible but tab-navigable markers at the player points */}
+        <div
+          class="plot-keyboard-layer"
+          role="group"
+          aria-label="Player guesses. Use the left and right arrow keys to move between players."
+        >
+          {visiblePlayerGuessesSortedByTime.map((playerGuess, index) => {
+            const { elementRef, tabIndex, onFocus } = getTabProps(index);
+            return (
+              <div
+                key={playerGuess.playerId}
+                ref={elementRef}
+                tabIndex={tabIndex}
+                role="img"
+                aria-label={getGuessLabel(playerGuess)}
+                class="plot-keyboard-target"
+                style={{
+                  left: `${(timeToPlotX(playerGuess.time) / plot.width) * 100}%`,
+                  top: `${(playerGuessToPlotY(playerGuess) / svgHeight) * 100}%`,
+                }}
+                onFocus={e => {
+                  const isManualFocusAction =
+                    e.currentTarget.parentElement?.contains(e.relatedTarget as Node | null) ?? false;
+
+                  onFocus();
+                  handleMarkerFocus(playerGuess);
+
+                  if (!isManualFocusAction) revealPlot();
+                }}
+                onBlur={() => handleMarkerBlur(playerGuess)}
+                onKeyDown={e => {
+                  // Dismiss the tooltip on Escape press
+                  if (e.key === 'Escape' && hoverTarget !== null) {
+                    e.stopPropagation();
+                    showFocusedMarkerTooltip.current = false;
+                    setHoverTarget(null);
+                  } else {
+                    handleKeyDown(e, index);
+                  }
+                }}
+              />
+            );
+          })}
+        </div>
 
         {/* Tooltip displaying some information about the currently hovered curve or player point */}
         {hoverTarget && hoverPlotPosition && (

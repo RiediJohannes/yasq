@@ -10,6 +10,10 @@
   font-size: 1.3rem;
 }
 
+.gallery-root > * {
+  flex: 1 1 auto;
+}
+
 .flex-row {
   display: flex;
   flex-direction: row;

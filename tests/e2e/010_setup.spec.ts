@@ -149,6 +149,7 @@ test.describe('Host UI', () => {
 
     // First bonus radio buttons
     await page.keyboard.press('Tab');
+    await page.keyboard.press('Tab');
     const checkedBefore = await setupPage.getActiveFirstBonus();
     await page.keyboard.press('ArrowRight');
     const checkedAfter = await setupPage.getActiveFirstBonus();

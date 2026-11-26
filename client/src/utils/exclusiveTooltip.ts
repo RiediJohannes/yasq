@@ -7,27 +7,41 @@ export const activeTooltipId = signal<string | null>(null);
 /** Holds the rich JSX content or plain string of the active tooltip */
 export const activeTooltipContent = signal<ComponentChildren | null>(null);
 
+export const closeActiveTooltip = () => {
+  activeTooltipId.value = null;
+  activeTooltipContent.value = null;
+};
+
 effect(() => {
   if (!activeTooltipId.value) {
     activeTooltipContent.value = null;
     return;
   }
 
-  const closeAll = () => {
-    activeTooltipId.value = null;
-    activeTooltipContent.value = null;
-  };
-
   // Add various window listeners to automatically close all tooltips
-  window.addEventListener('touchstart', closeAll);
-  window.addEventListener('click', closeAll);
-  window.addEventListener('scroll', closeAll, true);
+  window.addEventListener('touchstart', closeActiveTooltip);
+  window.addEventListener('click', closeActiveTooltip);
+  window.addEventListener('scroll', closeActiveTooltip, true);
+  // Listen for the Escape key to close the tooltip as per MDN guidelines
+  window.addEventListener(
+    'keydown',
+    e => {
+      if (e.key !== 'Escape' || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      if (activeTooltipId.value === null) return;
+
+      // Close tooltips and consume Escape keyboard event
+      closeActiveTooltip();
+      e.preventDefault();
+      e.stopPropagation();
+    },
+    true
+  );
 
   // Clean-up function
   return () => {
-    window.removeEventListener('touchstart', closeAll);
-    window.removeEventListener('click', closeAll);
-    window.removeEventListener('scroll', closeAll, true);
+    window.removeEventListener('touchstart', closeActiveTooltip);
+    window.removeEventListener('click', closeActiveTooltip);
+    window.removeEventListener('scroll', closeActiveTooltip, true);
   };
 });
 

@@ -9,8 +9,17 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
   color-scheme: dark light;
+
+  --fixed-white: #ffffff;
+  --blurple: #5865f2;
+  --green: #3ba55e;
+  --yellow: #faa61a;
+  --red: #f04747;
+  --gold: #f1c40f;
+  --silver: #c0c0c0;
+  --bronze: #cd7f32;
+
   --bg-main: #242424;
   --bg-sidebar-card: #2f3136;
   --bg-input: #1a1a1a;
@@ -21,19 +30,11 @@
   --text-muted: #b9bbbe;
   --border-muted: #4f545c;
   --border-input-header: #4e5058;
+  --accent-color: var(--blurple);
   --tags: #4f545c;
   --divider: #444444;
   --shimmer-color: rgba(255, 255, 255, 0.15);
   --tags-border: rgba(255, 255, 255, 0.1);
-
-  --fixed-white: #ffffff;
-  --blurple: #5865f2;
-  --green: #3ba55e;
-  --yellow: #faa61a;
-  --red: #f04747;
-  --gold: #f1c40f;
-  --silver: #c0c0c0;
-  --bronze: #cd7f32;
 
   color: var(--text-main);
   background-color: var(--bg-main);
@@ -47,12 +48,12 @@
   --border-radius-medium: 8px;
 
   /* Colors for time bonus plot */
-  --color-plot-background: #0b0f19; /* alt.: #1e1e1e */
+  --color-plot-background: #0b0f19;
   --color-plot-border: #1e293b;
   --color-plot-axis: #334155;
   --color-hover-line: #475569;
-  --color-curve: var(--blurple); /* alt.: #38bdf8*/
-  --color-curve-start: #51a1e3; /* alt.: var(--color-marker-correct) */
+  --color-curve: var(--blurple);
+  --color-curve-start: #51a1e3;
   /* Colors for player guess markers on time bonus plot */
   --color-marker-current: #df3554;
   --color-marker-correct: #10b981;
@@ -193,6 +194,14 @@ img {
   mask: url('/logo.svg') center / 11em 6em no-repeat;
   will-change: filter;
   transition: filter 300ms;
+}
+
+*:focus-visible {
+  outline: 3px solid var(--accent-color, #5865f2);
+}
+
+.game-area:focus-visible {
+  outline-offset: -3px;
 }
 
 .centered {
@@ -937,6 +946,7 @@ input[type='radio']:checked + .btn-radio {
   gap: var(--space-small);
   padding: var(--space-small);
   cursor: pointer;
+  border-radius: var(--border-radius-medium);
 }
 
 .dropdown-item-empty {
@@ -949,9 +959,9 @@ input[type='radio']:checked + .btn-radio {
   background-color: rgba(0, 0, 0, 0.15);
 }
 .dropdown-item:focus-visible {
-  box-shadow: inset 0 0 0 2px var(--accent-color, #5865f2);
-  background-color: var(--bg-modifier-hover, rgba(255, 255, 255, 0.1));
   outline: none;
+  box-shadow: inset 0 0 0 2px var(--accent-color);
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .dropdown-header span,
@@ -960,19 +970,23 @@ input[type='radio']:checked + .btn-radio {
   line-height: 1;
 }
 
-.avatar-small {
+.avatar {
   display: block;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-}
-
-.avatar-tiny {
-  display: block;
-  width: 24px;
-  height: 24px;
   border-radius: 50%;
   flex-shrink: 0;
+  outline-offset: 1px;
+}
+.avatar > img {
+  display: block;
+  border-radius: 50%;
+}
+.avatar.small > img {
+  width: 32px;
+  height: 32px;
+}
+.avatar.tiny > img {
+  width: 24px;
+  height: 24px;
 }
 
 .controls,
@@ -2018,9 +2032,8 @@ input[value='1']:checked + .btn-radio.correct {
 .game-stats {
   width: 100%;
   max-width: 500px;
-  margin: auto;
   border-radius: var(--border-radius-medium);
-  margin-bottom: var(--space-large);
+  margin: auto auto var(--space-large);
   background: var(--bg-dark);
   padding-top: var(--space-small);
 }
@@ -2447,6 +2460,12 @@ input[value='1']:checked + .btn-radio.correct {
   -webkit-user-select: none;
 }
 
+.time-bonus-plot-area {
+  position: relative;
+  scroll-margin: var(--space-large);
+  scroll-margin-top: 50px;
+}
+
 .time-bonus-plot-canvas {
   position: relative;
 }
@@ -2521,6 +2540,12 @@ input[value='1']:checked + .btn-radio.correct {
   transform-origin: center;
   transform-box: fill-box;
   transition: transform 0.2s ease-out;
+}
+
+.player-avatar-background {
+  stroke: none;
+  fill-opacity: 1;
+  fill: var(--color-plot-background);
 }
 
 .player-avatar-ring {
@@ -2610,6 +2635,30 @@ input[value='1']:checked + .btn-radio.correct {
 
 .player-marker.is-hovered .player-avatar-ring {
   opacity: 1;
+}
+
+.plot-keyboard-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.plot-keyboard-target {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  outline: none;
+}
+
+.plot-keyboard-target:focus-visible {
+  outline: 2px solid var(--color-curve);
+  outline-offset: 2px;
+}
+
+.time-bonus-plot-area:has(.plot-keyboard-target:focus-visible) {
+  outline: 2px solid color-mix(in srgb, var(--color-curve) 10%, #ffffff44);
 }
 
 .plot-tooltip {

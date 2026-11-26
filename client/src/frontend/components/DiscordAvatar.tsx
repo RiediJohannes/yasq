@@ -54,14 +54,22 @@ const DiscordAvatarInner = ({
   hasTooltip = false,
   className = '',
 }: DiscordAvatarInnerProps) => {
-  const cssClass = tiny ? 'avatar-tiny' : 'avatar-small';
-  const discordAvatarHtml = (
+  const cssClass = `avatar ${tiny ? 'tiny' : 'small'} ${className}`;
+  const discordAvatarImg = (
     <NonDraggableImg
       src={src}
       alt={`Avatar of ${userName}`}
-      className={`${cssClass} ${className}`}
     />
   );
 
-  return hasTooltip ? <TooltipDiv text={userName}>{discordAvatarHtml}</TooltipDiv> : discordAvatarHtml;
+  return hasTooltip ? (
+    <TooltipDiv
+      text={userName}
+      className={cssClass}
+    >
+      {discordAvatarImg}
+    </TooltipDiv>
+  ) : (
+    <div className={cssClass}>{discordAvatarImg}</div>
+  );
 };

@@ -206,4 +206,31 @@ test.describe('Tooltip - Desktop', () => {
     await child.focus();
     await expect(child).not.toHaveTooltip();
   });
+
+  // Follows WCAG 1.4.13
+  test('should close active tooltip when the Escape key is pressed', async ({ page, mount }) => {
+    await mount('Tooltip/EscapeCounter');
+    const child = page.locator('#test-tooltip');
+    const escapeCounter = page.locator('#escape-count');
+
+    // Tooltip opened by hovering
+    await child.hover();
+    await expect(child).toHaveActiveTooltip();
+
+    await page.keyboard.press('Escape');
+    await expect(child).not.toHaveActiveTooltip();
+    await expect(escapeCounter).toHaveText('0'); // keypress handled
+
+    // Tooltip opened by focusing
+    await child.focus();
+    await expect(child).toHaveActiveTooltip();
+
+    await page.keyboard.press('Escape');
+    await expect(child).not.toHaveActiveTooltip();
+    await expect(escapeCounter).toHaveText('0'); // keypress handled
+
+    // Escape key presses DO come through if no tooltip is active
+    await page.keyboard.press('Escape');
+    await expect(escapeCounter).toHaveText('1'); // keypress handled
+  });
 });

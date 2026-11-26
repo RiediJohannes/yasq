@@ -8,7 +8,13 @@ type KeyCombo = {
   metaKey?: boolean;
 };
 
-export const useKeyboardShortcut = (shortcut: KeyCombo, callback: (e: KeyboardEvent) => void) => {
+/**
+ * Registers a global event handler for a keyboard shortcut on the main window.
+ * @param shortcut An exact combination of the keys to be pressed for this shortcut to trigger.
+ * @param callback The callback function to be executed when the shortcut is triggered.
+ * A callback may return `false` to indicate that the handler had no effect, so the event will not be consumed.
+ */
+export const useKeyboardShortcut = (shortcut: KeyCombo, callback: (e: KeyboardEvent) => void | boolean) => {
   const callbackRef = useRef(callback);
   callbackRef.current = callback;
 
@@ -35,9 +41,11 @@ export const useKeyboardShortcut = (shortcut: KeyCombo, callback: (e: KeyboardEv
       }
 
       if (matchKey && matchCtrl && matchAlt && matchShift && matchMeta) {
-        event.preventDefault();
-        event.stopPropagation();
-        callbackRef.current(event);
+        const handled = callbackRef.current(event) !== false;
+        if (handled) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
       }
     };
 
