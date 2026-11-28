@@ -1,4 +1,4 @@
-import { Fragment } from 'preact';
+import { CSSProperties, Fragment } from 'preact';
 
 export interface RadioOption<T> {
   label: string;
@@ -13,6 +13,7 @@ interface RadioGroupProps<T> {
   value: T;
   onChange: (value: T) => void;
   groupId?: string;
+  animationClass?: 'anim-smooth-glide' | 'anim-spring' | string;
 }
 
 export function RadioGroup<T extends string | number | boolean>({
@@ -21,12 +22,29 @@ export function RadioGroup<T extends string | number | boolean>({
   value,
   onChange,
   groupId,
+  animationClass = '',
 }: RadioGroupProps<T>) {
+  const activeIndex = options.findIndex(opt => opt.value === value);
+  const activeOption = activeIndex >= 0 ? options[activeIndex] : undefined;
+
+  const style = {
+    '--count': options.length,
+    '--index': Math.max(0, activeIndex),
+  } as CSSProperties;
+
   return (
     <div
       id={groupId}
-      className="button-group"
+      className={`button-group has-thumb ${animationClass}`}
+      style={style}
     >
+      {activeIndex >= 0 && (
+        <span
+          aria-hidden="true"
+          className={`radio-thumb ${activeOption?.className || ''}`}
+        />
+      )}
+
       {options.map(opt => {
         const inputId = opt.id || `${name}-${opt.value}`;
         const isChecked = value === opt.value;

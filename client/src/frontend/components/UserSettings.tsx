@@ -22,6 +22,9 @@ export const UserSettings = () => {
           ]}
           value={themePreference.value}
           onChange={setSignal(themePreference)}
+          // TODO Try out animations
+          // animationClass="anim-smooth-glide"
+          // animationClass="anim-spring"
         />
       </div>
 

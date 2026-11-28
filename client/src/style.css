@@ -1787,19 +1787,77 @@ kbd {
   color: var(--text-main);
 }
 
-input[value='0']:checked + .btn-radio.wrong {
+.radio-thumb.wrong {
   background: var(--red);
-  color: var(--fixed-white);
 }
 
-input[value='0.5']:checked + .btn-radio.partial {
+.radio-thumb.partial {
   background: var(--yellow);
+}
+
+.radio-thumb.correct {
+  background: var(--green);
+}
+
+.button-group.has-thumb {
+  position: relative;
+  --pad: 4px;
+  --gap: var(--space-tiny);
+  padding: var(--pad);
+  gap: var(--gap);
+}
+
+.button-group.has-thumb input[type='radio']:checked + .btn-radio {
+  background-color: transparent;
   color: var(--fixed-white);
 }
 
-input[value='1']:checked + .btn-radio.correct {
-  background: var(--green);
+.button-group.has-thumb .btn-radio {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 0;
+  background-color: transparent;
+  transition: color 0.2s ease;
+}
+
+.button-group.has-thumb .btn-radio.active {
   color: var(--fixed-white);
+}
+
+.radio-thumb {
+  --thumb-width: calc((100% - 2 * var(--pad) - (var(--count) - 1) * var(--gap)) / var(--count));
+
+  position: absolute;
+  top: var(--pad);
+  bottom: var(--pad);
+  left: var(--pad);
+  width: var(--thumb-width);
+  z-index: 0;
+  border-radius: var(--border-radius-small);
+  background: var(--blurple);
+  pointer-events: none;
+  will-change: transform;
+
+  transform: translate3d(calc(var(--index) * (100% + var(--gap))), 0, 0);
+}
+
+.anim-smooth-glide .radio-thumb {
+  transition:
+    transform 0.26s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.1s ease;
+}
+
+.anim-spring .radio-thumb {
+  transition:
+    transform 0.34s cubic-bezier(0.34, 1.35, 0.64, 1),
+    background-color 0.1s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .radio-thumb,
+  .button-group.has-thumb .btn-radio {
+    transition: none !important;
+  }
 }
 
 .track-details {
